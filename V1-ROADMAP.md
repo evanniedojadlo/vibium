@@ -309,9 +309,8 @@ Extend input.go:
 
 **Checkpoint:**
 ```bash
-./bin/clicker type https://www.google.com "textarea[name=q]" "vibium test"
-./bin/clicker screenshot https://www.google.com -o typed.png
-# typed.png shows "vibium test" in search box
+./bin/clicker type https://the-internet.herokuapp.com/inputs "input" "12345"
+# Shows: Typed "12345", value is now: 12345
 ```
 
 ---

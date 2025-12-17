@@ -130,3 +130,90 @@ func (c *Client) MoveMouse(context string, x, y float64) error {
 
 	return c.PerformActions(context, actions)
 }
+
+// TypeText types a string of text using keyboard events.
+func (c *Client) TypeText(context, text string) error {
+	// Build key actions for each character
+	keyActions := make([]map[string]interface{}, 0, len(text)*2)
+	for _, char := range text {
+		keyActions = append(keyActions,
+			map[string]interface{}{
+				"type": "keyDown",
+				"value": string(char),
+			},
+			map[string]interface{}{
+				"type": "keyUp",
+				"value": string(char),
+			},
+		)
+	}
+
+	actions := []map[string]interface{}{
+		{
+			"type":    "key",
+			"id":      "keyboard",
+			"actions": keyActions,
+		},
+	}
+
+	return c.PerformActions(context, actions)
+}
+
+// TypeIntoElement clicks an element and types text into it.
+func (c *Client) TypeIntoElement(context, selector, text string) error {
+	// Click the element first to focus it
+	if err := c.ClickElement(context, selector); err != nil {
+		return fmt.Errorf("failed to click element: %w", err)
+	}
+
+	// Type the text
+	return c.TypeText(context, text)
+}
+
+// PressKey presses a single key (for special keys like Enter, Tab, etc).
+func (c *Client) PressKey(context, key string) error {
+	actions := []map[string]interface{}{
+		{
+			"type": "key",
+			"id":   "keyboard",
+			"actions": []map[string]interface{}{
+				{
+					"type":  "keyDown",
+					"value": key,
+				},
+				{
+					"type":  "keyUp",
+					"value": key,
+				},
+			},
+		},
+	}
+
+	return c.PerformActions(context, actions)
+}
+
+// GetElementValue gets the value of an input element.
+func (c *Client) GetElementValue(context, selector string) (string, error) {
+	// If no context provided, get the first one from the tree
+	if context == "" {
+		tree, err := c.GetTree()
+		if err != nil {
+			return "", fmt.Errorf("failed to get browsing context: %w", err)
+		}
+		if len(tree.Contexts) == 0 {
+			return "", fmt.Errorf("no browsing contexts available")
+		}
+		context = tree.Contexts[0].Context
+	}
+
+	result, err := c.Evaluate(context, fmt.Sprintf(`document.querySelector(%q)?.value || ''`, selector))
+	if err != nil {
+		return "", err
+	}
+
+	if result == nil {
+		return "", nil
+	}
+
+	return fmt.Sprintf("%v", result), nil
+}
