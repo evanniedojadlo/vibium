@@ -23,19 +23,41 @@ cd vibium
 make
 ```
 
-This installs npm dependencies and builds clicker automatically.
+This installs npm dependencies and builds both clicker and the JS client.
 
 ---
 
 ## Available Make Targets
 
 ```bash
-make             # Install deps and build (default)
+make             # Build everything (default)
+make build-go    # Build clicker binary
+make build-js    # Build JS client
 make deps        # Install npm dependencies
-make clean       # Clean clicker binaries
+make serve       # Start proxy server on :9515
+make clean       # Clean binaries and JS dist
 make clean-cache # Clean cached Chrome for Testing
-make clean-all   # Clean everything for fresh install testing
+make clean-all   # Clean everything
 make help        # Show all targets
+```
+
+---
+
+## Using the JS Client
+
+After building, you can test the JS client in a Node REPL:
+
+```bash
+cd clients/javascript && node --experimental-repl-await
+```
+
+```javascript
+const { browser } = await import('./dist/index.mjs')
+const vibe = await browser.launch({ headless: false })
+await vibe.go('https://example.com')
+const shot = await vibe.screenshot()
+require('fs').writeFileSync('test.png', shot)
+await vibe.quit()
 ```
 
 ---

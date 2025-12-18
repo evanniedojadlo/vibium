@@ -48,13 +48,7 @@ it works. actually works. spawns clicker, connects via websocket, drives chrome,
 **try it yourself (local dev):**
 
 ```bash
-# build clicker
-cd clicker && go build -o bin/clicker ./cmd/clicker && cd ..
-
-# build js client
-cd clients/javascript && npm run build && cd ../..
-
-# start node repl
+make                # build everything
 cd clients/javascript && node --experimental-repl-await
 ```
 
@@ -111,7 +105,7 @@ await vibe.quit()
 
 ---
 
-## take my hand, we'll make it i swear
+## we'll make it i swear
 
 halfway there. on track for christmas.
 

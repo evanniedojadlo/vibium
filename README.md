@@ -205,6 +205,7 @@ See [V2-ROADMAP.md](V2-ROADMAP.md) for planned features:
 
 ## Updates
 
+- [2025-12-17: Halfway There](docs/updates/2025-12-17-halfway-there.md)
 - [2025-12-16: Week 1 Progress](docs/updates/2025-12-16-week1-progress.md)
 - [2025-12-11: V1 Announcement](docs/updates/2025-12-11-v1-announcement.md)
 
