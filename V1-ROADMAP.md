@@ -450,7 +450,7 @@ await vibe.quit();
 
 ---
 
-## Day 8: JS Client - Elements & Sync API
+## ✅ Day 8: JS Client - Elements & Sync API
 
 ### Milestone 8.1: Element Class (Async)
 ```
