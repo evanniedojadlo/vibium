@@ -1,4 +1,7 @@
-.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-python double-tap help
+.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-python double-tap get-version set-version help
+
+# Version from VERSION file
+VERSION := $(shell cat VERSION)
 
 # Default target
 all: build
@@ -8,7 +11,7 @@ build: build-go build-js
 
 # Build clicker binary
 build-go: deps
-	cd clicker && go build -o bin/clicker ./cmd/clicker
+	cd clicker && go build -ldflags="-X main.version=$(VERSION)" -o bin/clicker ./cmd/clicker
 
 # Build JS client
 build-js: deps
@@ -18,11 +21,11 @@ build-js: deps
 # Output: clicker/bin/clicker-{os}-{arch}[.exe]
 build-go-all:
 	@echo "Cross-compiling clicker for all platforms..."
-	cd clicker && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/clicker-linux-amd64 ./cmd/clicker
-	cd clicker && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bin/clicker-linux-arm64 ./cmd/clicker
-	cd clicker && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o bin/clicker-darwin-amd64 ./cmd/clicker
-	cd clicker && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o bin/clicker-darwin-arm64 ./cmd/clicker
-	cd clicker && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o bin/clicker-windows-amd64.exe ./cmd/clicker
+	cd clicker && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=$(VERSION)" -o bin/clicker-linux-amd64 ./cmd/clicker
+	cd clicker && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(VERSION)" -o bin/clicker-linux-arm64 ./cmd/clicker
+	cd clicker && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=$(VERSION)" -o bin/clicker-darwin-amd64 ./cmd/clicker
+	cd clicker && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(VERSION)" -o bin/clicker-darwin-arm64 ./cmd/clicker
+	cd clicker && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=$(VERSION)" -o bin/clicker-windows-amd64.exe ./cmd/clicker
 	@echo "Done. Built binaries:"
 	@ls -lh clicker/bin/clicker-*
 
@@ -154,6 +157,48 @@ clean-all: clean-go clean-js clean-packages clean-cache
 # Alias for clean-go + clean-js
 clean: clean-go clean-js
 
+# Show current version
+get-version:
+	@cat VERSION
+
+# Update version across all packages
+# Usage: make set-version VERSION=x.x.x
+set-version:
+	@if [ -z "$(VERSION)" ]; then echo "Usage: make set-version VERSION=x.x.x"; exit 1; fi
+	@echo "$(VERSION)" > VERSION
+	@# Update all package.json version fields
+	@for f in package.json packages/*/package.json clients/javascript/package.json; do \
+		sed -i '' 's/"version": "[^"]*"/"version": "$(VERSION)"/' "$$f"; \
+	done
+	@# Update optionalDependencies versions in main package
+	@sed -i '' 's/"\(@vibium\/[^"]*\)": "[^"]*"/"\1": "$(VERSION)"/g' packages/vibium/package.json
+	@# Update all pyproject.toml files
+	@for f in clients/python/pyproject.toml packages/python/*/pyproject.toml; do \
+		sed -i '' 's/^version = "[^"]*"/version = "$(VERSION)"/' "$$f"; \
+	done
+	@# Update platform package dependency versions in main Python package
+	@sed -i '' 's/vibium-\([^>]*\)>=[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/vibium-\1>=$(VERSION)/g' clients/python/pyproject.toml
+	@# Update Python __version__ in __init__.py files
+	@sed -i '' 's/__version__ = "[^"]*"/__version__ = "$(VERSION)"/' clients/python/src/vibium/__init__.py
+	@for f in packages/python/*/src/*/__init__.py; do \
+		sed -i '' 's/__version__ = "[^"]*"/__version__ = "$(VERSION)"/' "$$f"; \
+	done
+	@# Regenerate package-lock.json with new versions
+	@rm -f package-lock.json
+	@npm install --package-lock-only --silent
+	@echo "Updated version to $(VERSION) in all files"
+	@echo "Files updated:"
+	@echo "  - VERSION"
+	@echo "  - package.json (root)"
+	@echo "  - packages/vibium/package.json (including optionalDependencies)"
+	@echo "  - packages/*/package.json (5 platform packages)"
+	@echo "  - clients/javascript/package.json"
+	@echo "  - clients/python/pyproject.toml (version + dependencies)"
+	@echo "  - clients/python/src/vibium/__init__.py"
+	@echo "  - packages/python/*/pyproject.toml (5 platform packages)"
+	@echo "  - packages/python/*/src/*/__init__.py (5 platform packages)"
+	@echo "  - package-lock.json (regenerated)"
+
 # Show available targets
 help:
 	@echo "Available targets:"
@@ -181,6 +226,8 @@ help:
 	@echo "  make deps                  - Install npm dependencies"
 	@echo "  make serve                 - Start proxy server on :9515"
 	@echo "  make double-tap            - Kill zombie Chrome/chromedriver processes"
+	@echo "  make get-version           - Show current version"
+	@echo "  make set-version VERSION=x.x.x - Set version across all packages"
 	@echo ""
 	@echo "Clean:"
 	@echo "  make clean                 - Clean binaries and JS dist"

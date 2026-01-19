@@ -72,6 +72,8 @@ make install-browser       # Install Chrome for Testing
 make deps                  # Install npm dependencies
 make serve                 # Start proxy server on :9515
 make double-tap            # Kill zombie Chrome/chromedriver processes
+make get-version           # Show current version
+make set-version VERSION=x.x.x  # Set version across all packages
 ```
 
 ### Clean

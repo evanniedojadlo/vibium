@@ -19,7 +19,7 @@ import (
 	"github.com/vibium/clicker/internal/proxy"
 )
 
-var version = "0.1.3"
+var version = "dev"
 
 // Global flags
 var (

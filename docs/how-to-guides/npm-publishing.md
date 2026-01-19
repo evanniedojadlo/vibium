@@ -6,6 +6,16 @@
 - Member of `@vibium` org on npm
 - Logged in (`npm login`)
 
+## Version Bumping
+
+Before publishing a new version, update the version across all packages:
+
+```bash
+make set-version VERSION=x.x.x
+```
+
+This updates all package.json files, optionalDependencies, Python packages, and regenerates package-lock.json.
+
 ## Build, Test & Package
 
 ```bash
@@ -46,22 +56,6 @@ npx vibium  # Should start MCP server
 
 # Main package (after all platform packages are live)
 (cd packages/vibium && npm publish)
-```
-
-## Version Bumping
-
-All packages must have matching versions. Update all package.json files together:
-
-```bash
-# Files to update:
-# - clients/javascript/package.json
-# - packages/vibium/package.json (version + optionalDependencies versions)
-# - packages/linux-x64/package.json
-# - packages/linux-arm64/package.json
-# - packages/darwin-x64/package.json
-# - packages/darwin-arm64/package.json
-# - packages/win32-x64/package.json
-# - package-lock.json (run `npm install` to regenerate)
 ```
 
 ## Troubleshooting

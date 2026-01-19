@@ -15,6 +15,16 @@ Six packages total:
 | `vibium-linux-arm64` | Linux ARM64 binary |
 | `vibium-win32-x64` | Windows x64 binary |
 
+## Version Bumping
+
+Before publishing a new version, update the version across all packages:
+
+```bash
+make set-version VERSION=x.x.x
+```
+
+This updates all pyproject.toml files, `__init__.py` versions, and dependency constraints.
+
 ## Build Wheels
 
 ```bash
@@ -88,17 +98,6 @@ twine upload dist/*.whl
 twine upload dist/*.whl
 # Prompts for username and password
 ```
-
-## Version Bump Checklist
-
-Before publishing a new version:
-
-1. Update version in `clients/python/pyproject.toml`
-2. Update version in `clients/python/src/vibium/__init__.py`
-3. Update version in all platform `packages/python/*/pyproject.toml` files
-4. Rebuild: `make clean-python-packages && make package-python`
-5. Test locally
-6. Publish
 
 ## Verify Published Package
 
