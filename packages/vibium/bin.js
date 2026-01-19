@@ -21,4 +21,4 @@ function getClickerPath() {
 }
 
 const clickerPath = getClickerPath();
-execFileSync(clickerPath, ['mcp'], { stdio: 'inherit' });
+execFileSync(clickerPath, ['mcp', ...process.argv.slice(2)], { stdio: 'inherit' });
