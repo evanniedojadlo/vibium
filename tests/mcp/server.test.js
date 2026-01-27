@@ -127,12 +127,12 @@ describe('MCP Server: Protocol', () => {
     assert.ok(response.result.capabilities.tools, 'Should have tools capability');
   });
 
-  test('tools/list returns all 7 browser tools', async () => {
+  test('tools/list returns all 8 browser tools', async () => {
     const response = await client.call('tools/list', {});
 
     assert.ok(response.result, 'Should have result');
     assert.ok(response.result.tools, 'Should have tools array');
-    assert.strictEqual(response.result.tools.length, 7, 'Should have 7 tools');
+    assert.strictEqual(response.result.tools.length, 8, 'Should have 8 tools');
 
     const toolNames = response.result.tools.map(t => t.name);
     assert.ok(toolNames.includes('browser_launch'), 'Should have browser_launch');
@@ -141,6 +141,7 @@ describe('MCP Server: Protocol', () => {
     assert.ok(toolNames.includes('browser_type'), 'Should have browser_type');
     assert.ok(toolNames.includes('browser_screenshot'), 'Should have browser_screenshot');
     assert.ok(toolNames.includes('browser_find'), 'Should have browser_find');
+    assert.ok(toolNames.includes('browser_evaluate'), 'Should have browser_evaluate');
     assert.ok(toolNames.includes('browser_quit'), 'Should have browser_quit');
   });
 
@@ -228,6 +229,20 @@ describe('MCP Server: Browser Tools', () => {
     assert.ok(
       response.result.content[0].text.includes('tag=h1'),
       'Should find h1 element'
+    );
+  });
+
+  test('browser_evaluate executes JavaScript', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_evaluate',
+      arguments: { expression: 'document.title' },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Example Domain'),
+      'Should return page title'
     );
   });
 

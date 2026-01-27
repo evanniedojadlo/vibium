@@ -45,6 +45,8 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserScreenshot(args)
 	case "browser_find":
 		return h.browserFind(args)
+	case "browser_evaluate":
+		return h.browserEvaluate(args)
 	case "browser_quit":
 		return h.browserQuit(args)
 	default:
@@ -261,6 +263,41 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 			Type: "text",
 			Text: fmt.Sprintf("tag=%s, text=\"%s\", box={x:%.0f, y:%.0f, w:%.0f, h:%.0f}",
 				info.Tag, info.Text, info.Box.X, info.Box.Y, info.Box.Width, info.Box.Height),
+		}},
+	}, nil
+}
+
+// browserEvaluate executes JavaScript code in the browser.
+func (h *Handlers) browserEvaluate(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	expression, ok := args["expression"].(string)
+	if !ok || expression == "" {
+		return nil, fmt.Errorf("expression is required")
+	}
+
+	result, err := h.client.Evaluate("", expression)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate: %w", err)
+	}
+
+	// Format result as string
+	var resultText string
+	switch v := result.(type) {
+	case string:
+		resultText = v
+	case nil:
+		resultText = "null"
+	default:
+		resultText = fmt.Sprintf("%v", v)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: resultText,
 		}},
 	}, nil
 }

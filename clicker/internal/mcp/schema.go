@@ -97,6 +97,21 @@ func GetToolSchemas() []Tool {
 			},
 		},
 		{
+			Name:        "browser_evaluate",
+			Description: "Execute JavaScript code in the browser and return the result",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"expression": map[string]interface{}{
+						"type":        "string",
+						"description": "JavaScript expression to evaluate",
+					},
+				},
+				"required":             []string{"expression"},
+				"additionalProperties": false,
+			},
+		},
+		{
 			Name:        "browser_quit",
 			Description: "Close the browser session",
 			InputSchema: map[string]interface{}{
