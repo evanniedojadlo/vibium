@@ -194,6 +194,7 @@ See detailed setup guides: [Claude Code](docs/tutorials/claude-code-mcp-setup.md
 | `browser_launch` | Start browser (visible by default) |
 | `browser_navigate` | Go to URL |
 | `browser_find` | Find element by CSS selector |
+| `browser_evaluate` | Execute JavaScript to extract data, query DOM, or inspect page state |
 | `browser_click` | Click an element |
 | `browser_type` | Type text into an element |
 | `browser_screenshot` | Capture viewport (base64 or save to file with `--screenshot-dir`) |
