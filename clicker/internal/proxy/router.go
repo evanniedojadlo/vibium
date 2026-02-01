@@ -8,6 +8,7 @@ import (
 
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
+	"github.com/vibium/clicker/internal/features"
 )
 
 // Default timeout for actionability checks
@@ -175,8 +176,18 @@ func (r *Router) handleVibiumClick(session *BrowserSession, cmd bidiCommand) {
 		context = ctx
 	}
 
-	// Wait for element and get its position
-	info, err := r.waitForElement(session, context, selector, timeout)
+	// Wait for element to be actionable (visible, stable, receives events, enabled)
+	opts := features.WaitOptions{
+		Timeout:  timeout,
+		Interval: 100 * time.Millisecond,
+	}
+	if err := features.WaitForClick(session.BidiClient, context, selector, opts); err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	// Get element position after actionability checks pass
+	info, err := session.BidiClient.FindElement(context, selector)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -234,8 +245,18 @@ func (r *Router) handleVibiumType(session *BrowserSession, cmd bidiCommand) {
 		context = ctx
 	}
 
-	// Wait for element and get its position
-	info, err := r.waitForElement(session, context, selector, timeout)
+	// Wait for element to be actionable for typing (visible, stable, receives events, enabled, editable)
+	opts := features.WaitOptions{
+		Timeout:  timeout,
+		Interval: 100 * time.Millisecond,
+	}
+	if err := features.WaitForType(session.BidiClient, context, selector, opts); err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	// Get element position after actionability checks pass
+	info, err := session.BidiClient.FindElement(context, selector)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
