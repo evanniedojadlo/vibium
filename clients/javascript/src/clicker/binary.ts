@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { getPlatform, getArch } from './platform';
 
 /**
@@ -24,6 +26,18 @@ export function getClickerPath(): string {
 
   // 2. Check platform-specific npm package
   try {
+    // Use createRequire to make this work in both CJS and ESM
+    // In ESM, use import.meta.url; in CJS, construct from __filename
+    let currentModulePath: string;
+    if (typeof __filename !== 'undefined') {
+      // CommonJS
+      currentModulePath = __filename;
+    } else {
+      // ESM - TypeScript won't compile this, but it works at runtime in ESM
+      // @ts-ignore - import.meta.url is available in ESM at runtime
+      currentModulePath = fileURLToPath(import.meta.url);
+    }
+    const require = createRequire(currentModulePath);
     const packagePath = require.resolve(`${packageName}/package.json`);
     const packageDir = path.dirname(packagePath);
     const binaryPath = path.join(packageDir, 'bin', binaryName);
