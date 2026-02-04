@@ -10,7 +10,7 @@ export interface BiDiResponse {
   id: number;
   type: 'success' | 'error';
   result?: unknown;
-  error?: string;
+  error?: string | { error?: string; message?: string }; // Can be flat (spec) or nested (current impl)
   message?: string;
 }
 

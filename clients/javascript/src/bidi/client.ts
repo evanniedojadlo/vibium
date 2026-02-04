@@ -39,7 +39,22 @@ export class BiDiClient {
     this.pendingCommands.delete(response.id);
 
     if (response.type === 'error' && response.error) {
-      pending.reject(new Error(`${response.error}: ${response.message}`));
+      // Handle both flat and nested error formats for compatibility
+      let errorCode: string;
+      let errorMessage: string;
+
+      if (typeof response.error === 'object' && response.error !== null) {
+        // Nested format: { error: { error: "code", message: "msg" } }
+        const errObj = response.error as { error?: string; message?: string };
+        errorCode = errObj.error || 'unknown error';
+        errorMessage = errObj.message || 'An error occurred';
+      } else {
+        // Flat format (BiDi spec): { error: "code", message: "msg" }
+        errorCode = String(response.error);
+        errorMessage = response.message || 'An error occurred';
+      }
+
+      pending.reject(new Error(`${errorCode}: ${errorMessage}`));
     } else {
       pending.resolve(response.result);
     }
