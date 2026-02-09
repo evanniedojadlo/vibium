@@ -59,13 +59,12 @@ See [internals](docs/explanation/internals.md) for component details.
 
 ## Agent Setup
 
-One command to add browser control to your AI coding assistant:
-
 ```bash
+npm install -g vibium
 npx skills add https://github.com/VibiumDev/vibium --skill vibe-check
 ```
 
-That's it. Chrome downloads automatically during install.
+The first command installs Vibium and the `vibe-check` binary, and downloads Chrome. The second installs the skill to `~/.claude/skills/vibe-check/`.
 
 ### CLI Quick Reference
 

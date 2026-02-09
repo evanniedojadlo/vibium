@@ -12,7 +12,7 @@ const KNOWN_SUBCOMMANDS = new Set([
   'mcp', 'navigate', 'click', 'type', 'find', 'find-all', 'screenshot',
   'text', 'html', 'url', 'title', 'eval', 'hover', 'scroll', 'select',
   'keys', 'wait', 'tabs', 'tab-new', 'tab-switch', 'tab-close', 'quit',
-  'install', 'serve', 'version', 'paths', 'daemon', 'skill',
+  'install', 'serve', 'version', 'paths', 'daemon', 'add-skill',
   'launch-test', 'ws-test', 'bidi-test', 'check-actionable',
   'help', 'completion',
 ]);

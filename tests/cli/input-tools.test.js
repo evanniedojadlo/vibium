@@ -21,7 +21,7 @@ describe('CLI: Input Tools', () => {
   });
 
   test('skill --stdout outputs markdown', () => {
-    const result = execSync(`${CLICKER} skill --stdout`, {
+    const result = execSync(`${CLICKER} add-skill --stdout`, {
       encoding: 'utf-8',
       timeout: 5000,
     });
@@ -35,7 +35,7 @@ describe('CLI: Input Tools', () => {
   });
 
   test('skill command installs to ~/.claude/skills/', () => {
-    const result = execSync(`${CLICKER} skill`, {
+    const result = execSync(`${CLICKER} add-skill`, {
       encoding: 'utf-8',
       timeout: 5000,
     });
