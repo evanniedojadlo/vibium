@@ -28,12 +28,12 @@ Install one of the supported AI coding assistants:
 
 **Claude Code:**
 ```bash
-claude mcp add vibium -- npx -y vibium
+claude mcp add vibium -- npx -y vibium mcp
 ```
 
 **Gemini CLI:**
 ```bash
-gemini mcp add vibium npx -y vibium
+gemini mcp add vibium npx -y vibium mcp
 ```
 
 That's it. Chrome downloads automatically on first use.

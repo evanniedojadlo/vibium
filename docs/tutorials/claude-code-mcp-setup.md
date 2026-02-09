@@ -21,7 +21,7 @@ Example output (after adding vibium):
 ```
 Checking MCP server health...
 
-vibium: npx -y vibium - ✓ Connected
+vibium: npx -y vibium mcp - ✓ Connected
 ```
 
 If no MCP servers are configured, the list will be empty.
@@ -31,7 +31,7 @@ If no MCP servers are configured, the list will be empty.
 ### Option 1: Using npx (Recommended)
 
 ```bash
-claude mcp add vibium -- npx -y vibium
+claude mcp add vibium -- npx -y vibium mcp
 ```
 
 ### Option 2: Using Local Binary

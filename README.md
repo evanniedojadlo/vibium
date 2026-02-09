@@ -82,8 +82,8 @@ Full command list: [SKILL.md](skills/vibe-check/SKILL.md)
 **Alternative: MCP server** (for structured tool use instead of CLI):
 
 ```bash
-claude mcp add vibium -- npx -y vibium    # Claude Code
-gemini mcp add vibium npx -y vibium       # Gemini CLI
+claude mcp add vibium -- npx -y vibium mcp    # Claude Code
+gemini mcp add vibium npx -y vibium mcp       # Gemini CLI
 ```
 
 See detailed setup guides: [MCP Server](docs/tutorials/claude-code-mcp-setup.md) | [Gemini CLI](docs/tutorials/gemini-cli-mcp-setup.md)

@@ -13,7 +13,7 @@ This tutorial covers how to configure Vibium as an MCP (Model Context Protocol) 
 ### Option 1: Using the CLI (Recommended)
 
 ```bash
-gemini mcp add vibium npx -y vibium
+gemini mcp add vibium npx -y vibium mcp
 ```
 
 ### Option 2: Manual Configuration
@@ -25,7 +25,7 @@ Edit `~/.gemini/settings.json` (create it if it doesn't exist):
   "mcpServers": {
     "vibium": {
       "command": "npx",
-      "args": ["-y", "vibium"]
+      "args": ["-y", "vibium", "mcp"]
     }
   }
 }
@@ -68,7 +68,7 @@ To use a different directory:
   "mcpServers": {
     "vibium": {
       "command": "npx",
-      "args": ["-y", "vibium", "--screenshot-dir", "./screenshots"]
+      "args": ["-y", "vibium", "mcp", "--screenshot-dir", "./screenshots"]
     }
   }
 }
@@ -81,7 +81,7 @@ To disable file saving (base64 inline only):
   "mcpServers": {
     "vibium": {
       "command": "npx",
-      "args": ["-y", "vibium", "--screenshot-dir", ""]
+      "args": ["-y", "vibium", "mcp", "--screenshot-dir", ""]
     }
   }
 }
@@ -131,15 +131,15 @@ This usually means the MCP server command isn't running correctly. Try:
 
 1. **Verify npx works:**
    ```bash
-   npx -y vibium
+   npx -y vibium mcp
    ```
    You should see "Vibium MCP server" output (press Ctrl+C to exit).
 
 2. **Check Chrome for Testing is installed:**
    ```bash
-   npx -y vibium
+   npx -y vibium mcp
    # Then in another terminal:
-   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}' | npx -y vibium
+   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}' | npx -y vibium mcp
    ```
 
 3. **Use absolute paths** if relative paths aren't working.
@@ -150,7 +150,7 @@ The first time you run Vibium, it downloads Chrome for Testing. If this fails:
 
 ```bash
 # Run directly to see error messages
-npx -y vibium
+npx -y vibium mcp
 ```
 
 On macOS, if you see a Gatekeeper warning about chromedriver, this should be fixed in v0.1.5+.
@@ -160,7 +160,7 @@ On macOS, if you see a Gatekeeper warning about chromedriver, this should be fix
 Send JSON-RPC messages directly to verify the server works:
 
 ```bash
-cat << 'EOF' | npx -y vibium
+cat << 'EOF' | npx -y vibium mcp
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}
 {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"browser_launch","arguments":{"headless":true}}}
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"browser_navigate","arguments":{"url":"https://example.com"}}}

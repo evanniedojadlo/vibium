@@ -163,7 +163,7 @@ See [Getting Started (JavaScript)](getting-started.md) for the JS version.
 
 **Add to Claude Code** (let AI control the browser):
 ```bash
-claude mcp add vibium -- npx -y vibium
+claude mcp add vibium -- npx -y vibium mcp
 ```
 See [Getting Started with MCP](getting-started-mcp.md) for the full guide.
 

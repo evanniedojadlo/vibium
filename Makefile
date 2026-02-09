@@ -14,6 +14,11 @@ build-go: deps
 	cp skills/vibe-check/SKILL.md clicker/cmd/clicker/SKILL.md
 	cd clicker && go build -ldflags="-X main.version=$(VERSION)" -o bin/clicker ./cmd/clicker
 	ln -sf clicker clicker/bin/vibe-check
+	@if [ -d node_modules/@vibium ]; then \
+		platform=$$(node -e "console.log(require('os').platform()+'-'+(require('os').arch()==='x64'?'x64':'arm64'))"); \
+		target="node_modules/@vibium/$$platform/bin/clicker"; \
+		if [ -f "$$target" ]; then cp clicker/bin/clicker "$$target"; fi; \
+	fi
 
 # Build JS client
 build-js: deps
