@@ -120,5 +120,232 @@ func GetToolSchemas() []Tool {
 				"additionalProperties": false,
 			},
 		},
+		{
+			Name:        "browser_get_html",
+			Description: "Get the HTML content of the page or a specific element",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector for a specific element (optional, defaults to full page HTML)",
+					},
+					"outer": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Return outerHTML instead of innerHTML (default: false)",
+						"default":     false,
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_find_all",
+			Description: "Find all elements matching a CSS selector and return their info (tag, text, bounding box)",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector to match elements",
+					},
+					"limit": map[string]interface{}{
+						"type":        "number",
+						"description": "Maximum number of elements to return (default: 10)",
+						"default":     10,
+					},
+				},
+				"required":             []string{"selector"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_wait",
+			Description: "Wait for an element to reach a specified state (attached, visible, or hidden)",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector for the element to wait for",
+					},
+					"state": map[string]interface{}{
+						"type":        "string",
+						"description": "State to wait for: \"attached\" (exists in DOM), \"visible\" (visible on page), or \"hidden\" (not found or not visible)",
+						"enum":        []string{"attached", "visible", "hidden"},
+						"default":     "attached",
+					},
+					"timeout": map[string]interface{}{
+						"type":        "number",
+						"description": "Timeout in milliseconds (default: 30000)",
+						"default":     30000,
+					},
+				},
+				"required":             []string{"selector"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_new_tab",
+			Description: "Open a new browser tab, optionally navigating to a URL",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"url": map[string]interface{}{
+						"type":        "string",
+						"description": "URL to navigate to in the new tab (optional)",
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_list_tabs",
+			Description: "List all open browser tabs with their URLs",
+			InputSchema: map[string]interface{}{
+				"type":                 "object",
+				"properties":           map[string]interface{}{},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_switch_tab",
+			Description: "Switch to a browser tab by index or URL substring",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"index": map[string]interface{}{
+						"type":        "number",
+						"description": "Tab index (0-based) from browser_list_tabs",
+					},
+					"url": map[string]interface{}{
+						"type":        "string",
+						"description": "URL substring to match (alternative to index)",
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_close_tab",
+			Description: "Close a browser tab by index (default: current tab)",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"index": map[string]interface{}{
+						"type":        "number",
+						"description": "Tab index to close (default: 0, the current tab)",
+						"default":     0,
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_hover",
+			Description: "Hover over an element by CSS selector",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector for the element to hover over",
+					},
+				},
+				"required":             []string{"selector"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_select",
+			Description: "Select an option in a <select> element by value",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector for the <select> element",
+					},
+					"value": map[string]interface{}{
+						"type":        "string",
+						"description": "The value to select",
+					},
+				},
+				"required":             []string{"selector", "value"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_scroll",
+			Description: "Scroll the page or a specific element",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"direction": map[string]interface{}{
+						"type":        "string",
+						"description": "Scroll direction: up, down, left, right (default: down)",
+						"enum":        []string{"up", "down", "left", "right"},
+						"default":     "down",
+					},
+					"amount": map[string]interface{}{
+						"type":        "number",
+						"description": "Number of scroll increments (default: 3)",
+						"default":     3,
+					},
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector for element to scroll to (optional, defaults to viewport center)",
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_keys",
+			Description: "Press a key or key combination (e.g., \"Enter\", \"Control+a\", \"Shift+Tab\")",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"keys": map[string]interface{}{
+						"type":        "string",
+						"description": "Key or key combination to press (e.g., \"Enter\", \"Control+a\", \"Shift+ArrowDown\")",
+					},
+				},
+				"required":             []string{"keys"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_get_text",
+			Description: "Get the text content of the page or a specific element",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector for a specific element (optional, defaults to full page text)",
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_get_url",
+			Description: "Get the current page URL",
+			InputSchema: map[string]interface{}{
+				"type":                 "object",
+				"properties":           map[string]interface{}{},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_get_title",
+			Description: "Get the current page title",
+			InputSchema: map[string]interface{}{
+				"type":                 "object",
+				"properties":           map[string]interface{}{},
+				"additionalProperties": false,
+			},
+		},
 	}
 }

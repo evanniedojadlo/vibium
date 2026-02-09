@@ -303,6 +303,20 @@ Clicker includes an MCP (Model Context Protocol) server for AI agent integration
 | `browser_find` | Find element info |
 | `browser_evaluate` | Execute JavaScript to extract data or inspect page state |
 | `browser_quit` | Close the browser |
+| `browser_get_text` | Get text content of page or element |
+| `browser_get_url` | Get the current page URL |
+| `browser_get_title` | Get the current page title |
+| `browser_get_html` | Get HTML content of page or element |
+| `browser_find_all` | Find all elements matching a CSS selector |
+| `browser_wait` | Wait for element to reach a state (attached/visible/hidden) |
+| `browser_hover` | Hover over an element |
+| `browser_select` | Select an option in a `<select>` element |
+| `browser_scroll` | Scroll the page or an element |
+| `browser_keys` | Press a key or key combination |
+| `browser_new_tab` | Open a new browser tab |
+| `browser_list_tabs` | List all open browser tabs |
+| `browser_switch_tab` | Switch to a tab by index or URL |
+| `browser_close_tab` | Close a browser tab |
 
 ### Running the MCP Server
 

@@ -184,6 +184,44 @@ func WaitForType(client *bidi.Client, context, selector string, opts WaitOptions
 	return WaitForActionable(client, context, selector, TypeChecks, opts)
 }
 
+// WaitForHidden polls until an element is either not found or not visible.
+func WaitForHidden(client *bidi.Client, context, selector string, opts WaitOptions) error {
+	if opts.Timeout == 0 {
+		opts.Timeout = DefaultTimeout
+	}
+	if opts.Interval == 0 {
+		opts.Interval = DefaultInterval
+	}
+
+	deadline := time.Now().Add(opts.Timeout)
+
+	for {
+		// Check if element exists
+		_, err := client.FindElement(context, selector)
+		if err != nil {
+			// Element not found — it's hidden
+			return nil
+		}
+
+		// Element exists — check if it's visible
+		visible, err := CheckVisible(client, context, selector)
+		if err != nil || !visible {
+			// Not visible or error checking — treat as hidden
+			return nil
+		}
+
+		if time.Now().After(deadline) {
+			return &errs.TimeoutError{
+				Selector: selector,
+				Timeout:  opts.Timeout,
+				Reason:   "element still visible",
+			}
+		}
+
+		time.Sleep(opts.Interval)
+	}
+}
+
 // runCheck executes a single actionability check.
 func runCheck(client *bidi.Client, context, selector string, check Check) (bool, error) {
 	switch check {

@@ -91,6 +91,63 @@ func (c *Client) GetCurrentURL() (string, error) {
 	return tree.Contexts[0].URL, nil
 }
 
+// CreateTab creates a new browsing context (tab).
+// Returns the context ID of the new tab.
+func (c *Client) CreateTab(url string) (string, error) {
+	params := map[string]interface{}{
+		"type": "tab",
+	}
+
+	msg, err := c.SendCommand("browsingContext.create", params)
+	if err != nil {
+		return "", fmt.Errorf("failed to create tab: %w", err)
+	}
+
+	var result struct {
+		Context string `json:"context"`
+	}
+	if err := json.Unmarshal(msg.Result, &result); err != nil {
+		return "", fmt.Errorf("failed to parse browsingContext.create result: %w", err)
+	}
+
+	// Navigate if URL provided
+	if url != "" {
+		if _, err := c.Navigate(result.Context, url); err != nil {
+			return result.Context, fmt.Errorf("tab created but navigation failed: %w", err)
+		}
+	}
+
+	return result.Context, nil
+}
+
+// ActivateTab brings a browsing context (tab) to focus.
+func (c *Client) ActivateTab(contextID string) error {
+	params := map[string]interface{}{
+		"context": contextID,
+	}
+
+	_, err := c.SendCommand("browsingContext.activate", params)
+	if err != nil {
+		return fmt.Errorf("failed to activate tab: %w", err)
+	}
+
+	return nil
+}
+
+// CloseTab closes a browsing context (tab).
+func (c *Client) CloseTab(contextID string) error {
+	params := map[string]interface{}{
+		"context": contextID,
+	}
+
+	_, err := c.SendCommand("browsingContext.close", params)
+	if err != nil {
+		return fmt.Errorf("failed to close tab: %w", err)
+	}
+
+	return nil
+}
+
 // CaptureScreenshotResult represents the result of browsingContext.captureScreenshot.
 type CaptureScreenshotResult struct {
 	Data string `json:"data"` // Base64-encoded PNG

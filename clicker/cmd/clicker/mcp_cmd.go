@@ -26,7 +26,22 @@ The server provides browser automation tools:
   - browser_type: Type into an element
   - browser_screenshot: Capture the page
   - browser_find: Find element info
-  - browser_quit: Close the browser`,
+  - browser_evaluate: Execute JavaScript
+  - browser_quit: Close the browser
+  - browser_get_text: Get page/element text
+  - browser_get_url: Get current URL
+  - browser_get_title: Get page title
+  - browser_get_html: Get page/element HTML
+  - browser_find_all: Find all matching elements
+  - browser_wait: Wait for element state
+  - browser_hover: Hover over an element
+  - browser_select: Select a dropdown option
+  - browser_scroll: Scroll the page
+  - browser_keys: Press keys
+  - browser_new_tab: Open a new tab
+  - browser_list_tabs: List open tabs
+  - browser_switch_tab: Switch tabs
+  - browser_close_tab: Close a tab`,
 		Example: `  # Run directly (for testing)
   clicker mcp
 

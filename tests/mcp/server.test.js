@@ -127,22 +127,25 @@ describe('MCP Server: Protocol', () => {
     assert.ok(response.result.capabilities.tools, 'Should have tools capability');
   });
 
-  test('tools/list returns all 8 browser tools', async () => {
+  test('tools/list returns all 22 browser tools', async () => {
     const response = await client.call('tools/list', {});
 
     assert.ok(response.result, 'Should have result');
     assert.ok(response.result.tools, 'Should have tools array');
-    assert.strictEqual(response.result.tools.length, 8, 'Should have 8 tools');
+    assert.strictEqual(response.result.tools.length, 22, 'Should have 22 tools');
 
     const toolNames = response.result.tools.map(t => t.name);
-    assert.ok(toolNames.includes('browser_launch'), 'Should have browser_launch');
-    assert.ok(toolNames.includes('browser_navigate'), 'Should have browser_navigate');
-    assert.ok(toolNames.includes('browser_click'), 'Should have browser_click');
-    assert.ok(toolNames.includes('browser_type'), 'Should have browser_type');
-    assert.ok(toolNames.includes('browser_screenshot'), 'Should have browser_screenshot');
-    assert.ok(toolNames.includes('browser_find'), 'Should have browser_find');
-    assert.ok(toolNames.includes('browser_evaluate'), 'Should have browser_evaluate');
-    assert.ok(toolNames.includes('browser_quit'), 'Should have browser_quit');
+    const expectedTools = [
+      'browser_launch', 'browser_navigate', 'browser_click', 'browser_type',
+      'browser_screenshot', 'browser_find', 'browser_evaluate', 'browser_quit',
+      'browser_get_text', 'browser_get_url', 'browser_get_title',
+      'browser_get_html', 'browser_find_all', 'browser_wait',
+      'browser_hover', 'browser_select', 'browser_scroll', 'browser_keys',
+      'browser_new_tab', 'browser_list_tabs', 'browser_switch_tab', 'browser_close_tab',
+    ];
+    for (const tool of expectedTools) {
+      assert.ok(toolNames.includes(tool), `Should have ${tool}`);
+    }
   });
 
   test('unknown method returns error', async () => {
@@ -298,5 +301,231 @@ describe('MCP Server: Browser Tools', () => {
 
     assert.ok(response.result, 'Should have result');
     assert.ok(!response.result.isError, 'Should not be an error');
+  });
+});
+
+describe('MCP Server: New Tools', () => {
+  let client;
+
+  before(async () => {
+    client = new MCPClient();
+    await client.start();
+    await client.call('initialize', { capabilities: {} });
+
+    // Navigate to example.com for testing
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+  });
+
+  after(() => {
+    client.stop();
+  });
+
+  test('browser_get_text returns page text', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_get_text',
+      arguments: {},
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Example Domain'),
+      'Should contain page text'
+    );
+  });
+
+  test('browser_get_text with selector returns element text', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_get_text',
+      arguments: { selector: 'h1' },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Example Domain'),
+      'Should contain h1 text'
+    );
+  });
+
+  test('browser_get_url returns current URL', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_get_url',
+      arguments: {},
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('example.com'),
+      'Should contain example.com URL'
+    );
+  });
+
+  test('browser_get_title returns page title', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_get_title',
+      arguments: {},
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Example Domain'),
+      'Should return page title'
+    );
+  });
+
+  test('browser_get_html returns page HTML', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_get_html',
+      arguments: { selector: 'h1' },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Example Domain'),
+      'Should contain HTML'
+    );
+  });
+
+  test('browser_find_all returns array of elements', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_find_all',
+      arguments: { selector: 'p' },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('[0]'),
+      'Should contain indexed results'
+    );
+    assert.ok(
+      response.result.content[0].text.includes('tag=p'),
+      'Should contain tag info'
+    );
+  });
+
+  test('browser_wait succeeds for existing element', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_wait',
+      arguments: { selector: 'h1', state: 'visible' },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('reached state'),
+      'Should confirm wait succeeded'
+    );
+  });
+
+  test('browser_hover hovers over element', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_hover',
+      arguments: { selector: 'a' },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Hovered'),
+      'Should confirm hover'
+    );
+  });
+
+  test('browser_scroll scrolls without error', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_scroll',
+      arguments: { direction: 'down', amount: 1 },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Scrolled'),
+      'Should confirm scroll'
+    );
+  });
+
+  test('browser_keys presses Enter without error', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_keys',
+      arguments: { keys: 'Enter' },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Pressed'),
+      'Should confirm key press'
+    );
+  });
+
+  test('browser_list_tabs returns tab list', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_list_tabs',
+      arguments: {},
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('[0]'),
+      'Should list at least one tab'
+    );
+  });
+
+  test('browser_new_tab creates a tab and list shows 2', async () => {
+    const newTabResponse = await client.call('tools/call', {
+      name: 'browser_new_tab',
+      arguments: {},
+    });
+
+    assert.ok(newTabResponse.result, 'Should have result');
+    assert.ok(!newTabResponse.result.isError, 'Should not be an error');
+
+    const listResponse = await client.call('tools/call', {
+      name: 'browser_list_tabs',
+      arguments: {},
+    });
+
+    assert.ok(listResponse.result.content[0].text.includes('[1]'), 'Should have 2 tabs');
+  });
+
+  test('browser_switch_tab switches to tab', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_switch_tab',
+      arguments: { index: 0 },
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Switched'),
+      'Should confirm switch'
+    );
+  });
+
+  test('browser_close_tab closes tab and list shows 1', async () => {
+    const closeResponse = await client.call('tools/call', {
+      name: 'browser_close_tab',
+      arguments: { index: 1 },
+    });
+
+    assert.ok(closeResponse.result, 'Should have result');
+    assert.ok(!closeResponse.result.isError, 'Should not be an error');
+
+    const listResponse = await client.call('tools/call', {
+      name: 'browser_list_tabs',
+      arguments: {},
+    });
+
+    assert.ok(!listResponse.result.content[0].text.includes('[1]'), 'Should have 1 tab');
   });
 });

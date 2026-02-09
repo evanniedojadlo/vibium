@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
@@ -52,6 +54,34 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserEvaluate(args)
 	case "browser_quit":
 		return h.browserQuit(args)
+	case "browser_get_text":
+		return h.browserGetText(args)
+	case "browser_get_url":
+		return h.browserGetURL(args)
+	case "browser_get_title":
+		return h.browserGetTitle(args)
+	case "browser_get_html":
+		return h.browserGetHTML(args)
+	case "browser_find_all":
+		return h.browserFindAll(args)
+	case "browser_wait":
+		return h.browserWait(args)
+	case "browser_hover":
+		return h.browserHover(args)
+	case "browser_select":
+		return h.browserSelect(args)
+	case "browser_scroll":
+		return h.browserScroll(args)
+	case "browser_keys":
+		return h.browserKeys(args)
+	case "browser_new_tab":
+		return h.browserNewTab(args)
+	case "browser_list_tabs":
+		return h.browserListTabs(args)
+	case "browser_switch_tab":
+		return h.browserSwitchTab(args)
+	case "browser_close_tab":
+		return h.browserCloseTab(args)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}
@@ -329,6 +359,509 @@ func (h *Handlers) browserQuit(args map[string]interface{}) (*ToolsCallResult, e
 		Content: []Content{{
 			Type: "text",
 			Text: "Browser session closed",
+		}},
+	}, nil
+}
+
+// browserNewTab creates a new browser tab.
+func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	url, _ := args["url"].(string)
+
+	contextID, err := h.client.CreateTab(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tab: %w", err)
+	}
+
+	msg := "New tab opened"
+	if url != "" {
+		msg = fmt.Sprintf("New tab opened and navigated to %s", url)
+	}
+	_ = contextID
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: msg,
+		}},
+	}, nil
+}
+
+// browserListTabs lists all open browser tabs.
+func (h *Handlers) browserListTabs(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	tree, err := h.client.GetTree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tabs: %w", err)
+	}
+
+	var text string
+	for i, ctx := range tree.Contexts {
+		text += fmt.Sprintf("[%d] %s\n", i, ctx.URL)
+	}
+	if text == "" {
+		text = "No tabs open"
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: text,
+		}},
+	}, nil
+}
+
+// browserSwitchTab switches to a tab by index or URL substring.
+func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	tree, err := h.client.GetTree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tabs: %w", err)
+	}
+
+	var contextID string
+
+	// Try index first
+	if idx, ok := args["index"].(float64); ok {
+		i := int(idx)
+		if i < 0 || i >= len(tree.Contexts) {
+			return nil, fmt.Errorf("tab index %d out of range (0-%d)", i, len(tree.Contexts)-1)
+		}
+		contextID = tree.Contexts[i].Context
+	} else if url, ok := args["url"].(string); ok && url != "" {
+		// Search by URL substring
+		for _, ctx := range tree.Contexts {
+			if containsSubstring(ctx.URL, url) {
+				contextID = ctx.Context
+				break
+			}
+		}
+		if contextID == "" {
+			return nil, fmt.Errorf("no tab matching URL %q", url)
+		}
+	} else {
+		return nil, fmt.Errorf("index or url is required")
+	}
+
+	if err := h.client.ActivateTab(contextID); err != nil {
+		return nil, err
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Switched to tab: %s", contextID),
+		}},
+	}, nil
+}
+
+// browserCloseTab closes a tab by index (default: current tab).
+func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	tree, err := h.client.GetTree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tabs: %w", err)
+	}
+
+	if len(tree.Contexts) == 0 {
+		return nil, fmt.Errorf("no tabs open")
+	}
+
+	idx := 0
+	if i, ok := args["index"].(float64); ok {
+		idx = int(i)
+	}
+
+	if idx < 0 || idx >= len(tree.Contexts) {
+		return nil, fmt.Errorf("tab index %d out of range (0-%d)", idx, len(tree.Contexts)-1)
+	}
+
+	contextID := tree.Contexts[idx].Context
+	if err := h.client.CloseTab(contextID); err != nil {
+		return nil, err
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Closed tab %d", idx),
+		}},
+	}, nil
+}
+
+// containsSubstring checks if s contains substr (case-sensitive).
+func containsSubstring(s, substr string) bool {
+	return len(s) >= len(substr) && strings.Contains(s, substr)
+}
+
+// browserHover moves the mouse over an element.
+func (h *Handlers) browserHover(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	selector, ok := args["selector"].(string)
+	if !ok || selector == "" {
+		return nil, fmt.Errorf("selector is required")
+	}
+
+	info, err := h.client.FindElement("", selector)
+	if err != nil {
+		return nil, err
+	}
+
+	x, y := info.GetCenter()
+	if err := h.client.MoveMouse("", x, y); err != nil {
+		return nil, fmt.Errorf("failed to hover: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Hovered over element: %s", selector),
+		}},
+	}, nil
+}
+
+// browserSelect selects an option in a <select> element.
+func (h *Handlers) browserSelect(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	selector, ok := args["selector"].(string)
+	if !ok || selector == "" {
+		return nil, fmt.Errorf("selector is required")
+	}
+
+	value, ok := args["value"].(string)
+	if !ok || value == "" {
+		return nil, fmt.Errorf("value is required")
+	}
+
+	script := `(selector, value) => {
+		const el = document.querySelector(selector);
+		if (!el) return JSON.stringify({error: 'Element not found'});
+		if (el.tagName.toLowerCase() !== 'select') return JSON.stringify({error: 'Element is not a <select>'});
+		el.value = value;
+		el.dispatchEvent(new Event('change', {bubbles: true}));
+		return JSON.stringify({selected: el.value});
+	}`
+
+	result, err := h.client.CallFunction("", script, []interface{}{selector, value})
+	if err != nil {
+		return nil, fmt.Errorf("failed to select: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Selected value %q in %s (result: %v)", value, selector, result),
+		}},
+	}, nil
+}
+
+// browserScroll scrolls the page or an element.
+func (h *Handlers) browserScroll(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	direction := "down"
+	if d, ok := args["direction"].(string); ok && d != "" {
+		direction = d
+	}
+
+	amount := 3
+	if a, ok := args["amount"].(float64); ok {
+		amount = int(a)
+	}
+
+	// Determine scroll target coordinates
+	x, y := 0, 0
+	if selector, ok := args["selector"].(string); ok && selector != "" {
+		info, err := h.client.FindElement("", selector)
+		if err != nil {
+			return nil, err
+		}
+		cx, cy := info.GetCenter()
+		x, y = int(cx), int(cy)
+	} else {
+		// Viewport center
+		result, err := h.client.Evaluate("", "JSON.stringify({w: window.innerWidth, h: window.innerHeight})")
+		if err == nil && result != nil {
+			x, y = 400, 300 // Reasonable fallback
+		}
+	}
+
+	// Map direction to deltas (120 pixels per scroll "notch")
+	deltaX, deltaY := 0, 0
+	pixels := amount * 120
+	switch direction {
+	case "down":
+		deltaY = pixels
+	case "up":
+		deltaY = -pixels
+	case "right":
+		deltaX = pixels
+	case "left":
+		deltaX = -pixels
+	default:
+		return nil, fmt.Errorf("invalid direction: %q (use up, down, left, right)", direction)
+	}
+
+	if err := h.client.ScrollWheel("", x, y, deltaX, deltaY); err != nil {
+		return nil, fmt.Errorf("failed to scroll: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Scrolled %s by %d", direction, amount),
+		}},
+	}, nil
+}
+
+// browserKeys presses a key or key combination.
+func (h *Handlers) browserKeys(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	keys, ok := args["keys"].(string)
+	if !ok || keys == "" {
+		return nil, fmt.Errorf("keys is required")
+	}
+
+	if err := h.client.PressKeyCombo("", keys); err != nil {
+		return nil, fmt.Errorf("failed to press keys: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Pressed keys: %s", keys),
+		}},
+	}, nil
+}
+
+// browserGetHTML returns the HTML content of the page or an element.
+func (h *Handlers) browserGetHTML(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	outer, _ := args["outer"].(bool)
+
+	var expr string
+	if selector, ok := args["selector"].(string); ok && selector != "" {
+		if outer {
+			expr = fmt.Sprintf(`document.querySelector(%q)?.outerHTML || ''`, selector)
+		} else {
+			expr = fmt.Sprintf(`document.querySelector(%q)?.innerHTML || ''`, selector)
+		}
+	} else {
+		expr = `document.documentElement.outerHTML`
+	}
+
+	result, err := h.client.Evaluate("", expr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get HTML: %w", err)
+	}
+
+	html := ""
+	if result != nil {
+		html = fmt.Sprintf("%v", result)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: html,
+		}},
+	}, nil
+}
+
+// browserFindAll finds all elements matching a CSS selector.
+func (h *Handlers) browserFindAll(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	selector, ok := args["selector"].(string)
+	if !ok || selector == "" {
+		return nil, fmt.Errorf("selector is required")
+	}
+
+	limit := 10
+	if l, ok := args["limit"].(float64); ok {
+		limit = int(l)
+	}
+
+	elements, err := h.client.FindAllElements("", selector, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find elements: %w", err)
+	}
+
+	var text string
+	for i, el := range elements {
+		text += fmt.Sprintf("[%d] tag=%s, text=\"%s\", box={x:%.0f, y:%.0f, w:%.0f, h:%.0f}\n",
+			i, el.Tag, el.Text, el.Box.X, el.Box.Y, el.Box.Width, el.Box.Height)
+	}
+	if text == "" {
+		text = "No elements found"
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: text,
+		}},
+	}, nil
+}
+
+// browserWait waits for an element to reach a specified state.
+func (h *Handlers) browserWait(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	selector, ok := args["selector"].(string)
+	if !ok || selector == "" {
+		return nil, fmt.Errorf("selector is required")
+	}
+
+	state := "attached"
+	if s, ok := args["state"].(string); ok && s != "" {
+		state = s
+	}
+
+	timeout := features.DefaultTimeout
+	if t, ok := args["timeout"].(float64); ok {
+		timeout = time.Duration(t) * time.Millisecond
+	}
+
+	opts := features.WaitOptions{Timeout: timeout}
+
+	switch state {
+	case "attached":
+		if err := features.WaitForSelector(h.client, "", selector, opts); err != nil {
+			return nil, err
+		}
+	case "visible":
+		if err := features.WaitForSelector(h.client, "", selector, opts); err != nil {
+			return nil, err
+		}
+		visible, err := features.CheckVisible(h.client, "", selector)
+		if err != nil {
+			return nil, fmt.Errorf("visibility check failed: %w", err)
+		}
+		if !visible {
+			return nil, fmt.Errorf("element %q found but not visible", selector)
+		}
+	case "hidden":
+		if err := features.WaitForHidden(h.client, "", selector, opts); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("invalid state: %q (use \"attached\", \"visible\", or \"hidden\")", state)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Element %q reached state: %s", selector, state),
+		}},
+	}, nil
+}
+
+// browserGetText returns the text content of the page or an element.
+func (h *Handlers) browserGetText(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	var expr string
+	if selector, ok := args["selector"].(string); ok && selector != "" {
+		expr = fmt.Sprintf(`document.querySelector(%q)?.innerText || ''`, selector)
+	} else {
+		expr = `document.body.innerText`
+	}
+
+	result, err := h.client.Evaluate("", expr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get text: %w", err)
+	}
+
+	text := ""
+	if result != nil {
+		text = fmt.Sprintf("%v", result)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: text,
+		}},
+	}, nil
+}
+
+// browserGetURL returns the current page URL.
+func (h *Handlers) browserGetURL(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	result, err := h.client.Evaluate("", "window.location.href")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get URL: %w", err)
+	}
+
+	url := ""
+	if result != nil {
+		url = fmt.Sprintf("%v", result)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: url,
+		}},
+	}, nil
+}
+
+// browserGetTitle returns the current page title.
+func (h *Handlers) browserGetTitle(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	result, err := h.client.Evaluate("", "document.title")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get title: %w", err)
+	}
+
+	title := ""
+	if result != nil {
+		title = fmt.Sprintf("%v", result)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: title,
 		}},
 	}, nil
 }
