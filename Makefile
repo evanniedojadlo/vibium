@@ -1,4 +1,4 @@
-.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-python double-tap get-version set-version help
+.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-daemon test-python double-tap get-version set-version help
 
 # Version from VERSION file
 VERSION := $(shell cat VERSION)
@@ -97,11 +97,12 @@ test: build install-browser test-cli test-js test-mcp
 
 # Run CLI tests (tests the clicker binary directly)
 # Process tests run separately with --test-concurrency=1 to avoid interference
+# VIBIUM_ONESHOT=1 ensures tests use one-shot mode (no daemon)
 test-cli: build-go
 	@echo "━━━ CLI Tests ━━━"
-	node --test tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js
+	VIBIUM_ONESHOT=1 node --test tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js
 	@echo "━━━ CLI Process Tests (sequential) ━━━"
-	node --test --test-concurrency=1 tests/cli/process.test.js
+	VIBIUM_ONESHOT=1 node --test --test-concurrency=1 tests/cli/process.test.js
 
 # Run JS library tests (sequential to avoid resource exhaustion)
 test-js: build
@@ -114,6 +115,11 @@ test-js: build
 test-mcp: build-go
 	@echo "━━━ MCP Server Tests ━━━"
 	node --test --test-concurrency=1 tests/mcp/server.test.js
+
+# Run daemon tests (sequential - daemon lifecycle)
+test-daemon: build-go
+	@echo "━━━ Daemon Tests ━━━"
+	node --test --test-concurrency=1 tests/daemon/lifecycle.test.js tests/daemon/concurrency.test.js
 
 # Run Python client tests
 test-python: package-python

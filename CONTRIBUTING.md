@@ -63,6 +63,7 @@ make test-cli              # Run CLI tests only
 make test-js               # Run JS library tests only
 make test-mcp              # Run MCP server tests only
 make test-python           # Run Python client tests
+make test-daemon           # Run daemon lifecycle tests
 ```
 
 ### Other
@@ -239,39 +240,50 @@ After building, the binary is at `./clicker/bin/clicker`.
 
 ### Browser Commands
 
+By default, clicker runs in **daemon mode** — the browser stays open between commands:
+
 ```bash
 # Navigate to a URL
 ./clicker/bin/clicker navigate https://example.com
 
-# Take a screenshot
-./clicker/bin/clicker screenshot https://example.com -o shot.png
+# Interact with the current page (no URL needed)
+./clicker/bin/clicker find "h1"
+./clicker/bin/clicker click "a"
+./clicker/bin/clicker type "input" "hello"
+./clicker/bin/clicker eval "document.title"
+./clicker/bin/clicker screenshot -o shot.png
 
-# Evaluate JavaScript
-./clicker/bin/clicker eval https://example.com "document.title"
-
-# Find an element
+# You can also provide a URL to navigate first
 ./clicker/bin/clicker find https://example.com "a"
+./clicker/bin/clicker screenshot https://example.com -o shot.png
+```
 
-# Click an element
-./clicker/bin/clicker click https://example.com "a"
+Use `--oneshot` to launch a fresh browser for each command (the old behavior):
 
-# Type into an element
-./clicker/bin/clicker type https://the-internet.herokuapp.com/inputs "input" "12345"
+```bash
+./clicker/bin/clicker navigate https://example.com --oneshot
 ```
 
 ### Useful Flags
 
 ```bash
 --headless        # Hide the browser window (visible by default)
+--oneshot          # Launch a fresh browser per command (no daemon)
+--json             # Output results as JSON
 --wait-open 5     # Wait 5 seconds after navigation for page to load
---wait-close 3    # Keep browser open 3 seconds before closing
+--wait-close 3    # Keep browser open 3 seconds before closing (oneshot only)
 ```
 
-Example:
+### Daemon Management
 
 ```bash
-./clicker/bin/clicker screenshot https://example.com --wait-close 5 -o shot.png
+./clicker/bin/clicker daemon start    # Start daemon in foreground
+./clicker/bin/clicker daemon start -d # Start daemon in background
+./clicker/bin/clicker daemon status   # Show daemon status
+./clicker/bin/clicker daemon stop     # Stop the daemon
 ```
+
+The daemon auto-starts on the first command, so you rarely need to manage it manually.
 
 ---
 

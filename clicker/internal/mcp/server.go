@@ -132,7 +132,7 @@ func NewServer(version string, opts ServerOptions) *Server {
 	return &Server{
 		reader:   bufio.NewReader(os.Stdin),
 		writer:   os.Stdout,
-		handlers: NewHandlers(opts.ScreenshotDir),
+		handlers: NewHandlers(opts.ScreenshotDir, false),
 		version:  version,
 	}
 }

@@ -18,13 +18,16 @@ type Handlers struct {
 	client        *bidi.Client
 	conn          *bidi.Connection
 	screenshotDir string
+	headless      bool
 }
 
 // NewHandlers creates a new Handlers instance.
 // screenshotDir specifies where screenshots are saved. If empty, file saving is disabled.
-func NewHandlers(screenshotDir string) *Handlers {
+// headless controls whether the browser is launched in headless mode.
+func NewHandlers(screenshotDir string, headless bool) *Handlers {
 	return &Handlers{
 		screenshotDir: screenshotDir,
+		headless:      headless,
 	}
 }
 
@@ -69,17 +72,24 @@ func (h *Handlers) Close() {
 
 // browserLaunch launches a new browser session.
 func (h *Handlers) browserLaunch(args map[string]interface{}) (*ToolsCallResult, error) {
-	// Close any existing session
-	h.Close()
+	// If browser is already running, return success (no-op)
+	if h.client != nil {
+		return &ToolsCallResult{
+			Content: []Content{{
+				Type: "text",
+				Text: "Browser already running",
+			}},
+		}, nil
+	}
 
-	// Parse options
-	headless := false // Default: show browser for better first-time UX
+	// Parse options — per-call headless overrides the default
+	useHeadless := h.headless
 	if val, ok := args["headless"].(bool); ok {
-		headless = val
+		useHeadless = val
 	}
 
 	// Launch browser
-	launchResult, err := browser.Launch(browser.LaunchOptions{Headless: headless})
+	launchResult, err := browser.Launch(browser.LaunchOptions{Headless: useHeadless})
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch browser: %w", err)
 	}
@@ -98,7 +108,7 @@ func (h *Handlers) browserLaunch(args map[string]interface{}) (*ToolsCallResult,
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Browser launched (headless: %v)", headless),
+			Text: fmt.Sprintf("Browser launched (headless: %v)", useHeadless),
 		}},
 	}, nil
 }
@@ -324,9 +334,13 @@ func (h *Handlers) browserQuit(args map[string]interface{}) (*ToolsCallResult, e
 }
 
 // ensureBrowser checks that a browser session is active.
+// If no browser is running, it auto-launches one (lazy launch).
 func (h *Handlers) ensureBrowser() error {
 	if h.client == nil {
-		return fmt.Errorf("no browser session. Call browser_launch first")
+		_, err := h.browserLaunch(map[string]interface{}{})
+		if err != nil {
+			return fmt.Errorf("auto-launch failed: %w", err)
+		}
 	}
 	return nil
 }

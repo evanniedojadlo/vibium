@@ -176,21 +176,21 @@ describe('MCP Server: Browser Tools', () => {
     client.stop();
   });
 
-  test('browser_navigate without launch returns error', async () => {
+  test('browser_navigate auto-launches browser (lazy launch)', async () => {
     const response = await client.call('tools/call', {
       name: 'browser_navigate',
       arguments: { url: 'https://example.com' },
     });
 
     assert.ok(response.result, 'Should have result');
-    assert.strictEqual(response.result.isError, true, 'Should be an error');
+    assert.ok(!response.result.isError, 'Should not be an error');
     assert.ok(
-      response.result.content[0].text.includes('browser_launch'),
-      'Error should mention browser_launch'
+      response.result.content[0].text.includes('example.com'),
+      'Should confirm navigation'
     );
   });
 
-  test('browser_launch starts browser session', async () => {
+  test('browser_launch when already running returns success', async () => {
     const response = await client.call('tools/call', {
       name: 'browser_launch',
       arguments: { headless: true },
@@ -199,8 +199,9 @@ describe('MCP Server: Browser Tools', () => {
     assert.ok(response.result, 'Should have result');
     assert.ok(!response.result.isError, 'Should not be an error');
     assert.ok(
+      response.result.content[0].text.includes('already running') ||
       response.result.content[0].text.includes('Browser launched'),
-      'Should confirm launch'
+      'Should confirm browser state'
     );
   });
 
