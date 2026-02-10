@@ -64,7 +64,7 @@ npm install -g vibium
 npx skills add https://github.com/VibiumDev/vibium --skill vibe-check
 ```
 
-The first command installs Vibium and the `vibe-check` binary, and downloads Chrome. The second installs the skill to `~/.claude/skills/vibe-check/`.
+The first command installs Vibium and the `vibe-check` binary, and downloads Chrome. The second installs the skill to `{project}/.agents/skills/vibe-check`.
 
 ### CLI Quick Reference
 
