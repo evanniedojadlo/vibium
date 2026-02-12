@@ -193,7 +193,7 @@ npm --version
 ## Install Claude Code
 
 ```powershell
-npm install -g @anthropic-ai/claude-code
+winget install Anthropic.ClaudeCode
 ```
 
 ---
