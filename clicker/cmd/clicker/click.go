@@ -97,6 +97,9 @@ func newClickCmd() *cobra.Command {
 					os.Exit(1)
 				}
 
+				// Get URL before click so we can detect navigation
+				urlBefore, _ := client.GetCurrentURL()
+
 				fmt.Printf("Clicking element: %s\n", selector)
 				err = client.ClickElement("", selector)
 				if err != nil {
@@ -104,15 +107,23 @@ func newClickCmd() *cobra.Command {
 					os.Exit(1)
 				}
 
-				// TODO: Replace sleep with proper navigation wait (poll URL change or listen for BiDi events)
+				// Poll for URL change to detect click-triggered navigation.
+				// Returns immediately when URL changes, or after 2s if no navigation.
+				// Note: daemon mode (PR #29) uses BiDi events for proper navigation
+				// waiting. This polling approach is a stopgap for oneshot mode.
 				fmt.Println("Waiting for navigation...")
-				time.Sleep(1 * time.Second)
-
-				// Get current URL after click
-				currentURL, err := client.GetCurrentURL()
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error getting URL: %v\n", err)
-					os.Exit(1)
+				currentURL := urlBefore
+				deadline := time.Now().Add(2 * time.Second)
+				for time.Now().Before(deadline) {
+					time.Sleep(100 * time.Millisecond)
+					u, err := client.GetCurrentURL()
+					if err != nil {
+						break
+					}
+					currentURL = u
+					if currentURL != urlBefore {
+						break
+					}
 				}
 
 				fmt.Printf("Click complete! Current URL: %s\n", currentURL)

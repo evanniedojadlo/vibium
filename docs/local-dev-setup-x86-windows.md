@@ -155,11 +155,18 @@ Windows 11 includes `winget` by default. Open a regular PowerShell (not Administ
 ```powershell
 winget install Git.Git
 winget install GitHub.cli
+winget install GnuWin32.Make
 winget install BurntSushi.ripgrep.MSVC
 winget install jqlang.jq
 ```
 
 Restart terminal after installing Git.
+
+> **Note**: GnuWin32 Make requires adding `C:\Program Files (x86)\GnuWin32\bin` to your PATH. Add it via System Properties → Environment Variables, or run:
+> ```powershell
+> [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files (x86)\GnuWin32\bin", "User")
+> ```
+> Restart your terminal after updating PATH.
 
 ---
 
@@ -299,12 +306,16 @@ ssh yourusername@<vm-ip>
 ## Build and Test
 
 ```powershell
-cd C:\Projects\vibium\clicker
-go build -o bin\clicker.exe .\cmd\clicker
-.\bin\clicker.exe --version
-.\bin\clicker.exe paths
-.\bin\clicker.exe install
-.\bin\clicker.exe launch-test
+cd C:\Projects\vibium
+make build
+make test
+```
+
+To verify manually:
+
+```powershell
+.\clicker\bin\clicker.exe --version
+.\clicker\bin\clicker.exe paths
 ```
 
 ---

@@ -6,9 +6,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { execSync, spawn } = require('node:child_process');
-const path = require('node:path');
-
-const CLICKER = path.join(__dirname, '../../clicker/bin/clicker');
+const { CLICKER } = require('../helpers');
 
 /**
  * Get PIDs of Chrome for Testing processes spawned by clicker

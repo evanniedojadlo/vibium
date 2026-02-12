@@ -6,9 +6,7 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 const { execSync } = require('node:child_process');
-const path = require('node:path');
-
-const CLICKER = path.join(__dirname, '../../clicker/bin/clicker');
+const { CLICKER } = require('../helpers');
 
 function clicker(args, opts = {}) {
   const result = execSync(`${CLICKER} ${args}`, {

@@ -7,9 +7,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { execSync } = require('node:child_process');
-const path = require('node:path');
-
-const CLICKER = path.join(__dirname, '../../clicker/bin/clicker');
+const { CLICKER } = require('../helpers');
 
 describe('CLI: Tab Commands (oneshot errors)', () => {
   test('tabs command fails in oneshot mode', () => {

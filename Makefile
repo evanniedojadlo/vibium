@@ -1,3 +1,12 @@
+# Windows: use Git Bash as shell so Unix commands (cp, rm, mkdir, etc.) work
+ifeq ($(OS),Windows_NT)
+  SHELL := C:/Program Files/Git/usr/bin/bash
+  .SHELLFLAGS := -c
+  EXE := .exe
+else
+  EXE :=
+endif
+
 .PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-daemon test-python double-tap get-version set-version help
 
 # Version from VERSION file
@@ -12,12 +21,12 @@ build: build-go build-js
 # Build clicker binary + vibe-check symlink
 build-go: deps
 	cp skills/vibe-check/SKILL.md clicker/cmd/clicker/SKILL.md
-	cd clicker && go build -ldflags="-X main.version=$(VERSION)" -o bin/clicker ./cmd/clicker
-	ln -sf clicker clicker/bin/vibe-check
+	cd clicker && go build -ldflags="-X main.version=$(VERSION)" -o bin/clicker$(EXE) ./cmd/clicker
+	cp clicker/bin/clicker$(EXE) clicker/bin/vibe-check$(EXE)
 	@if [ -d node_modules/@vibium ]; then \
 		platform=$$(node -e "console.log(require('os').platform()+'-'+(require('os').arch()==='x64'?'x64':'arm64'))"); \
-		target="node_modules/@vibium/$$platform/bin/clicker"; \
-		if [ -f "$$target" ]; then cp clicker/bin/clicker "$$target"; fi; \
+		target="node_modules/@vibium/$$platform/bin/clicker$(EXE)"; \
+		if [ -f "$$target" ]; then cp clicker/bin/clicker$(EXE) "$$target"; fi; \
 	fi
 
 # Build JS client
@@ -89,7 +98,7 @@ package-python: build-go-all
 
 # Install Chrome for Testing (required for tests)
 install-browser: build-go
-	./clicker/bin/clicker install
+	./clicker/bin/clicker$(EXE) install
 
 # Install npm dependencies (skip if node_modules exists)
 deps:
@@ -97,7 +106,7 @@ deps:
 
 # Start the proxy server
 serve: build-go
-	./clicker/bin/clicker serve
+	./clicker/bin/clicker$(EXE) serve
 
 # Run all tests
 test: build install-browser test-cli test-js test-mcp
@@ -140,8 +149,13 @@ test-python: package-python
 # Kill zombie Chrome and chromedriver processes
 double-tap:
 	@echo "Killing zombie processes..."
+ifeq ($(OS),Windows_NT)
+	@cmd //c "taskkill /F /IM chrome.exe" 2>/dev/null || true
+	@cmd //c "taskkill /F /IM chromedriver.exe" 2>/dev/null || true
+else
 	@pkill -9 -f 'Chrome for Testing' 2>/dev/null || true
 	@pkill -9 -f chromedriver 2>/dev/null || true
+endif
 	@sleep 1
 	@echo "Done."
 
@@ -171,8 +185,12 @@ clean-packages: clean-npm-packages clean-python-packages
 
 # Clean cached Chrome for Testing
 clean-cache:
+ifeq ($(OS),Windows_NT)
+	rm -rf "$$LOCALAPPDATA/vibium/chrome-for-testing"
+else
 	rm -rf ~/Library/Caches/vibium/chrome-for-testing
 	rm -rf ~/.cache/vibium/chrome-for-testing
+endif
 
 # Clean everything (binaries + JS dist + packages + cache)
 clean-all: clean-go clean-js clean-packages clean-cache

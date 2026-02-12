@@ -7,9 +7,9 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { execSync, spawn } = require('node:child_process');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
-
-const CLICKER = path.join(__dirname, '../../clicker/bin/clicker');
+const { CLICKER } = require('../helpers');
 
 describe('CLI: Navigation', () => {
   test('navigate command loads page and prints title', () => {
@@ -21,7 +21,7 @@ describe('CLI: Navigation', () => {
   });
 
   test('screenshot command creates valid PNG', () => {
-    const outFile = `/tmp/vibium-test-${Date.now()}.png`;
+    const outFile = path.join(os.tmpdir(), `vibium-test-${Date.now()}.png`);
     try {
       execSync(`${CLICKER} screenshot https://example.com -o ${outFile}`, {
         encoding: 'utf-8',
