@@ -1,4 +1,4 @@
-import { ClickerProcess } from './clicker';
+import { VibiumProcess } from './clicker';
 import { BiDiClient } from './bidi';
 import { Vibe } from './vibe';
 import { debug, info } from './utils/debug';
@@ -14,13 +14,13 @@ export const browser = {
     const { headless = false, port, executablePath } = options;
     debug('launching browser', { headless, port, executablePath });
 
-    // Start the clicker process
-    const process = await ClickerProcess.start({
+    // Start the vibium process
+    const process = await VibiumProcess.start({
       headless,
       port,
       executablePath,
     });
-    debug('clicker started', { port: process.port });
+    debug('vibium started', { port: process.port });
 
     // Connect to the proxy
     const client = await BiDiClient.connect(`ws://localhost:${process.port}`);

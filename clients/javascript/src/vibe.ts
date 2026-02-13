@@ -1,5 +1,5 @@
 import { BiDiClient, BrowsingContextTree, NavigationResult, ScreenshotResult } from './bidi';
-import { ClickerProcess } from './clicker';
+import { VibiumProcess } from './clicker';
 import { Element, ElementInfo } from './element';
 import { debug } from './utils/debug';
 
@@ -21,10 +21,10 @@ interface VibiumFindResult {
 
 export class Vibe {
   private client: BiDiClient;
-  private process: ClickerProcess | null;
+  private process: VibiumProcess | null;
   private context: string | null = null;
 
-  constructor(client: BiDiClient, process: ClickerProcess | null) {
+  constructor(client: BiDiClient, process: VibiumProcess | null) {
     this.client = client;
     this.process = process;
   }

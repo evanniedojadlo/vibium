@@ -2,13 +2,13 @@ import { spawn, execFileSync, ChildProcess } from 'child_process';
 import { getVibiumBinPath } from './binary';
 import { TimeoutError, BrowserCrashedError } from '../utils/errors';
 
-export interface ClickerProcessOptions {
+export interface VibiumProcessOptions {
   port?: number;
   headless?: boolean;
   executablePath?: string;
 }
 
-export class ClickerProcess {
+export class VibiumProcess {
   private process: ChildProcess;
   private _port: number;
   private _stopped: boolean = false;
@@ -22,7 +22,7 @@ export class ClickerProcess {
     return this._port;
   }
 
-  static async start(options: ClickerProcessOptions = {}): Promise<ClickerProcess> {
+  static async start(options: VibiumProcessOptions = {}): Promise<VibiumProcess> {
     const binaryPath = options.executablePath || getVibiumBinPath();
     const port = options.port || 0; // 0 means auto-select
 
@@ -45,7 +45,7 @@ export class ClickerProcess {
 
       const timeout = setTimeout(() => {
         if (!resolved) {
-          reject(new TimeoutError('clicker', 10000, 'waiting for clicker to start'));
+          reject(new TimeoutError('vibium', 10000, 'waiting for vibium to start'));
         }
       }, 10000);
 
@@ -82,7 +82,7 @@ export class ClickerProcess {
       });
     });
 
-    return new ClickerProcess(proc, actualPort);
+    return new VibiumProcess(proc, actualPort);
   }
 
   async stop(): Promise<void> {
@@ -99,7 +99,7 @@ export class ClickerProcess {
       if (process.platform === 'win32') {
         // On Windows, process.kill('SIGTERM') calls TerminateProcess() which
         // kills only the immediate process without letting cleanup code run.
-        // Use taskkill /T to kill the entire process tree (clicker + chromedriver + Chrome).
+        // Use taskkill /T to kill the entire process tree (vibium + chromedriver + Chrome).
         try {
           execFileSync('taskkill', ['/T', '/F', '/PID', this.process.pid!.toString()], { stdio: 'ignore' });
         } catch {
