@@ -10,13 +10,14 @@ const { browser } = require('../../clients/javascript/dist');
 
 describe('JS Browser Modes', () => {
   test('headless mode works', async () => {
-    const vibe = await browser.launch({ headless: true });
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const screenshot = await vibe.screenshot();
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const screenshot = await page.screenshot();
       assert.ok(screenshot.length > 1000, 'Should capture screenshot in headless mode');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
@@ -27,13 +28,14 @@ describe('JS Browser Modes', () => {
       return;
     }
 
-    const vibe = await browser.launch({ headless: false });
+    const b = await browser.launch({ headless: false });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const screenshot = await vibe.screenshot();
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const screenshot = await page.screenshot();
       assert.ok(screenshot.length > 1000, 'Should capture screenshot in headed mode');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
@@ -45,13 +47,14 @@ describe('JS Browser Modes', () => {
     }
 
     // browser.launch() without options should default to visible
-    const vibe = await browser.launch();
+    const b = await browser.launch();
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const title = await vibe.evaluate('return document.title');
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const title = await page.evaluate('return document.title');
       assert.match(title, /The Internet/i, 'Should work with default options');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 });

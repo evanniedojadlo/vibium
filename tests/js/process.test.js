@@ -46,12 +46,13 @@ function sleep(ms) {
 }
 
 describe('JS Process Cleanup', () => {
-  test('async API cleans up Chrome on quit()', async () => {
+  test('async API cleans up Chrome on close()', async () => {
     const pidsBefore = getClickerChromePids();
 
-    const vibe = await browser.launch({ headless: true });
-    await vibe.go('https://the-internet.herokuapp.com/');
-    await vibe.quit();
+    const b = await browser.launch({ headless: true });
+    const page = await b.page();
+    await page.go('https://the-internet.herokuapp.com/');
+    await b.close();
 
     await sleep(2000);
 
@@ -89,9 +90,10 @@ describe('JS Process Cleanup', () => {
 
     // Run 3 sessions sequentially
     for (let i = 0; i < 3; i++) {
-      const vibe = await browser.launch({ headless: true });
-      await vibe.go('https://the-internet.herokuapp.com/');
-      await vibe.quit();
+      const b = await browser.launch({ headless: true });
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      await b.close();
     }
 
     await sleep(2000);

@@ -105,6 +105,14 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 
 	// Start routing messages from browser to client
 	go r.routeBrowserToClient(session)
+
+	// Subscribe to browsingContext.contextCreated events for onPage/onPopup support.
+	// Events are forwarded to the JS client by routeBrowserToClient.
+	go func() {
+		r.sendInternalCommand(session, "session.subscribe", map[string]interface{}{
+			"events": []string{"browsingContext.contextCreated"},
+		})
+	}()
 }
 
 // OnClientMessage is called when a message is received from a client.
@@ -145,6 +153,64 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 		return
 	case "vibium:find":
 		r.handleVibiumFind(session, cmd)
+		return
+
+	// Navigation commands
+	case "vibium:page.navigate":
+		go r.handlePageNavigate(session, cmd)
+		return
+	case "vibium:page.back":
+		go r.handlePageBack(session, cmd)
+		return
+	case "vibium:page.forward":
+		go r.handlePageForward(session, cmd)
+		return
+	case "vibium:page.reload":
+		go r.handlePageReload(session, cmd)
+		return
+	case "vibium:page.url":
+		go r.handlePageURL(session, cmd)
+		return
+	case "vibium:page.title":
+		go r.handlePageTitle(session, cmd)
+		return
+	case "vibium:page.content":
+		go r.handlePageContent(session, cmd)
+		return
+	case "vibium:page.waitForURL":
+		go r.handlePageWaitForURL(session, cmd)
+		return
+	case "vibium:page.waitForLoad":
+		go r.handlePageWaitForLoad(session, cmd)
+		return
+
+	// Page & context lifecycle commands
+	case "vibium:browser.page":
+		go r.handleBrowserPage(session, cmd)
+		return
+	case "vibium:browser.newPage":
+		go r.handleBrowserNewPage(session, cmd)
+		return
+	case "vibium:browser.newContext":
+		go r.handleBrowserNewContext(session, cmd)
+		return
+	case "vibium:context.newPage":
+		go r.handleContextNewPage(session, cmd)
+		return
+	case "vibium:browser.pages":
+		go r.handleBrowserPages(session, cmd)
+		return
+	case "vibium:context.close":
+		go r.handleContextClose(session, cmd)
+		return
+	case "vibium:browser.close":
+		go r.handleBrowserClose(session, cmd)
+		return
+	case "vibium:page.activate":
+		go r.handlePageActivate(session, cmd)
+		return
+	case "vibium:page.close":
+		go r.handlePageClose(session, cmd)
 		return
 	}
 

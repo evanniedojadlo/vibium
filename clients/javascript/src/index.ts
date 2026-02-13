@@ -1,4 +1,6 @@
-export { browser } from './browser';
+export { browser, Browser, LaunchOptions } from './browser';
+export { Page } from './page';
+export { BrowserContext } from './context';
 export { Vibe, FindOptions } from './vibe';
 export { Element, BoundingBox, ElementInfo, ActionOptions } from './element';
 

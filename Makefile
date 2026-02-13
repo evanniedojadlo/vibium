@@ -125,6 +125,8 @@ test-cli: build-go
 test-js: build
 	@echo "━━━ JS Library Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async-api.test.js tests/js/sync-api.test.js tests/js/auto-wait.test.js tests/js/browser-modes.test.js
+	@echo "━━━ JS Navigation & Lifecycle Tests ━━━"
+	node --test --test-concurrency=1 tests/js/object-model.test.js tests/js/navigation.test.js tests/js/lifecycle.test.js
 	@echo "━━━ JS Process Tests (sequential) ━━━"
 	node --test --test-concurrency=1 tests/js/process.test.js
 

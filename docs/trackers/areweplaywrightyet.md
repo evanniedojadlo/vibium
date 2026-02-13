@@ -10,30 +10,30 @@ Vibium's Playwright-equivalent API coverage. 155 commands across 23 categories, 
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.go(url)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.back()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.forward()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.reload()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.url()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.title()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.waitForURL(pattern)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.waitForLoad(state?)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.content()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.go(url)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.back()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.forward()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.reload()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.url()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.title()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.waitForURL(pattern)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.waitForLoad(state?)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.content()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Pages & Contexts (10 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `browser.newPage()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `browser.newContext()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `context.newPage()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `browser.pages()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `context.close()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `browser.close()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `browser.onPage(fn)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
-| `browser.onPopup(fn)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
-| `page.bringToFront()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.close()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `browser.newPage()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `browser.newContext()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.newPage()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `browser.pages()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.close()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `browser.close()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `browser.onPage(fn)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
+| `browser.onPopup(fn)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
+| `page.bringToFront()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.close()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Element Finding (6 commands)
 

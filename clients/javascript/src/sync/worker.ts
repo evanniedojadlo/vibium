@@ -1,6 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
-import { browser } from '../browser';
-import { Vibe, FindOptions } from '../vibe';
+import { browser, Browser } from '../browser';
+import { Page, FindOptions } from '../page';
 import { Element, ActionOptions } from '../element';
 
 interface WorkerData {
@@ -15,7 +15,8 @@ interface Command {
 
 const { signal } = workerData as WorkerData;
 
-let vibe: Vibe | null = null;
+let browserInstance: Browser | null = null;
+let page: Page | null = null;
 let elements: Map<number, Element> = new Map();
 let nextElementId = 1;
 
@@ -23,34 +24,35 @@ async function handleCommand(cmd: Command): Promise<unknown> {
   switch (cmd.method) {
     case 'launch': {
       const [options] = cmd.args as [{ headless?: boolean } | undefined];
-      vibe = await browser.launch(options);
+      browserInstance = await browser.launch(options);
+      page = await browserInstance.page();
       return { success: true };
     }
 
     case 'go': {
-      if (!vibe) throw new Error('Browser not launched');
+      if (!page) throw new Error('Browser not launched');
       const [url] = cmd.args as [string];
-      await vibe.go(url);
+      await page.go(url);
       return { success: true };
     }
 
     case 'screenshot': {
-      if (!vibe) throw new Error('Browser not launched');
-      const buffer = await vibe.screenshot();
+      if (!page) throw new Error('Browser not launched');
+      const buffer = await page.screenshot();
       return { data: buffer.toString('base64') };
     }
 
     case 'evaluate': {
-      if (!vibe) throw new Error('Browser not launched');
+      if (!page) throw new Error('Browser not launched');
       const [script] = cmd.args as [string];
-      const result = await vibe.evaluate(script);
+      const result = await page.evaluate(script);
       return { result };
     }
 
     case 'find': {
-      if (!vibe) throw new Error('Browser not launched');
+      if (!page) throw new Error('Browser not launched');
       const [selector, options] = cmd.args as [string, FindOptions | undefined];
-      const element = await vibe.find(selector, options);
+      const element = await page.find(selector, options);
       const elementId = nextElementId++;
       elements.set(elementId, element);
       return { elementId, info: element.info };
@@ -97,9 +99,10 @@ async function handleCommand(cmd: Command): Promise<unknown> {
     }
 
     case 'quit': {
-      if (!vibe) throw new Error('Browser not launched');
-      await vibe.quit();
-      vibe = null;
+      if (!browserInstance) throw new Error('Browser not launched');
+      await browserInstance.close();
+      browserInstance = null;
+      page = null;
       elements.clear();
       return { success: true };
     }

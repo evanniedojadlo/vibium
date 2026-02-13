@@ -1,6 +1,6 @@
 /**
  * JS Library Tests: Async API
- * Tests browser.launch() and async Vibe methods
+ * Tests browser.launch() and Browser → Page methods
  */
 
 const { test, describe, after } = require('node:test');
@@ -12,28 +12,30 @@ const path = require('node:path');
 const { browser } = require('../../clients/javascript/dist');
 
 describe('JS Async API', () => {
-  test('browser.launch() and vibe.quit() work', async () => {
-    const vibe = await browser.launch({ headless: true });
-    assert.ok(vibe, 'Should return a Vibe instance');
-    await vibe.quit();
+  test('browser.launch() and browser.close() work', async () => {
+    const b = await browser.launch({ headless: true });
+    assert.ok(b, 'Should return a Browser instance');
+    await b.close();
   });
 
-  test('vibe.go() navigates to URL', async () => {
-    const vibe = await browser.launch({ headless: true });
+  test('page.go() navigates to URL', async () => {
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
       // If we get here without error, navigation worked
       assert.ok(true);
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
-  test('vibe.screenshot() returns PNG buffer', async () => {
-    const vibe = await browser.launch({ headless: true });
+  test('page.screenshot() returns PNG buffer', async () => {
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const screenshot = await vibe.screenshot();
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const screenshot = await page.screenshot();
 
       assert.ok(Buffer.isBuffer(screenshot), 'Should return a Buffer');
       assert.ok(screenshot.length > 1000, 'Screenshot should have reasonable size');
@@ -44,79 +46,84 @@ describe('JS Async API', () => {
       assert.strictEqual(screenshot[2], 0x4E, 'Should be valid PNG');
       assert.strictEqual(screenshot[3], 0x47, 'Should be valid PNG');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
-  test('vibe.evaluate() executes JavaScript', async () => {
-    const vibe = await browser.launch({ headless: true });
+  test('page.evaluate() executes JavaScript', async () => {
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const title = await vibe.evaluate('return document.title');
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const title = await page.evaluate('return document.title');
       assert.match(title, /The Internet/i, 'Should return page title');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
-  test('vibe.find() locates element', async () => {
-    const vibe = await browser.launch({ headless: true });
+  test('page.find() locates element', async () => {
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const heading = await vibe.find('h1.heading');
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const heading = await page.find('h1.heading');
 
       assert.ok(heading, 'Should return an Element');
       assert.ok(heading.info, 'Element should have info');
       assert.match(heading.info.tag, /^h1$/i, 'Should be an h1 tag');
       assert.match(heading.info.text, /Welcome to the-internet/i, 'Should have heading text');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
   test('element.click() works', async () => {
-    const vibe = await browser.launch({ headless: true });
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const link = await vibe.find('a[href="/add_remove_elements/"]');
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const link = await page.find('a[href="/add_remove_elements/"]');
       await link.click();
 
       // After click, we should have navigated
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const heading = await vibe.find('h3');
+      const heading = await page.find('h3');
       assert.match(heading.info.text, /Add\/Remove Elements/i, 'Should have navigated to new page');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
   test('element.type() enters text', async () => {
-    const vibe = await browser.launch({ headless: true });
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/inputs');
-      const input = await vibe.find('input');
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/inputs');
+      const input = await page.find('input');
       await input.type('12345');
 
       // Verify the value was entered
-      const value = await vibe.evaluate(`
+      const value = await page.evaluate(`
         return document.querySelector('input').value;
       `);
       assert.strictEqual(value, '12345', 'Input should have typed value');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 
   test('element.text() returns element text', async () => {
-    const vibe = await browser.launch({ headless: true });
+    const b = await browser.launch({ headless: true });
     try {
-      await vibe.go('https://the-internet.herokuapp.com/');
-      const heading = await vibe.find('h1.heading');
+      const page = await b.page();
+      await page.go('https://the-internet.herokuapp.com/');
+      const heading = await page.find('h1.heading');
       const text = await heading.text();
       assert.match(text, /Welcome to the-internet/i, 'Should return heading text');
     } finally {
-      await vibe.quit();
+      await b.close();
     }
   });
 });
