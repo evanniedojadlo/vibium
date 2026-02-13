@@ -160,13 +160,17 @@ winget install BurntSushi.ripgrep.MSVC
 winget install jqlang.jq
 ```
 
-Restart terminal after installing Git.
+Restart terminal after installing Git, then add GnuWin32 Make to your PATH:
 
-> **Note**: GnuWin32 Make requires adding `C:\Program Files (x86)\GnuWin32\bin` to your PATH. Add it via System Properties → Environment Variables, or run:
-> ```powershell
-> [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files (x86)\GnuWin32\bin", "User")
-> ```
-> Restart your terminal after updating PATH.
+```powershell
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Program Files (x86)\GnuWin32\bin", "User")
+```
+
+Restart your terminal again after updating PATH. Verify:
+
+```powershell
+make --version
+```
 
 ---
 

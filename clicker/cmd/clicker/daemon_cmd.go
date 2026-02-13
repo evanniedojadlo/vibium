@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -224,7 +223,7 @@ func waitForSocket(socketPath string, timeout time.Duration) error {
 	interval := 50 * time.Millisecond
 
 	for time.Now().Before(deadline) {
-		conn, err := net.DialTimeout("unix", socketPath, 500*time.Millisecond)
+		conn, err := dialSocket(socketPath, 500*time.Millisecond)
 		if err == nil {
 			conn.Close()
 			return nil

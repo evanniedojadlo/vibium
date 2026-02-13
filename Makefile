@@ -1,6 +1,6 @@
 # Windows: use Git Bash as shell so Unix commands (cp, rm, mkdir, etc.) work
 ifeq ($(OS),Windows_NT)
-  SHELL := C:/Program Files/Git/usr/bin/bash
+  SHELL := C:/PROGRA~1/Git/usr/bin/bash
   .SHELLFLAGS := -c
   EXE := .exe
 else
