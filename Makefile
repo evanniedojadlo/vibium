@@ -262,6 +262,7 @@ help:
 	@echo "  make test-cli              - Run CLI tests only"
 	@echo "  make test-js               - Run JS library tests only"
 	@echo "  make test-mcp              - Run MCP server tests only"
+	@echo "  make test-daemon           - Run daemon lifecycle tests"
 	@echo "  make test-python           - Run Python client tests"
 	@echo ""
 	@echo "Other:"
