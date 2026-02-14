@@ -2,7 +2,7 @@ export { browser, Browser, LaunchOptions } from './browser';
 export { Page } from './page';
 export { BrowserContext } from './context';
 export { Vibe, FindOptions } from './vibe';
-export { Element, BoundingBox, ElementInfo, ActionOptions, SelectorOptions } from './element';
+export { Element, BoundingBox, ElementInfo, ActionOptions, SelectorOptions, FluentElement, fluent } from './element';
 export { ElementList, FilterOptions } from './element-list';
 
 // Sync API

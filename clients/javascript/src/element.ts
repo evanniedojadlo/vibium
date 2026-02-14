@@ -277,30 +277,33 @@ export class Element {
   }
 
   /** Find a child element by CSS selector or semantic options. Scoped to this element. */
-  async find(selector: string | SelectorOptions, options?: { timeout?: number }): Promise<Element> {
-    const params: Record<string, unknown> = {
-      context: this.context,
-      scope: this.selector,
-      timeout: options?.timeout,
-    };
+  find(selector: string | SelectorOptions, options?: { timeout?: number }): FluentElement {
+    const promise = (async () => {
+      const params: Record<string, unknown> = {
+        context: this.context,
+        scope: this.selector,
+        timeout: options?.timeout,
+      };
 
-    if (typeof selector === 'string') {
-      params.selector = selector;
-    } else {
-      Object.assign(params, selector);
-      if (selector.timeout) params.timeout = selector.timeout;
-    }
+      if (typeof selector === 'string') {
+        params.selector = selector;
+      } else {
+        Object.assign(params, selector);
+        if (selector.timeout) params.timeout = selector.timeout;
+      }
 
-    const result = await this.client.send<{
-      tag: string;
-      text: string;
-      box: BoundingBox;
-    }>('vibium:find', params);
+      const result = await this.client.send<{
+        tag: string;
+        text: string;
+        box: BoundingBox;
+      }>('vibium:find', params);
 
-    const info: ElementInfo = { tag: result.tag, text: result.text, box: result.box };
-    const childSelector = typeof selector === 'string' ? selector : '';
-    const childParams = typeof selector === 'string' ? { selector } : { ...selector };
-    return new Element(this.client, this.context, childSelector, info, undefined, childParams);
+      const info: ElementInfo = { tag: result.tag, text: result.text, box: result.box };
+      const childSelector = typeof selector === 'string' ? selector : '';
+      const childParams = typeof selector === 'string' ? { selector } : { ...selector };
+      return new Element(this.client, this.context, childSelector, info, undefined, childParams);
+    })();
+    return fluent(promise);
   }
 
   /** Find all child elements by CSS selector or semantic options. Scoped to this element. */
@@ -339,6 +342,55 @@ export class Element {
       y: this.info.box.y + this.info.box.height / 2,
     };
   }
+}
+
+/** A Promise<Element> that also exposes Element methods for chaining. */
+export type FluentElement = Promise<Element> & {
+  click(options?: ActionOptions): Promise<void>;
+  dblclick(options?: ActionOptions): Promise<void>;
+  fill(value: string, options?: ActionOptions): Promise<void>;
+  type(text: string, options?: ActionOptions): Promise<void>;
+  press(key: string, options?: ActionOptions): Promise<void>;
+  clear(options?: ActionOptions): Promise<void>;
+  check(options?: ActionOptions): Promise<void>;
+  uncheck(options?: ActionOptions): Promise<void>;
+  selectOption(value: string, options?: ActionOptions): Promise<void>;
+  hover(options?: ActionOptions): Promise<void>;
+  focus(options?: ActionOptions): Promise<void>;
+  dragTo(target: Element, options?: ActionOptions): Promise<void>;
+  tap(options?: ActionOptions): Promise<void>;
+  scrollIntoView(options?: ActionOptions): Promise<void>;
+  dispatchEvent(eventType: string, eventInit?: Record<string, unknown>, options?: ActionOptions): Promise<void>;
+  text(): Promise<string>;
+  getAttribute(name: string): Promise<string | null>;
+  boundingBox(): Promise<BoundingBox>;
+  find(selector: string | SelectorOptions, options?: { timeout?: number }): FluentElement;
+  findAll(selector: string | SelectorOptions, options?: { timeout?: number }): Promise<ElementList>;
+};
+
+export function fluent(promise: Promise<Element>): FluentElement {
+  const p = promise as FluentElement;
+  p.click = (opts?) => promise.then(el => el.click(opts));
+  p.dblclick = (opts?) => promise.then(el => el.dblclick(opts));
+  p.fill = (value, opts?) => promise.then(el => el.fill(value, opts));
+  p.type = (text, opts?) => promise.then(el => el.type(text, opts));
+  p.press = (key, opts?) => promise.then(el => el.press(key, opts));
+  p.clear = (opts?) => promise.then(el => el.clear(opts));
+  p.check = (opts?) => promise.then(el => el.check(opts));
+  p.uncheck = (opts?) => promise.then(el => el.uncheck(opts));
+  p.selectOption = (value, opts?) => promise.then(el => el.selectOption(value, opts));
+  p.hover = (opts?) => promise.then(el => el.hover(opts));
+  p.focus = (opts?) => promise.then(el => el.focus(opts));
+  p.dragTo = (target, opts?) => promise.then(el => el.dragTo(target, opts));
+  p.tap = (opts?) => promise.then(el => el.tap(opts));
+  p.scrollIntoView = (opts?) => promise.then(el => el.scrollIntoView(opts));
+  p.dispatchEvent = (type, init?, opts?) => promise.then(el => el.dispatchEvent(type, init, opts));
+  p.text = () => promise.then(el => el.text());
+  p.getAttribute = (name) => promise.then(el => el.getAttribute(name));
+  p.boundingBox = () => promise.then(el => el.boundingBox());
+  p.find = (sel, opts?) => fluent(promise.then(el => el.find(sel, opts)));
+  p.findAll = (sel, opts?) => promise.then(el => el.findAll(sel, opts));
+  return p;
 }
 
 export { ElementList } from './element-list';

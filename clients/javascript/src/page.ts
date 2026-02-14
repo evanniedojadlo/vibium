@@ -1,5 +1,5 @@
 import { BiDiClient, ScreenshotResult } from './bidi';
-import { Element, ElementInfo, SelectorOptions } from './element';
+import { Element, ElementInfo, SelectorOptions, FluentElement, fluent } from './element';
 import { ElementList, ElementListInfo } from './element-list';
 import { debug } from './utils/debug';
 
@@ -139,32 +139,35 @@ export class Page {
   }
 
   /** Find an element by CSS selector or semantic options. Waits for element to exist. */
-  async find(selector: string | SelectorOptions, options?: FindOptions): Promise<Element> {
-    const params: Record<string, unknown> = {
-      context: this.contextId,
-      timeout: options?.timeout,
-    };
+  find(selector: string | SelectorOptions, options?: FindOptions): FluentElement {
+    const promise = (async () => {
+      const params: Record<string, unknown> = {
+        context: this.contextId,
+        timeout: options?.timeout,
+      };
 
-    if (typeof selector === 'string') {
-      debug('page.find', { selector, timeout: options?.timeout });
-      params.selector = selector;
-    } else {
-      debug('page.find', { ...selector, timeout: options?.timeout });
-      Object.assign(params, selector);
-      if (selector.timeout && !options?.timeout) params.timeout = selector.timeout;
-    }
+      if (typeof selector === 'string') {
+        debug('page.find', { selector, timeout: options?.timeout });
+        params.selector = selector;
+      } else {
+        debug('page.find', { ...selector, timeout: options?.timeout });
+        Object.assign(params, selector);
+        if (selector.timeout && !options?.timeout) params.timeout = selector.timeout;
+      }
 
-    const result = await this.client.send<VibiumFindResult>('vibium:find', params);
+      const result = await this.client.send<VibiumFindResult>('vibium:find', params);
 
-    const info: ElementInfo = {
-      tag: result.tag,
-      text: result.text,
-      box: result.box,
-    };
+      const info: ElementInfo = {
+        tag: result.tag,
+        text: result.text,
+        box: result.box,
+      };
 
-    const selectorStr = typeof selector === 'string' ? selector : '';
-    const selectorParams = typeof selector === 'string' ? { selector } : { ...selector };
-    return new Element(this.client, this.contextId, selectorStr, info, undefined, selectorParams);
+      const selectorStr = typeof selector === 'string' ? selector : '';
+      const selectorParams = typeof selector === 'string' ? { selector } : { ...selector };
+      return new Element(this.client, this.contextId, selectorStr, info, undefined, selectorParams);
+    })();
+    return fluent(promise);
   }
 
   /** Find all elements matching a CSS selector or semantic options. Waits for at least one. */
