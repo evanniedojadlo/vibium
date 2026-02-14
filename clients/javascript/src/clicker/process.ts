@@ -82,14 +82,33 @@ export class VibiumProcess {
       });
     });
 
-    return new VibiumProcess(proc, actualPort);
+    const vp = new VibiumProcess(proc, actualPort);
+
+    // Clean up child process when Node exits unexpectedly (Ctrl+C, uncaught exception, etc.)
+    const cleanup = () => vp.stop();
+    process.on('exit', cleanup);
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    vp._cleanupListeners = cleanup;
+
+    return vp;
   }
+
+  private _cleanupListeners: (() => void) | null = null;
 
   async stop(): Promise<void> {
     if (this._stopped) {
       return;
     }
     this._stopped = true;
+
+    // Remove process exit listeners to avoid leaks
+    if (this._cleanupListeners) {
+      process.removeListener('exit', this._cleanupListeners);
+      process.removeListener('SIGINT', this._cleanupListeners);
+      process.removeListener('SIGTERM', this._cleanupListeners);
+      this._cleanupListeners = null;
+    }
 
     return new Promise((resolve) => {
       this.process.on('exit', () => {
