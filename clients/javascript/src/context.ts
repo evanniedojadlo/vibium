@@ -25,7 +25,7 @@ export class BrowserContext {
 
   /** Close this context and all its pages. */
   async close(): Promise<void> {
-    await this.client.send('vibium:context.close', {
+    await this.client.send('browser.removeUserContext', {
       userContext: this.userContextId,
     });
   }

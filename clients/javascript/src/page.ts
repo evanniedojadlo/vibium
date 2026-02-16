@@ -270,12 +270,12 @@ export class Page {
 
   /** Bring this page/tab to the foreground. */
   async bringToFront(): Promise<void> {
-    await this.client.send('vibium:page.activate', { context: this.contextId });
+    await this.client.send('browsingContext.activate', { context: this.contextId });
   }
 
   /** Close this page/tab. */
   async close(): Promise<void> {
-    await this.client.send('vibium:page.close', { context: this.contextId });
+    await this.client.send('browsingContext.close', { context: this.contextId });
   }
 
   // --- Screenshots & PDF ---
@@ -489,7 +489,7 @@ export class Page {
 
     // If no routes left, remove the intercept
     if (this.routes.length === 0 && this.interceptId) {
-      await this.client.send('vibium:page.unroute', {
+      await this.client.send('network.removeIntercept', {
         intercept: this.interceptId,
       });
       this.interceptId = null;
