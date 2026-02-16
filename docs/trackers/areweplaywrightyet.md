@@ -135,7 +135,7 @@ Vibium's Playwright-equivalent API coverage. 157 commands across 23 categories, 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.route(pattern, handler)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
-| `route.fulfill(response)` | 🟡 | ⬜ | ⬜ | ⬜ | — | — |
+| `route.fulfill(response)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 | `route.continue(overrides?)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 | `route.abort(reason?)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 | `page.onRequest(fn)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |

@@ -31,13 +31,24 @@ export class Route {
     this.request = request;
   }
 
-  /** Fulfill the request with a custom response. Not yet implemented. */
-  async fulfill(_response: {
+  /** Fulfill the request with a custom response (mock response). */
+  async fulfill(response: {
     status?: number;
     headers?: Record<string, string>;
+    contentType?: string;
     body?: string;
   } = {}): Promise<void> {
-    throw new Error('Not implemented: route.fulfill() is not yet supported');
+    try {
+      const params: Record<string, unknown> = { request: this.requestId };
+      if (response.status !== undefined) params.statusCode = response.status;
+      if (response.headers) params.headers = response.headers;
+      if (response.contentType) params.contentType = response.contentType;
+      if (response.body !== undefined) params.body = response.body;
+      await this.client.send('vibium:network.fulfill', params);
+    } catch (e) {
+      if (isRaceConditionError(e)) return;
+      throw e;
+    }
   }
 
   /** Continue the request with optional overrides. */

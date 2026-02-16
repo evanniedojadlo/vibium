@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // handlePageRoute handles vibium:page.route — adds a network intercept for beforeRequestSent.
@@ -141,7 +142,26 @@ func (r *Router) handleNetworkFulfill(session *BrowserSession, cmd bidiCommand) 
 	}
 
 	// Convert headers from {"Name": "Value"} to BiDi format
-	if headers, ok := cmd.Params["headers"].(map[string]interface{}); ok {
+	headers, hasHeaders := cmd.Params["headers"].(map[string]interface{})
+	if !hasHeaders {
+		headers = map[string]interface{}{}
+	}
+
+	// contentType convenience: inject Content-Type if not already present
+	if contentType, ok := cmd.Params["contentType"].(string); ok && contentType != "" {
+		hasContentType := false
+		for name := range headers {
+			if strings.EqualFold(name, "content-type") {
+				hasContentType = true
+				break
+			}
+		}
+		if !hasContentType {
+			headers["Content-Type"] = contentType
+		}
+	}
+
+	if len(headers) > 0 {
 		params["headers"] = convertHeadersToBidi(headers)
 	}
 

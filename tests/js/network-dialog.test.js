@@ -67,23 +67,53 @@ describe('Network Interception: page.route', () => {
     }
   });
 
-  test('route.fulfill() throws not implemented', async () => {
+  test('route.fulfill() returns a mock response', async () => {
     const b = await browser.launch({ headless: true });
     try {
       const page = await b.page();
       await page.go(baseURL);
 
-      await page.route('**/test', async (route) => {
-        await assert.rejects(
-          () => route.fulfill({ status: 200, body: 'test' }),
-          /Not implemented/
-        );
-        // Must continue so the request doesn't hang
-        route.continue();
+      await page.route('**/json', (route) => {
+        route.fulfill({
+          status: 200,
+          body: JSON.stringify({ mocked: true }),
+          contentType: 'application/json',
+        });
       });
 
-      await page.eval(`fetch('${baseURL}/test')`);
-      await page.wait(200);
+      const result = await page.eval(`
+        fetch('${baseURL}/json')
+          .then(r => r.json())
+      `);
+
+      assert.deepStrictEqual(result, { mocked: true });
+    } finally {
+      await b.close();
+    }
+  });
+
+  test('route.fulfill() with custom headers', async () => {
+    const b = await browser.launch({ headless: true });
+    try {
+      const page = await b.page();
+      await page.go(baseURL);
+
+      await page.route('**/text', (route) => {
+        route.fulfill({
+          status: 201,
+          headers: { 'X-Custom': 'test-value', 'Content-Type': 'text/plain' },
+          body: 'custom body',
+        });
+      });
+
+      const result = await page.eval(`
+        fetch('${baseURL}/text')
+          .then(r => r.text().then(body => ({ status: r.status, body, custom: r.headers.get('X-Custom') })))
+      `);
+
+      assert.strictEqual(result.status, 201);
+      assert.strictEqual(result.body, 'custom body');
+      assert.strictEqual(result.custom, 'test-value');
     } finally {
       await b.close();
     }
