@@ -185,11 +185,11 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `context.cookies(urls?)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `context.setCookies()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `context.clearCookies()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `context.storageState()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `context.addInitScript()` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
+| `context.cookies(urls?)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.setCookies()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.clearCookies()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.storageState()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.addInitScript()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 
 ## Emulation (6 commands)
 

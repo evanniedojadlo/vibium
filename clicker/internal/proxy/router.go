@@ -369,6 +369,24 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	case "vibium:context.close":
 		go r.handleContextClose(session, cmd)
 		return
+
+	// Cookie & storage commands
+	case "vibium:context.cookies":
+		go r.handleContextCookies(session, cmd)
+		return
+	case "vibium:context.setCookies":
+		go r.handleContextSetCookies(session, cmd)
+		return
+	case "vibium:context.clearCookies":
+		go r.handleContextClearCookies(session, cmd)
+		return
+	case "vibium:context.storageState":
+		go r.handleContextStorageState(session, cmd)
+		return
+	case "vibium:context.addInitScript":
+		go r.handleContextAddInitScript(session, cmd)
+		return
+
 	case "vibium:browser.close":
 		go r.handleBrowserClose(session, cmd)
 		return
