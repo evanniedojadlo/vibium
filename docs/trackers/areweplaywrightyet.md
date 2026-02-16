@@ -159,8 +159,8 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 | `request.postData()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 | `response.status()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 | `response.headers()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
-| `response.body()` | 🟡 | ⬜ | ⬜ | ⬜ | — | — |
-| `response.json()` | 🟡 | ⬜ | ⬜ | ⬜ | — | — |
+| `response.body()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
+| `response.json()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 
 ## Dialogs (5 commands)
 

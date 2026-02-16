@@ -210,21 +210,28 @@ const body = await req.postData();
 // body === 'name=Jane+Doe&email=jane%40example.com'
 ```
 
-### Response Body Collection
+### Response Body Collection: `response.body()` and `response.json()`
 
-Data collectors also support `"response"` data type. This is the foundation for implementing `response.body()` and `response.json()` (not yet implemented in Vibium, but the BiDi mechanism is the same):
+When you call `page.onResponse()` or `page.waitForResponse()`, Vibium sets up a data collector that includes the `"response"` data type. This makes `response.body()` and `response.json()` work:
 
-```json
-{
-  "method": "network.addDataCollector",
-  "params": {
-    "dataTypes": ["response"],
-    "maxEncodedDataSize": 10485760
+```javascript
+page.onResponse(async (resp) => {
+  if (resp.url().includes('/api/users')) {
+    const data = await resp.json();
+    console.log('Got users:', data);  // [{name: "Alice"}, ...]
   }
-}
+});
 ```
 
-Then retrieve with `network.getData` using `"dataType": "response"` and the request ID from the `network.responseCompleted` event.
+Or with `waitForResponse`:
+
+```javascript
+const resp = await page.waitForResponse('**/api/users');
+const body = await resp.body();    // raw string
+const data = await resp.json();    // parsed JSON
+```
+
+Under the hood, `body()` calls `network.getData` with `"dataType": "response"` and the request ID from the `network.responseCompleted` event. Base64-encoded responses (binary content) are automatically decoded. If no data collector was active when the response arrived, `body()` returns `null`.
 
 ### Network Tracing
 

@@ -506,6 +506,7 @@ export class Page {
 
   /** Register a callback for every completed response. */
   onResponse(fn: (response: Response) => void): void {
+    this.ensureDataCollector();
     this.responseCallbacks.push(fn);
   }
 
@@ -516,13 +517,16 @@ export class Page {
   removeAllListeners(event?: 'request' | 'response' | 'dialog'): void {
     if (!event || event === 'request') {
       this.requestCallbacks = [];
-      this.teardownDataCollector();
     }
     if (!event || event === 'response') {
       this.responseCallbacks = [];
     }
     if (!event || event === 'dialog') {
       this.dialogCallbacks = [];
+    }
+    // Tear down data collector when no request/response listeners and no routes remain
+    if (this.requestCallbacks.length === 0 && this.responseCallbacks.length === 0 && this.routes.length === 0) {
+      this.teardownDataCollector();
     }
   }
 
@@ -548,6 +552,7 @@ export class Page {
 
   /** Wait for a response matching a URL pattern. */
   waitForResponse(pattern: string, options?: { timeout?: number }): Promise<Response> {
+    this.ensureDataCollector();
     const timeout = options?.timeout ?? 30000;
     return new Promise<Response>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -612,7 +617,7 @@ export class Page {
     this.dataCollectorId = 'pending';
     this.client.send<{ collector: string }>(
       'network.addDataCollector',
-      { dataTypes: ['request'], maxEncodedDataSize: 10 * 1024 * 1024 }
+      { dataTypes: ['request', 'response'], maxEncodedDataSize: 10 * 1024 * 1024 }
     ).then(result => {
       this.dataCollectorId = result.collector;
     }).catch(() => {
@@ -666,7 +671,7 @@ export class Page {
   }
 
   private handleResponseCompleted(params: Record<string, unknown>): void {
-    const resp = new Response(params);
+    const resp = new Response(params, this.client);
     for (const cb of this.responseCallbacks) {
       cb(resp);
     }

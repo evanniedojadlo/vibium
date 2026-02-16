@@ -296,6 +296,92 @@ describe('Network Waiters: waitForRequest/waitForResponse', () => {
   });
 });
 
+// --- Response Body ---
+
+describe('Response Body: response.body() and response.json()', () => {
+  test('response.body() returns text content via onResponse', async () => {
+    const b = await browser.launch({ headless: true });
+    try {
+      const page = await b.page();
+      await page.go(baseURL);
+
+      let captured = null;
+      page.onResponse((resp) => {
+        if (resp.url().includes('/text')) {
+          captured = resp;
+        }
+      });
+
+      await page.eval(`fetch('${baseURL}/text')`);
+      await page.wait(500);
+
+      assert.ok(captured, 'Should have captured the /text response');
+      const body = await captured.body();
+      assert.strictEqual(body, 'hello world');
+    } finally {
+      await b.close();
+    }
+  });
+
+  test('response.json() parses JSON content via onResponse', async () => {
+    const b = await browser.launch({ headless: true });
+    try {
+      const page = await b.page();
+      await page.go(baseURL);
+
+      let captured = null;
+      page.onResponse((resp) => {
+        if (resp.url().includes('/json')) {
+          captured = resp;
+        }
+      });
+
+      await page.eval(`fetch('${baseURL}/json')`);
+      await page.wait(500);
+
+      assert.ok(captured, 'Should have captured the /json response');
+      const data = await captured.json();
+      assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
+    } finally {
+      await b.close();
+    }
+  });
+
+  test('response.body() works with waitForResponse', async () => {
+    const b = await browser.launch({ headless: true });
+    try {
+      const page = await b.page();
+      await page.go(baseURL);
+
+      const responsePromise = page.waitForResponse('**/text');
+      await page.eval(`fetch('${baseURL}/text')`);
+      const resp = await responsePromise;
+
+      const body = await resp.body();
+      assert.strictEqual(body, 'hello world');
+    } finally {
+      await b.close();
+    }
+  });
+
+  test('response.json() works with waitForResponse', async () => {
+    const b = await browser.launch({ headless: true });
+    try {
+      const page = await b.page();
+      await page.go(baseURL);
+
+      const responsePromise = page.waitForResponse('**/json');
+      await page.eval(`fetch('${baseURL}/json')`);
+      const resp = await responsePromise;
+
+      const data = await resp.json();
+      assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
+    } finally {
+      await b.close();
+    }
+  });
+});
+
 // --- Dialogs ---
 
 describe('Dialogs: page.onDialog', () => {

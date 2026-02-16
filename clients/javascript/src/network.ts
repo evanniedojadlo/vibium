@@ -65,9 +65,11 @@ export class Request {
 /** Wraps a BiDi network.responseCompleted event. */
 export class Response {
   private data: Record<string, unknown>;
+  private client: BiDiClient | null;
 
-  constructor(data: Record<string, unknown>) {
+  constructor(data: Record<string, unknown>, client?: BiDiClient) {
     this.data = data;
+    this.client = client ?? null;
   }
 
   /** The response URL. */
@@ -95,14 +97,31 @@ export class Response {
     return (req?.request as string) ?? '';
   }
 
-  /** Response body as a string. Not yet implemented. */
+  /** Response body as a string. Requires a data collector (set up by onResponse/waitForResponse). */
   async body(): Promise<string | null> {
-    return null;
+    if (!this.client) return null;
+    const reqId = this.requestId();
+    if (!reqId) return null;
+    try {
+      const result = await this.client.send<{ bytes: { type: string; value: string } }>(
+        'network.getData',
+        { dataType: 'response', request: reqId }
+      );
+      if (!result?.bytes?.value) return null;
+      if (result.bytes.type === 'base64') {
+        return Buffer.from(result.bytes.value, 'base64').toString('utf-8');
+      }
+      return result.bytes.value;
+    } catch {
+      return null;
+    }
   }
 
-  /** Response body parsed as JSON. Not yet implemented. */
+  /** Response body parsed as JSON. Requires a data collector (set up by onResponse/waitForResponse). */
   async json(): Promise<unknown> {
-    return null;
+    const text = await this.body();
+    if (text === null) return null;
+    return JSON.parse(text);
   }
 }
 
