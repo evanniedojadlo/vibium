@@ -377,7 +377,6 @@ vibe.find(placeholder='Search...')
 | Vibium | Playwright equiv | Implementation | Notes |
 |--------|-----------------|----------------|-------|
 | `page.a11yTree()` | `page.accessibility.snapshot()` | JS: walk DOM, compute ARIA roles/names/states | BiDi has no a11y module yet |
-| `page.a11yAudit()` | (no equiv) | JS: inject axe-core or similar | Vibium extra |
 | `el.role()` | `locator.role` (via getByRole) | JS: `element.computedRole` | |
 | `el.label()` | `locator.label` (via getByLabel) | JS: `element.computedLabel` | |
 

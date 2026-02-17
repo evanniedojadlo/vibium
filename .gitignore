@@ -41,6 +41,7 @@ dist/
 
 # Go binaries
 clicker/bin/
+clicker/clicker
 
 # Embedded SKILL.md (copied from skills/vibe-check/ at build time)
 clicker/cmd/clicker/SKILL.md

@@ -216,7 +216,6 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.a11yTree()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.a11yAudit()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `el.role()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `el.label()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
