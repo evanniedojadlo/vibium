@@ -1,5 +1,6 @@
 import { BiDiClient } from './bidi';
 import { Page } from './page';
+import { Tracing } from './tracing';
 
 export interface Cookie {
   name: string;
@@ -39,10 +40,12 @@ export interface StorageState {
 export class BrowserContext {
   private client: BiDiClient;
   private userContextId: string;
+  readonly tracing: Tracing;
 
   constructor(client: BiDiClient, userContextId: string) {
     this.client = client;
     this.userContextId = userContextId;
+    this.tracing = new Tracing(client, userContextId);
   }
 
   /** The user context ID for this browser context. */

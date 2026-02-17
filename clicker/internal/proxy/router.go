@@ -35,6 +35,9 @@ type BrowserSession struct {
 
 	// Download support
 	downloadDir string // temp dir for downloads, cleaned up on close
+
+	// Tracing support
+	traceRecorder *TraceRecorder
 }
 
 // BiDi command structure for parsing incoming messages
@@ -481,6 +484,26 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	case "vibium:el.setFiles":
 		go r.handleVibiumElSetFiles(session, cmd)
 		return
+
+	// Tracing commands
+	case "vibium:tracing.start":
+		go r.handleTracingStart(session, cmd)
+		return
+	case "vibium:tracing.stop":
+		go r.handleTracingStop(session, cmd)
+		return
+	case "vibium:tracing.startChunk":
+		go r.handleTracingStartChunk(session, cmd)
+		return
+	case "vibium:tracing.stopChunk":
+		go r.handleTracingStopChunk(session, cmd)
+		return
+	case "vibium:tracing.startGroup":
+		go r.handleTracingStartGroup(session, cmd)
+		return
+	case "vibium:tracing.stopGroup":
+		go r.handleTracingStopGroup(session, cmd)
+		return
 	}
 
 	// Forward standard BiDi commands to browser
@@ -582,6 +605,14 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 			}
 		}
 
+		// Record event for tracing (non-blocking)
+		session.mu.Lock()
+		recorder := session.traceRecorder
+		session.mu.Unlock()
+		if recorder != nil && recorder.IsRecording() {
+			recorder.RecordBidiEvent(msg)
+		}
+
 		// Check for WebSocket channel events (intercept, don't forward raw script.message)
 		if r.isWsChannelEvent(session, msg) {
 			continue
@@ -650,6 +681,11 @@ func (r *Router) closeSession(session *BrowserSession) {
 	// Close BiDi connection
 	if session.BidiConn != nil {
 		session.BidiConn.Close()
+	}
+
+	// Stop any active trace recorder
+	if session.traceRecorder != nil {
+		session.traceRecorder.StopScreenshots()
 	}
 
 	// Clean up download temp dir

@@ -1,6 +1,6 @@
 # Are We Playwright Yet?
 
-Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, tracked across 6 implementation targets.
+Vibium's Playwright-equivalent API coverage. 163 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -254,12 +254,16 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 | `page.clock.fastForward(ms)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
 | `page.clock.setFixedTime(t)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
 
-## Tracing (2 commands)
+## Tracing (6 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.tracing.start(opts)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.tracing.stop(opts)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.tracing.start(opts)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.tracing.stop(opts)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.tracing.startChunk(opts)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.tracing.stopChunk(opts)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.tracing.startGroup(name)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `context.tracing.stopGroup()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Evaluation (5 commands)
 
