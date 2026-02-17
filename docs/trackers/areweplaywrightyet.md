@@ -1,6 +1,6 @@
 # Are We Playwright Yet?
 
-Vibium's Playwright-equivalent API coverage. 163 commands across 23 categories, tracked across 6 implementation targets.
+Vibium's Playwright-equivalent API coverage. 168 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -246,13 +246,18 @@ Vibium's Playwright-equivalent API coverage. 163 commands across 23 categories, 
 | `el.setFiles(paths)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `page.onFileChooser(fn)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
 
-## Clock (3 commands)
+## Clock (8 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.clock.install()` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
-| `page.clock.fastForward(ms)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
-| `page.clock.setFixedTime(t)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
+| `page.clock.install(opts?)` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
+| `page.clock.fastForward(ms)` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
+| `page.clock.runFor(ms)` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
+| `page.clock.pauseAt(time)` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
+| `page.clock.resume()` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
+| `page.clock.setFixedTime(time)` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
+| `page.clock.setSystemTime(time)` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
+| `page.clock.setTimezone(tz)` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | — |
 
 ## Tracing (6 commands)
 

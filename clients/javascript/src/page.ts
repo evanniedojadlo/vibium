@@ -7,6 +7,7 @@ import { Dialog } from './dialog';
 import { ConsoleMessage } from './console';
 import { Download } from './download';
 import { WebSocketInfo } from './websocket';
+import { Clock } from './clock';
 import { matchPattern } from './utils/match';
 import { debug } from './utils/debug';
 
@@ -184,6 +185,8 @@ export class Page {
   readonly mouse: Mouse;
   /** Page-level touch input. */
   readonly touch: Touch;
+  /** Page-level clock control for faking timers and Date. */
+  readonly clock: Clock;
 
   // Network interception state
   private routes: { pattern: string; handler: (route: Route) => void; interceptId?: string }[] = [];
@@ -206,6 +209,7 @@ export class Page {
     this.keyboard = new Keyboard(client, contextId);
     this.mouse = new Mouse(client, contextId);
     this.touch = new Touch(client, contextId);
+    this.clock = new Clock(client, contextId);
 
     // Listen for network and dialog events
     this.eventHandler = (event: BiDiEvent) => {

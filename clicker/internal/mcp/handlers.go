@@ -84,6 +84,22 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserCloseTab(args)
 	case "browser_a11y_tree":
 		return h.browserA11yTree(args)
+	case "page_clock_install":
+		return h.pageClockInstall(args)
+	case "page_clock_fast_forward":
+		return h.pageClockFastForward(args)
+	case "page_clock_run_for":
+		return h.pageClockRunFor(args)
+	case "page_clock_pause_at":
+		return h.pageClockPauseAt(args)
+	case "page_clock_resume":
+		return h.pageClockResume(args)
+	case "page_clock_set_fixed_time":
+		return h.pageClockSetFixedTime(args)
+	case "page_clock_set_system_time":
+		return h.pageClockSetSystemTime(args)
+	case "page_clock_set_timezone":
+		return h.pageClockSetTimezone(args)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}
@@ -1041,6 +1057,375 @@ func (h *Handlers) browserGetTitle(args map[string]interface{}) (*ToolsCallResul
 			Text: title,
 		}},
 	}, nil
+}
+
+// pageClockInstall installs a fake clock on the page.
+func (h *Handlers) pageClockInstall(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	_, err := h.client.CallFunction("", clockInstallScript(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to install clock: %w", err)
+	}
+
+	if timeVal, ok := args["time"].(float64); ok {
+		script := fmt.Sprintf("() => { window.__vibiumClock.setSystemTime(%v); return 'ok'; }", timeVal)
+		if _, err := h.client.CallFunction("", script, nil); err != nil {
+			return nil, fmt.Errorf("failed to set initial time: %w", err)
+		}
+	}
+
+	if tz, ok := args["timezone"].(string); ok && tz != "" {
+		if err := h.setTimezoneOverride(tz); err != nil {
+			return nil, fmt.Errorf("failed to set timezone: %w", err)
+		}
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: "Clock installed"}},
+	}, nil
+}
+
+// pageClockFastForward fast-forwards the fake clock.
+func (h *Handlers) pageClockFastForward(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	ticks, ok := args["ticks"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("ticks is required")
+	}
+
+	script := fmt.Sprintf("() => { window.__vibiumClock.fastForward(%v); return 'ok'; }", ticks)
+	if _, err := h.client.CallFunction("", script, nil); err != nil {
+		return nil, fmt.Errorf("clock.fastForward failed: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: fmt.Sprintf("Fast-forwarded %v ms", ticks)}},
+	}, nil
+}
+
+// pageClockRunFor advances the fake clock, firing all callbacks.
+func (h *Handlers) pageClockRunFor(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	ticks, ok := args["ticks"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("ticks is required")
+	}
+
+	script := fmt.Sprintf("() => { window.__vibiumClock.runFor(%v); return 'ok'; }", ticks)
+	if _, err := h.client.CallFunction("", script, nil); err != nil {
+		return nil, fmt.Errorf("clock.runFor failed: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: fmt.Sprintf("Ran for %v ms", ticks)}},
+	}, nil
+}
+
+// pageClockPauseAt pauses the fake clock at a specific time.
+func (h *Handlers) pageClockPauseAt(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	timeVal, ok := args["time"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("time is required")
+	}
+
+	script := fmt.Sprintf("() => { window.__vibiumClock.pauseAt(%v); return 'ok'; }", timeVal)
+	if _, err := h.client.CallFunction("", script, nil); err != nil {
+		return nil, fmt.Errorf("clock.pauseAt failed: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: fmt.Sprintf("Paused at %v", timeVal)}},
+	}, nil
+}
+
+// pageClockResume resumes real-time progression.
+func (h *Handlers) pageClockResume(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	if _, err := h.client.CallFunction("", "() => { window.__vibiumClock.resume(); return 'ok'; }", nil); err != nil {
+		return nil, fmt.Errorf("clock.resume failed: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: "Clock resumed"}},
+	}, nil
+}
+
+// pageClockSetFixedTime freezes Date.now() at a value.
+func (h *Handlers) pageClockSetFixedTime(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	timeVal, ok := args["time"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("time is required")
+	}
+
+	script := fmt.Sprintf("() => { window.__vibiumClock.setFixedTime(%v); return 'ok'; }", timeVal)
+	if _, err := h.client.CallFunction("", script, nil); err != nil {
+		return nil, fmt.Errorf("clock.setFixedTime failed: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: fmt.Sprintf("Fixed time set to %v", timeVal)}},
+	}, nil
+}
+
+// pageClockSetSystemTime sets Date.now() without triggering timers.
+func (h *Handlers) pageClockSetSystemTime(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	timeVal, ok := args["time"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("time is required")
+	}
+
+	script := fmt.Sprintf("() => { window.__vibiumClock.setSystemTime(%v); return 'ok'; }", timeVal)
+	if _, err := h.client.CallFunction("", script, nil); err != nil {
+		return nil, fmt.Errorf("clock.setSystemTime failed: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: fmt.Sprintf("System time set to %v", timeVal)}},
+	}, nil
+}
+
+// pageClockSetTimezone overrides or resets the browser timezone.
+func (h *Handlers) pageClockSetTimezone(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	tz, _ := args["timezone"].(string)
+
+	if tz == "" {
+		// Reset to default
+		if err := h.clearTimezoneOverride(); err != nil {
+			return nil, fmt.Errorf("failed to clear timezone: %w", err)
+		}
+		return &ToolsCallResult{
+			Content: []Content{{Type: "text", Text: "Timezone reset to system default"}},
+		}, nil
+	}
+
+	if err := h.setTimezoneOverride(tz); err != nil {
+		return nil, fmt.Errorf("failed to set timezone: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{Type: "text", Text: fmt.Sprintf("Timezone set to %s", tz)}},
+	}, nil
+}
+
+// setTimezoneOverride uses BiDi emulation.setTimezoneOverride.
+func (h *Handlers) setTimezoneOverride(timezone string) error {
+	tree, err := h.client.GetTree()
+	if err != nil {
+		return fmt.Errorf("failed to get browsing context: %w", err)
+	}
+	if len(tree.Contexts) == 0 {
+		return fmt.Errorf("no browsing contexts available")
+	}
+
+	_, err = h.client.SendCommand("emulation.setTimezoneOverride", map[string]interface{}{
+		"timezone": timezone,
+		"contexts": []interface{}{tree.Contexts[0].Context},
+	})
+	return err
+}
+
+// clearTimezoneOverride resets the browser timezone to the system default.
+func (h *Handlers) clearTimezoneOverride() error {
+	tree, err := h.client.GetTree()
+	if err != nil {
+		return fmt.Errorf("failed to get browsing context: %w", err)
+	}
+	if len(tree.Contexts) == 0 {
+		return fmt.Errorf("no browsing contexts available")
+	}
+
+	_, err = h.client.SendCommand("emulation.setTimezoneOverride", map[string]interface{}{
+		"timezone": nil,
+		"contexts": []interface{}{tree.Contexts[0].Context},
+	})
+	return err
+}
+
+// clockInstallScript returns the JS that installs the fake clock on the page.
+// This is the same script used by the proxy handlers (defined separately to avoid circular imports).
+func clockInstallScript() string {
+	return `() => {
+	if (window.__vibiumClock) return 'already_installed';
+
+	const OrigDate = Date;
+	const origSetTimeout = setTimeout;
+	const origClearTimeout = clearTimeout;
+	const origSetInterval = setInterval;
+	const origClearInterval = clearInterval;
+	const origRAF = requestAnimationFrame;
+	const origCAF = cancelAnimationFrame;
+	const origPerfNow = performance.now.bind(performance);
+
+	let currentTime = OrigDate.now();
+	let fixedTime = null;
+	let paused = false;
+	let nextId = 1;
+	let resumeTimer = null;
+	const timers = new Map();
+
+	class FakeDate extends OrigDate {
+		constructor(...args) {
+			if (args.length === 0) {
+				super(fixedTime !== null ? fixedTime : currentTime);
+			} else {
+				super(...args);
+			}
+		}
+		static now() {
+			return fixedTime !== null ? fixedTime : currentTime;
+		}
+		static parse(s) { return OrigDate.parse(s); }
+		static UTC(...args) { return OrigDate.UTC(...args); }
+	}
+
+	function fakeSetTimeout(fn, delay, ...args) {
+		if (typeof fn !== 'function') return 0;
+		const id = nextId++;
+		timers.set(id, {
+			callback: fn, args: args,
+			triggerTime: currentTime + (delay || 0),
+			interval: 0, type: 'timeout'
+		});
+		return id;
+	}
+
+	function fakeSetInterval(fn, delay, ...args) {
+		if (typeof fn !== 'function') return 0;
+		const id = nextId++;
+		timers.set(id, {
+			callback: fn, args: args,
+			triggerTime: currentTime + (delay || 0),
+			interval: delay || 0, type: 'interval'
+		});
+		return id;
+	}
+
+	function fakeClearTimeout(id) { timers.delete(id); }
+	function fakeClearInterval(id) { timers.delete(id); }
+
+	let rafId = 1;
+	const rafCallbacks = new Map();
+	function fakeRAF(fn) { const id = rafId++; rafCallbacks.set(id, fn); return id; }
+	function fakeCAF(id) { rafCallbacks.delete(id); }
+
+	const startPerfTime = origPerfNow();
+	const startCurrentTime = currentTime;
+	function fakePerfNow() { return startPerfTime + (currentTime - startCurrentTime); }
+
+	window.Date = FakeDate;
+	window.setTimeout = fakeSetTimeout;
+	window.setInterval = fakeSetInterval;
+	window.clearTimeout = fakeClearTimeout;
+	window.clearInterval = fakeClearInterval;
+	window.requestAnimationFrame = fakeRAF;
+	window.cancelAnimationFrame = fakeCAF;
+	performance.now = fakePerfNow;
+
+	function getDueTimers(upTo) {
+		const due = [];
+		for (const [id, t] of timers) {
+			if (t.triggerTime <= upTo) due.push([id, t]);
+		}
+		due.sort((a, b) => a[1].triggerTime - b[1].triggerTime);
+		return due;
+	}
+
+	function fireRAFs() {
+		const cbs = Array.from(rafCallbacks.entries());
+		rafCallbacks.clear();
+		for (const [, fn] of cbs) { try { fn(currentTime); } catch (e) {} }
+	}
+
+	const clock = {
+		fastForward(ms) {
+			const target = currentTime + ms;
+			currentTime = target;
+			const due = getDueTimers(target);
+			for (const [id, t] of due) {
+				timers.delete(id);
+				try { t.callback(...t.args); } catch (e) {}
+			}
+			fireRAFs();
+		},
+		runFor(ms) {
+			const target = currentTime + ms;
+			while (currentTime < target) {
+				let earliest = null;
+				let earliestId = null;
+				for (const [id, t] of timers) {
+					if (t.triggerTime <= target && (!earliest || t.triggerTime < earliest.triggerTime)) {
+						earliest = t; earliestId = id;
+					}
+				}
+				if (!earliest || earliest.triggerTime > target) { currentTime = target; break; }
+				currentTime = earliest.triggerTime;
+				if (earliest.type === 'interval' && earliest.interval > 0) {
+					earliest.triggerTime = currentTime + earliest.interval;
+				} else { timers.delete(earliestId); }
+				try { earliest.callback(...earliest.args); } catch (e) {}
+			}
+			currentTime = target;
+			fireRAFs();
+		},
+		pauseAt(time) {
+			currentTime = time; paused = true;
+			if (resumeTimer) { origClearInterval(resumeTimer); resumeTimer = null; }
+			const due = getDueTimers(time);
+			for (const [id, t] of due) { timers.delete(id); try { t.callback(...t.args); } catch (e) {} }
+		},
+		resume() {
+			if (resumeTimer) return;
+			paused = false;
+			let lastReal = OrigDate.now();
+			resumeTimer = origSetInterval(() => {
+				const now = OrigDate.now();
+				const delta = now - lastReal;
+				lastReal = now;
+				currentTime += delta;
+				const due = getDueTimers(currentTime);
+				for (const [id, t] of due) {
+					if (t.type === 'interval' && t.interval > 0) { t.triggerTime = currentTime + t.interval; }
+					else { timers.delete(id); }
+					try { t.callback(...t.args); } catch (e) {}
+				}
+				fireRAFs();
+			}, 16);
+		},
+		setFixedTime(time) { fixedTime = time; },
+		setSystemTime(time) { currentTime = time; fixedTime = null; }
+	};
+
+	window.__vibiumClock = clock;
+	return 'installed';
+}`
 }
 
 // ensureBrowser checks that a browser session is active.

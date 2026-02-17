@@ -135,12 +135,12 @@ describe('MCP Server: Protocol', () => {
     assert.ok(response.result.capabilities.tools, 'Should have tools capability');
   });
 
-  test('tools/list returns all 23 browser tools', async () => {
+  test('tools/list returns all 31 browser tools', async () => {
     const response = await client.call('tools/list', {});
 
     assert.ok(response.result, 'Should have result');
     assert.ok(response.result.tools, 'Should have tools array');
-    assert.strictEqual(response.result.tools.length, 23, 'Should have 23 tools');
+    assert.strictEqual(response.result.tools.length, 31, 'Should have 31 tools');
 
     const toolNames = response.result.tools.map(t => t.name);
     const expectedTools = [
@@ -151,6 +151,9 @@ describe('MCP Server: Protocol', () => {
       'browser_hover', 'browser_select', 'browser_scroll', 'browser_keys',
       'browser_new_tab', 'browser_list_tabs', 'browser_switch_tab', 'browser_close_tab',
       'browser_a11y_tree',
+      'page_clock_install', 'page_clock_fast_forward', 'page_clock_run_for',
+      'page_clock_pause_at', 'page_clock_resume', 'page_clock_set_fixed_time',
+      'page_clock_set_system_time', 'page_clock_set_timezone',
     ];
     for (const tool of expectedTools) {
       assert.ok(toolNames.includes(tool), `Should have ${tool}`);

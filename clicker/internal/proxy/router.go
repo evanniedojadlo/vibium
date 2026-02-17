@@ -36,6 +36,9 @@ type BrowserSession struct {
 	// Download support
 	downloadDir string // temp dir for downloads, cleaned up on close
 
+	// Clock support
+	clockPreloadScriptID string // "" if not installed
+
 	// Tracing support
 	traceRecorder *TraceRecorder
 }
@@ -503,6 +506,32 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 		return
 	case "vibium:tracing.stopGroup":
 		go r.handleTracingStopGroup(session, cmd)
+		return
+
+	// Clock commands
+	case "vibium:clock.install":
+		go r.handleClockInstall(session, cmd)
+		return
+	case "vibium:clock.fastForward":
+		go r.handleClockFastForward(session, cmd)
+		return
+	case "vibium:clock.runFor":
+		go r.handleClockRunFor(session, cmd)
+		return
+	case "vibium:clock.pauseAt":
+		go r.handleClockPauseAt(session, cmd)
+		return
+	case "vibium:clock.resume":
+		go r.handleClockResume(session, cmd)
+		return
+	case "vibium:clock.setFixedTime":
+		go r.handleClockSetFixedTime(session, cmd)
+		return
+	case "vibium:clock.setSystemTime":
+		go r.handleClockSetSystemTime(session, cmd)
+		return
+	case "vibium:clock.setTimezone":
+		go r.handleClockSetTimezone(session, cmd)
 		return
 	}
 

@@ -362,5 +362,122 @@ func GetToolSchemas() []Tool {
 				"additionalProperties": false,
 			},
 		},
+		{
+			Name:        "page_clock_install",
+			Description: "Install a fake clock on the page, overriding Date, setTimeout, setInterval, requestAnimationFrame, and performance.now",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"time": map[string]interface{}{
+						"type":        "number",
+						"description": "Initial time as epoch milliseconds (optional)",
+					},
+					"timezone": map[string]interface{}{
+						"type":        "string",
+						"description": "IANA timezone ID to override (e.g. 'America/New_York', 'Europe/London')",
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "page_clock_fast_forward",
+			Description: "Jump the fake clock forward by N milliseconds, firing each due timer at most once",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"ticks": map[string]interface{}{
+						"type":        "number",
+						"description": "Number of milliseconds to fast-forward",
+					},
+				},
+				"required":             []string{"ticks"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "page_clock_run_for",
+			Description: "Advance the fake clock by N milliseconds, firing all time-related callbacks systematically",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"ticks": map[string]interface{}{
+						"type":        "number",
+						"description": "Number of milliseconds to advance",
+					},
+				},
+				"required":             []string{"ticks"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "page_clock_pause_at",
+			Description: "Jump the fake clock to a specific time and pause — no timers fire until resumed or advanced",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"time": map[string]interface{}{
+						"type":        "number",
+						"description": "Time as epoch milliseconds to pause at",
+					},
+				},
+				"required":             []string{"time"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "page_clock_resume",
+			Description: "Resume real-time progression from the current fake clock time",
+			InputSchema: map[string]interface{}{
+				"type":                 "object",
+				"properties":           map[string]interface{}{},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "page_clock_set_fixed_time",
+			Description: "Freeze Date.now() at a specific value permanently. Timers still run.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"time": map[string]interface{}{
+						"type":        "number",
+						"description": "Time as epoch milliseconds to freeze at",
+					},
+				},
+				"required":             []string{"time"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "page_clock_set_system_time",
+			Description: "Set Date.now() to a specific value without triggering any timers",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"time": map[string]interface{}{
+						"type":        "number",
+						"description": "Time as epoch milliseconds to set",
+					},
+				},
+				"required":             []string{"time"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "page_clock_set_timezone",
+			Description: "Override the browser timezone. Pass an IANA timezone ID (e.g. 'America/New_York'), or empty string to reset to system default",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"timezone": map[string]interface{}{
+						"type":        "string",
+						"description": "IANA timezone ID (e.g. 'America/New_York', 'Europe/London', 'Asia/Tokyo'). Empty string resets to system default.",
+					},
+				},
+				"required":             []string{"timezone"},
+				"additionalProperties": false,
+			},
+		},
 	}
 }

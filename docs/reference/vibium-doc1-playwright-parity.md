@@ -406,13 +406,18 @@ vibe.find(placeholder='Search...')
 | `download.saveAs(path)` | `download.saveAs()` | Client-side: file management | |
 | `page.onFileChooser(fn)` | `page.on('filechooser')` | BiDi/JS: detect file input activation | |
 
-### 19. Clock (3 commands)
+### 19. Clock (8 commands)
 
 | Vibium | Playwright equiv | Implementation | Notes |
 |--------|-----------------|----------------|-------|
-| `page.clock.install()` | `page.clock.install()` | JS: override Date, setTimeout, setInterval, requestAnimationFrame | |
-| `page.clock.fastForward(ms)` | `page.clock.fastForward()` | JS: advance fake timers | |
-| `page.clock.setFixedTime(time)` | `page.clock.setFixedTime()` | JS: freeze Date.now() | |
+| `page.clock.install(opts?)` | `page.clock.install()` | JS: override Date, setTimeout, setInterval, requestAnimationFrame, performance.now | Options: `time` (epoch ms), `timezone` (IANA ID). Preload script survives navigation. |
+| `page.clock.fastForward(ms)` | `page.clock.fastForward()` | JS: advance fake timers | Fire each due timer at most once |
+| `page.clock.runFor(ms)` | `page.clock.runFor()` | JS: advance time systematically | Fires all callbacks, reschedules intervals |
+| `page.clock.pauseAt(time)` | `page.clock.pauseAt()` | JS: jump to time and pause | No timers fire until resumed/advanced |
+| `page.clock.resume()` | `page.clock.resume()` | JS: resume real-time progression | Starts real-time sync loop from current fake time |
+| `page.clock.setFixedTime(time)` | `page.clock.setFixedTime()` | JS: freeze Date.now() permanently | Timers still run |
+| `page.clock.setSystemTime(time)` | `page.clock.setSystemTime()` | JS: set Date.now() without firing timers | Relocate clock without side effects |
+| `page.clock.setTimezone(tz)` | N/A (context option) | BiDi: `emulation.setTimezoneOverride` | IANA timezone ID; empty string resets to default |
 
 ### 20. Tracing (6 commands)
 
