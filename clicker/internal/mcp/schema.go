@@ -347,5 +347,20 @@ func GetToolSchemas() []Tool {
 				"additionalProperties": false,
 			},
 		},
+		{
+			Name:        "browser_a11y_tree",
+			Description: "Get the accessibility tree of the current page. Returns a tree of ARIA roles, names, and states — useful for understanding page structure without visual rendering.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"interestingOnly": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Filter out generic/presentation nodes that are not interesting for accessibility. Default: true",
+						"default":     true,
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
 	}
 }

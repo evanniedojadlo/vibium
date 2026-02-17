@@ -1,5 +1,5 @@
 export { browser, Browser, LaunchOptions } from './browser';
-export { Page, Keyboard, Mouse, Touch, ScreenshotOptions } from './page';
+export { Page, Keyboard, Mouse, Touch, ScreenshotOptions, A11yNode } from './page';
 export { BrowserContext, Cookie, SetCookieParam, StorageState, OriginState } from './context';
 export { Vibe, FindOptions } from './vibe';
 export { Element, BoundingBox, ElementInfo, ActionOptions, SelectorOptions, FluentElement, fluent } from './element';

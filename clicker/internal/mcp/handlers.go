@@ -82,6 +82,8 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserSwitchTab(args)
 	case "browser_close_tab":
 		return h.browserCloseTab(args)
+	case "browser_a11y_tree":
+		return h.browserA11yTree(args)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}
@@ -499,6 +501,181 @@ func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResul
 			Text: fmt.Sprintf("Closed tab %d", idx),
 		}},
 	}, nil
+}
+
+// browserA11yTree returns the accessibility tree of the current page.
+func (h *Handlers) browserA11yTree(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	interestingOnly := true
+	if val, ok := args["interestingOnly"].(bool); ok {
+		interestingOnly = val
+	}
+
+	script := a11yTreeMCPScript()
+	result, err := h.client.CallFunction("", script, []interface{}{interestingOnly})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get accessibility tree: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("%v", result),
+		}},
+	}, nil
+}
+
+// a11yTreeMCPScript returns the JS function for the MCP a11y tree tool.
+func a11yTreeMCPScript() string {
+	return `(interestingOnly) => {
+		const IMPLICIT_ROLES = {
+			A: (el) => el.hasAttribute('href') ? 'link' : '',
+			AREA: (el) => el.hasAttribute('href') ? 'link' : '',
+			ARTICLE: () => 'article',
+			ASIDE: () => 'complementary',
+			BUTTON: () => 'button',
+			DETAILS: () => 'group',
+			DIALOG: () => 'dialog',
+			FOOTER: () => 'contentinfo',
+			FORM: () => 'form',
+			H1: () => 'heading', H2: () => 'heading', H3: () => 'heading',
+			H4: () => 'heading', H5: () => 'heading', H6: () => 'heading',
+			HEADER: () => 'banner',
+			HR: () => 'separator',
+			IMG: (el) => el.getAttribute('alt') ? 'img' : 'presentation',
+			INPUT: (el) => {
+				const t = (el.getAttribute('type') || 'text').toLowerCase();
+				const map = {button:'button',checkbox:'checkbox',image:'button',
+					number:'spinbutton',radio:'radio',range:'slider',
+					reset:'button',search:'searchbox',submit:'button',text:'textbox',
+					email:'textbox',tel:'textbox',url:'textbox',password:'textbox'};
+				return map[t] || 'textbox';
+			},
+			LI: () => 'listitem',
+			MAIN: () => 'main',
+			MENU: () => 'list',
+			NAV: () => 'navigation',
+			OL: () => 'list',
+			OPTION: () => 'option',
+			OUTPUT: () => 'status',
+			PROGRESS: () => 'progressbar',
+			SECTION: () => 'region',
+			SELECT: (el) => el.hasAttribute('multiple') ? 'listbox' : 'combobox',
+			SUMMARY: () => 'button',
+			TABLE: () => 'table',
+			TBODY: () => 'rowgroup', THEAD: () => 'rowgroup', TFOOT: () => 'rowgroup',
+			TD: () => 'cell',
+			TEXTAREA: () => 'textbox',
+			TH: () => 'columnheader',
+			TR: () => 'row',
+			UL: () => 'list',
+		};
+
+		function getRole(el) {
+			if (typeof el.computedRole === 'string' && el.computedRole !== '') return el.computedRole;
+			const explicit = el.getAttribute('role');
+			if (explicit) return explicit.toLowerCase();
+			const fn = IMPLICIT_ROLES[el.tagName];
+			return fn ? fn(el) : 'generic';
+		}
+
+		function getName(el) {
+			if (typeof el.computedName === 'string') return el.computedName;
+			const ariaLabel = el.getAttribute('aria-label');
+			if (ariaLabel) return ariaLabel;
+			const labelledBy = el.getAttribute('aria-labelledby');
+			if (labelledBy) {
+				const parts = labelledBy.split(/\\s+/).map(id => {
+					const ref = document.getElementById(id);
+					return ref ? (ref.textContent || '').trim() : '';
+				}).filter(Boolean);
+				if (parts.length) return parts.join(' ');
+			}
+			if (el.id) {
+				const assocLabel = document.querySelector('label[for="' + el.id + '"]');
+				if (assocLabel) return (assocLabel.textContent || '').trim();
+			}
+			const placeholder = el.getAttribute('placeholder');
+			if (placeholder) return placeholder;
+			const alt = el.getAttribute('alt');
+			if (alt) return alt;
+			const title = el.getAttribute('title');
+			if (title) return title;
+			return '';
+		}
+
+		function getChildren(el) {
+			if (el.shadowRoot) return Array.from(el.shadowRoot.children);
+			return Array.from(el.children);
+		}
+
+		function getHeadingLevel(el) {
+			const tag = el.tagName;
+			if (tag === 'H1') return 1;
+			if (tag === 'H2') return 2;
+			if (tag === 'H3') return 3;
+			if (tag === 'H4') return 4;
+			if (tag === 'H5') return 5;
+			if (tag === 'H6') return 6;
+			const level = el.getAttribute('aria-level');
+			if (level) return parseInt(level, 10);
+			return undefined;
+		}
+
+		function buildNode(el) {
+			const role = getRole(el);
+			const name = getName(el);
+			const childNodes = [];
+			for (const child of getChildren(el)) {
+				if (child.nodeType !== 1) continue;
+				const nodes = buildNode(child);
+				if (nodes) {
+					if (Array.isArray(nodes)) childNodes.push(...nodes);
+					else childNodes.push(nodes);
+				}
+			}
+			if (interestingOnly) {
+				if (role === 'none' || role === 'presentation') return childNodes.length ? childNodes : null;
+				if (role === 'generic' && !name) return childNodes.length ? childNodes : null;
+			}
+			const node = { role: role };
+			if (name) node.name = name;
+			if (el.hasAttribute('disabled') || el.disabled) node.disabled = true;
+			if (el.hasAttribute('aria-expanded')) node.expanded = el.getAttribute('aria-expanded') === 'true';
+			if (document.activeElement === el) node.focused = true;
+			if (typeof el.checked === 'boolean' && (el.type === 'checkbox' || el.type === 'radio')) {
+				node.checked = el.checked;
+			} else if (el.hasAttribute('aria-checked')) {
+				const v = el.getAttribute('aria-checked');
+				node.checked = v === 'true' ? true : v === 'mixed' ? 'mixed' : false;
+			}
+			if (el.hasAttribute('aria-pressed')) {
+				const v = el.getAttribute('aria-pressed');
+				node.pressed = v === 'true' ? true : v === 'mixed' ? 'mixed' : false;
+			}
+			if (el.hasAttribute('aria-selected') && el.getAttribute('aria-selected') === 'true') node.selected = true;
+			if (el.hasAttribute('required') || el.required) node.required = true;
+			if (el.hasAttribute('readonly') || el.readOnly) node.readonly = true;
+			const level = getHeadingLevel(el);
+			if (level !== undefined) node.level = level;
+			if (childNodes.length) node.children = childNodes;
+			return node;
+		}
+
+		const children = [];
+		for (const child of getChildren(document.body)) {
+			if (child.nodeType !== 1) continue;
+			const nodes = buildNode(child);
+			if (nodes) {
+				if (Array.isArray(nodes)) children.push(...nodes);
+				else children.push(nodes);
+			}
+		}
+		return JSON.stringify({ role: 'WebArea', name: document.title, children: children });
+	}`
 }
 
 // containsSubstring checks if s contains substr (case-sensitive).

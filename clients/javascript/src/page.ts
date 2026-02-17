@@ -153,6 +153,25 @@ export class Touch {
   }
 }
 
+export interface A11yNode {
+  role: string;
+  name?: string;
+  value?: string | number;
+  description?: string;
+  disabled?: boolean;
+  expanded?: boolean;
+  focused?: boolean;
+  checked?: boolean | 'mixed';
+  pressed?: boolean | 'mixed';
+  selected?: boolean;
+  required?: boolean;
+  readonly?: boolean;
+  level?: number;
+  valuemin?: number;
+  valuemax?: number;
+  children?: A11yNode[];
+}
+
 export class Page {
   private client: BiDiClient;
   private contextId: string;
@@ -349,6 +368,17 @@ export class Page {
       context: this.contextId,
       ...coords,
     });
+  }
+
+  // --- Accessibility ---
+
+  /** Get the accessibility tree for the page. */
+  async a11yTree(options?: { interestingOnly?: boolean; root?: string }): Promise<A11yNode> {
+    const result = await this.client.send<{ tree: A11yNode }>('vibium:page.a11yTree', {
+      context: this.contextId,
+      ...options,
+    });
+    return result.tree;
   }
 
   /** Bring this page/tab to the foreground. */

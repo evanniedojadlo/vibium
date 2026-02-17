@@ -278,6 +278,18 @@ export class Element {
     return result.editable;
   }
 
+  /** Get the element's computed ARIA role. */
+  async role(): Promise<string> {
+    const result = await this.client.send<{ role: string }>('vibium:el.role', this.commandParams());
+    return result.role;
+  }
+
+  /** Get the element's accessible name (label). */
+  async label(): Promise<string> {
+    const result = await this.client.send<{ label: string }>('vibium:el.label', this.commandParams());
+    return result.label;
+  }
+
   /** Evaluate a function with this element as argument. The fn body receives `el`. */
   async eval<T = unknown>(fn: string): Promise<T> {
     const result = await this.client.send<{ value: T }>('vibium:el.eval', this.commandParams({ fn }));
@@ -398,6 +410,8 @@ export type FluentElement = Promise<Element> & {
   isEnabled(): Promise<boolean>;
   isChecked(): Promise<boolean>;
   isEditable(): Promise<boolean>;
+  role(): Promise<string>;
+  label(): Promise<string>;
   eval<T = unknown>(fn: string): Promise<T>;
   screenshot(): Promise<Buffer>;
   waitFor(options?: { state?: string; timeout?: number }): Promise<void>;
@@ -438,6 +452,8 @@ export function fluent(promise: Promise<Element>): FluentElement {
   p.isEnabled = () => promise.then(el => el.isEnabled());
   p.isChecked = () => promise.then(el => el.isChecked());
   p.isEditable = () => promise.then(el => el.isEditable());
+  p.role = () => promise.then(el => el.role());
+  p.label = () => promise.then(el => el.label());
   p.eval = (fn) => promise.then(el => el.eval(fn));
   p.screenshot = () => promise.then(el => el.screenshot());
   p.waitFor = (opts?) => promise.then(el => el.waitFor(opts));
