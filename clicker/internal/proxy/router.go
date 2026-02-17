@@ -395,6 +395,23 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 		go r.handlePageFrame(session, cmd)
 		return
 
+	// Emulation commands
+	case "vibium:page.setViewport":
+		go r.handlePageSetViewport(session, cmd)
+		return
+	case "vibium:page.viewport":
+		go r.handlePageViewport(session, cmd)
+		return
+	case "vibium:page.emulateMedia":
+		go r.handlePageEmulateMedia(session, cmd)
+		return
+	case "vibium:page.setContent":
+		go r.handlePageSetContent(session, cmd)
+		return
+	case "vibium:page.setGeolocation":
+		go r.handlePageSetGeolocation(session, cmd)
+		return
+
 	case "vibium:browser.close":
 		go r.handleBrowserClose(session, cmd)
 		return

@@ -195,11 +195,11 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.setViewport(size)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.viewport()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.emulateMedia(opts)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
-| `page.setContent(html)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.setGeolocation()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.setViewport(size)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.viewport()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.emulateMedia(opts)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
+| `page.setContent(html)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.setGeolocation()` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `page.grantPermissions()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Frames (4 commands)

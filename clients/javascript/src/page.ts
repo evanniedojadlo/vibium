@@ -303,6 +303,54 @@ export class Page {
     return this;
   }
 
+  // --- Emulation ---
+
+  /** Set the viewport size. */
+  async setViewport(size: { width: number; height: number }): Promise<void> {
+    await this.client.send('vibium:page.setViewport', {
+      context: this.contextId,
+      width: size.width,
+      height: size.height,
+    });
+  }
+
+  /** Get the current viewport size. */
+  async viewport(): Promise<{ width: number; height: number }> {
+    return await this.client.send<{ width: number; height: number }>('vibium:page.viewport', {
+      context: this.contextId,
+    });
+  }
+
+  /** Override CSS media features (colorScheme, reducedMotion, forcedColors, contrast, media type). */
+  async emulateMedia(opts: {
+    media?: 'screen' | 'print' | null;
+    colorScheme?: 'light' | 'dark' | 'no-preference' | null;
+    reducedMotion?: 'reduce' | 'no-preference' | null;
+    forcedColors?: 'active' | 'none' | null;
+    contrast?: 'more' | 'no-preference' | null;
+  }): Promise<void> {
+    await this.client.send('vibium:page.emulateMedia', {
+      context: this.contextId,
+      ...opts,
+    });
+  }
+
+  /** Replace the page HTML content. */
+  async setContent(html: string): Promise<void> {
+    await this.client.send('vibium:page.setContent', {
+      context: this.contextId,
+      html,
+    });
+  }
+
+  /** Override the browser's geolocation. */
+  async setGeolocation(coords: { latitude: number; longitude: number; accuracy?: number }): Promise<void> {
+    await this.client.send('vibium:page.setGeolocation', {
+      context: this.contextId,
+      ...coords,
+    });
+  }
+
   /** Bring this page/tab to the foreground. */
   async bringToFront(): Promise<void> {
     await this.client.send('browsingContext.activate', { context: this.contextId });
