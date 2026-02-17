@@ -414,12 +414,16 @@ vibe.find(placeholder='Search...')
 | `page.clock.fastForward(ms)` | `page.clock.fastForward()` | JS: advance fake timers | |
 | `page.clock.setFixedTime(time)` | `page.clock.setFixedTime()` | JS: freeze Date.now() | |
 
-### 20. Tracing (2 commands)
+### 20. Tracing (6 commands)
 
 | Vibium | Playwright equiv | Implementation | Notes |
 |--------|-----------------|----------------|-------|
-| `page.tracing.start(opts)` | `tracing.start()` | BiDi: record events + periodic screenshots | |
-| `page.tracing.stop(opts)` | `tracing.stop()` | BiDi: package trace into zip/har | |
+| `context.tracing.start(opts)` | `tracing.start()` | BiDi: record events + periodic screenshots | Options: name, screenshots, snapshots, sources, title |
+| `context.tracing.stop(opts)` | `tracing.stop()` | Package trace into Playwright-compatible zip | Option: path |
+| `context.tracing.startChunk(opts)` | `tracing.startChunk()` | Reset event buffer, increment chunk index | Options: name, title |
+| `context.tracing.stopChunk(opts)` | `tracing.stopChunk()` | Package current chunk into zip | Option: path |
+| `context.tracing.startGroup(name)` | `tracing.group()` | Add group-start marker to trace | Renamed for start/stop consistency |
+| `context.tracing.stopGroup()` | `tracing.groupEnd()` | Add group-end marker to trace | Renamed for start/stop consistency |
 
 ### 21. Evaluation (5 commands)
 
@@ -574,35 +578,6 @@ Clock mocking, tracing, storage state serialization, touch input, `evalHandle`, 
 ### AI-Native (parallel track)
 
 `page.check()` and `page.do()` can ship at any tier — they sit on TOP of the deterministic API. Could soft-launch with Tier 1 (check uses screenshot + LLM, do uses find/click/fill).
-
----
-
-## BiDi vs JS Injection Scorecard
-
-| Category | BiDi-native | JS required | Client | Notes |
-|----------|-------------|-------------|--------|-------|
-| Navigation | ✅ 7/9 | 2 (title, content) | 0 | Strong BiDi coverage |
-| Pages & Contexts | 10/11 | 0 | 1 | removeAllListeners is client-side |
-| Element Finding | 6/12 | 6 (role, text, label, placeholder, alt, title) | 0 | Attribute selectors need JS |
-| Locator Chaining | 1/8 | 2 (filter) | 5 | Mostly client-side logic |
-| Element Interaction | 6/16 | 10 | 0 | selectOption, check/uncheck, setFiles need JS |
-| Element State | 1/14 | 12 | 0 | Almost all via script.evaluate |
-| Keyboard & Mouse | ✅ 10/10 | 0 | 0 | Fully BiDi via input.performActions |
-| Network Interception | 11/12 | 0 | 1 | removeAllListeners is client-side |
-| Request & Response | ✅ 8/8 | 0 | 0 | Fully BiDi |
-| Dialogs | ✅ 5/5 | 0 | 0 | Fully BiDi |
-| Screenshots & PDF | ✅ 4/4 | 0 | 0 | Fully BiDi |
-| Cookies & Storage | 4/5 | 1 (storageState) | 0 | localStorage needs JS |
-| Emulation | 3/6 | 3 (media, geo, content) | 0 | Gaps need CDP or JS |
-| Frames | ✅ 4/4 | 0 | 0 | Frames = browsing contexts |
-| Accessibility | 0/4 | 4 | 0 | No BiDi a11y module yet |
-| Console, Errors & Workers | ✅ 3/3 | 0 | 0 | log.entryAdded |
-| Waiting | 2/5 | 0 | 3 | Polling via evaluate + client |
-| Downloads | 0/3 | 1 | 2 | Client-side |
-| Clock | 0/3 | 3 | 0 | Pure JS injection |
-| Tracing | 1/2 | 1 | 0 | Event recording + screenshots |
-| Evaluation | ✅ 5/5 | 0 | 0 | Core BiDi capability |
-| **Total** | **~86/153** | **~45/153** | **~12/153** | **~56% BiDi native** |
 
 ---
 
