@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -31,6 +32,9 @@ type BrowserSession struct {
 	// WebSocket monitoring state
 	wsPreloadScriptID string // "" if not installed
 	wsSubscribed      bool   // whether script.message is subscribed
+
+	// Download support
+	downloadDir string // temp dir for downloads, cleaned up on close
 }
 
 // BiDi command structure for parsing incoming messages
@@ -110,7 +114,7 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 	// Start routing messages from browser to client
 	go r.routeBrowserToClient(session)
 
-	// Subscribe to events for onPage/onPopup, network interception, and dialog handling.
+	// Subscribe to events for onPage/onPopup, network interception, dialog handling, and downloads.
 	// Events are forwarded to the JS client by routeBrowserToClient.
 	go func() {
 		r.sendInternalCommand(session, "session.subscribe", map[string]interface{}{
@@ -120,8 +124,11 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 				"network.responseCompleted",
 				"browsingContext.userPromptOpened",
 				"log.entryAdded",
+				"browsingContext.downloadWillBegin",
+				"browsingContext.downloadEnd",
 			},
 		})
+		r.setupDownloads(session)
 	}()
 }
 
@@ -466,6 +473,14 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	case "vibium:page.onWebSocket":
 		go r.handlePageOnWebSocket(session, cmd)
 		return
+
+	// Download & file commands
+	case "vibium:download.saveAs":
+		go r.handleDownloadSaveAs(session, cmd)
+		return
+	case "vibium:el.setFiles":
+		go r.handleVibiumElSetFiles(session, cmd)
+		return
 	}
 
 	// Forward standard BiDi commands to browser
@@ -635,6 +650,11 @@ func (r *Router) closeSession(session *BrowserSession) {
 	// Close BiDi connection
 	if session.BidiConn != nil {
 		session.BidiConn.Close()
+	}
+
+	// Clean up download temp dir
+	if session.downloadDir != "" {
+		os.RemoveAll(session.downloadDir)
 	}
 
 	// Close browser

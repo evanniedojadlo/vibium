@@ -5,6 +5,7 @@ import { Route } from './route';
 import { Request, Response } from './network';
 import { Dialog } from './dialog';
 import { ConsoleMessage } from './console';
+import { Download } from './download';
 import { WebSocketInfo } from './websocket';
 import { matchPattern } from './utils/match';
 import { debug } from './utils/debug';
@@ -191,6 +192,8 @@ export class Page {
   private dialogCallbacks: ((dialog: Dialog) => void)[] = [];
   private consoleCallbacks: ((msg: ConsoleMessage) => void)[] = [];
   private errorCallbacks: ((error: Error) => void)[] = [];
+  private downloadCallbacks: ((download: Download) => void)[] = [];
+  private pendingDownloads: Map<string, Download> = new Map();
   private wsCallbacks: ((ws: WebSocketInfo) => void)[] = [];
   private wsConnections: Map<number, WebSocketInfo> = new Map();
   private eventHandler: ((event: BiDiEvent) => void) | null = null;
@@ -218,6 +221,10 @@ export class Page {
         this.handleResponseCompleted(params);
       } else if (event.method === 'browsingContext.userPromptOpened') {
         this.handleUserPromptOpened(params);
+      } else if (event.method === 'browsingContext.downloadWillBegin') {
+        this.handleDownloadWillBegin(params);
+      } else if (event.method === 'browsingContext.downloadEnd') {
+        this.handleDownloadCompleted(params);
       } else if (event.method === 'log.entryAdded') {
         // log.entryAdded uses source.context, not params.context
         const source = params.source as { context?: string } | undefined;
@@ -633,9 +640,9 @@ export class Page {
 
   /**
    * Remove all listeners for a given event, or all events if no event specified.
-   * Supported events: 'request', 'response', 'dialog', 'console', 'error', 'websocket'.
+   * Supported events: 'request', 'response', 'dialog', 'console', 'error', 'download', 'websocket'.
    */
-  removeAllListeners(event?: 'request' | 'response' | 'dialog' | 'console' | 'error' | 'websocket'): void {
+  removeAllListeners(event?: 'request' | 'response' | 'dialog' | 'console' | 'error' | 'download' | 'websocket'): void {
     if (!event || event === 'request') {
       this.requestCallbacks = [];
     }
@@ -650,6 +657,9 @@ export class Page {
     }
     if (!event || event === 'error') {
       this.errorCallbacks = [];
+    }
+    if (!event || event === 'download') {
+      this.downloadCallbacks = [];
     }
     if (!event || event === 'websocket') {
       this.wsCallbacks = [];
@@ -754,6 +764,11 @@ export class Page {
     this.errorCallbacks.push(handler);
   }
 
+  /** Register a handler for file downloads. */
+  onDownload(handler: (download: Download) => void): void {
+    this.downloadCallbacks.push(handler);
+  }
+
   // --- Event Handlers (internal) ---
 
   private ensureDataCollector(): void {
@@ -854,6 +869,33 @@ export class Page {
       for (const cb of this.errorCallbacks) {
         cb(error);
       }
+    }
+  }
+
+  private handleDownloadWillBegin(params: Record<string, unknown>): void {
+    const url = (params.url as string) ?? '';
+    const suggestedFilename = (params.suggestedFilename as string) ?? '';
+    const navigation = (params.navigation as string) ?? '';
+
+    const download = new Download(this.client, url, suggestedFilename);
+    if (navigation) {
+      this.pendingDownloads.set(navigation, download);
+    }
+
+    for (const cb of this.downloadCallbacks) {
+      cb(download);
+    }
+  }
+
+  private handleDownloadCompleted(params: Record<string, unknown>): void {
+    const navigation = (params.navigation as string) ?? '';
+    const status = (params.status as string) ?? 'complete';
+    const filepath = (params.filepath as string) ?? null;
+
+    const download = this.pendingDownloads.get(navigation);
+    if (download) {
+      download._complete(status, filepath);
+      this.pendingDownloads.delete(navigation);
     }
   }
 

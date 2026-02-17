@@ -89,7 +89,7 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 | `el.check()` | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `el.uncheck()` | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `el.selectOption(val)` | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `el.setFiles(paths)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `el.setFiles(paths)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `el.hover()` | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `el.focus()` | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `el.dragTo(target)` | ✅ | ✅ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -215,9 +215,9 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.a11yTree()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `el.role()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `el.label()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.a11yTree()` | ✅ | ⬜ | ⬜ | ⬜ | ✅ | ⬜ |
+| `el.role()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
+| `el.label()` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
 
 ## Console, Errors & Workers (3 commands)
 
@@ -237,12 +237,13 @@ Vibium's Playwright-equivalent API coverage. 159 commands across 23 categories, 
 | `page.waitForEvent(name)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
 | `page.pause()` | ⬜ | ⬜ | ⬜ | ⬜ | — | ⬜ |
 
-## Downloads & Files (3 commands)
+## Downloads & Files (4 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.onDownload(fn)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
-| `download.saveAs(path)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.onDownload(fn)` | ✅ | ⬜ | ⬜ | ⬜ | — | — |
+| `download.saveAs(path)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `el.setFiles(paths)` | ✅ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `page.onFileChooser(fn)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
 
 ## Clock (3 commands)

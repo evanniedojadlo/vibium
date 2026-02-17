@@ -200,6 +200,14 @@ export class Element {
     }));
   }
 
+  /** Set files on an <input type="file"> element. */
+  async setFiles(files: string[], options?: ActionOptions): Promise<void> {
+    await this.client.send('vibium:el.setFiles', this.commandParams({
+      files,
+      timeout: options?.timeout,
+    }));
+  }
+
   // --- Element State ---
 
   /** Get the element's textContent (trimmed). */
@@ -396,6 +404,7 @@ export type FluentElement = Promise<Element> & {
   tap(options?: ActionOptions): Promise<void>;
   scrollIntoView(options?: ActionOptions): Promise<void>;
   dispatchEvent(eventType: string, eventInit?: Record<string, unknown>, options?: ActionOptions): Promise<void>;
+  setFiles(files: string[], options?: ActionOptions): Promise<void>;
   // State
   text(): Promise<string>;
   innerText(): Promise<string>;
@@ -438,6 +447,7 @@ export function fluent(promise: Promise<Element>): FluentElement {
   p.tap = (opts?) => promise.then(el => el.tap(opts));
   p.scrollIntoView = (opts?) => promise.then(el => el.scrollIntoView(opts));
   p.dispatchEvent = (type, init?, opts?) => promise.then(el => el.dispatchEvent(type, init, opts));
+  p.setFiles = (files, opts?) => promise.then(el => el.setFiles(files, opts));
   // State
   p.text = () => promise.then(el => el.text());
   p.innerText = () => promise.then(el => el.innerText());

@@ -8,6 +8,7 @@ export { Route } from './route';
 export { Request, Response } from './network';
 export { Dialog } from './dialog';
 export { ConsoleMessage } from './console';
+export { Download } from './download';
 export { WebSocketInfo } from './websocket';
 
 // Sync API

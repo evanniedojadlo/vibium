@@ -72,6 +72,74 @@ func parseScriptResult(resp json.RawMessage) (string, error) {
 	return result.Result.Result.Value, nil
 }
 
+// resolveElementRef finds an element and returns its BiDi sharedId (for use with input.setFiles etc.).
+// Unlike resolveElement which returns bounding box info, this returns the raw node reference.
+func (r *Router) resolveElementRef(session *BrowserSession, context string, ep elementParams) (string, error) {
+	script, args := buildRefFindScript(ep)
+	deadline := time.Now().Add(ep.Timeout)
+	interval := 100 * time.Millisecond
+
+	for {
+		params := map[string]interface{}{
+			"functionDeclaration": script,
+			"target":              map[string]interface{}{"context": context},
+			"arguments":           args,
+			"awaitPromise":        false,
+			"resultOwnership":     "root",
+		}
+
+		resp, err := r.sendInternalCommand(session, "script.callFunction", params)
+		if err == nil {
+			var result struct {
+				Result struct {
+					Result struct {
+						Type     string `json:"type"`
+						SharedID string `json:"sharedId"`
+					} `json:"result"`
+				} `json:"result"`
+			}
+			if err := json.Unmarshal(resp, &result); err == nil {
+				if result.Result.Result.Type == "node" && result.Result.Result.SharedID != "" {
+					return result.Result.Result.SharedID, nil
+				}
+			}
+		}
+
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("timeout waiting for element: not found")
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+// buildRefFindScript builds a JS function that finds an element and returns it directly
+// (not JSON-stringified). BiDi will serialize the returned DOM node with a sharedId.
+func buildRefFindScript(ep elementParams) (string, []map[string]interface{}) {
+	args := []map[string]interface{}{
+		{"type": "string", "value": ep.Scope},
+		{"type": "string", "value": ep.Selector},
+		{"type": "number", "value": ep.Index},
+		{"type": "boolean", "value": ep.HasIndex},
+	}
+
+	script := `
+		(scope, selector, index, hasIndex) => {
+			const root = scope ? document.querySelector(scope) : document;
+			if (!root) return null;
+			let el;
+			if (hasIndex) {
+				const all = root.querySelectorAll(selector);
+				el = all[index];
+			} else {
+				el = root.querySelector(selector);
+			}
+			return el || null;
+		}
+	`
+	return script, args
+}
+
 // elementParams holds extracted parameters for element resolution.
 type elementParams struct {
 	Selector    string

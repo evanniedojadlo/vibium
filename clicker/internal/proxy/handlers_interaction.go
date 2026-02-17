@@ -624,6 +624,61 @@ func (r *Router) handleVibiumDispatchEvent(session *BrowserSession, cmd bidiComm
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"dispatched": true})
 }
 
+// handleVibiumElSetFiles handles the vibium:el.setFiles command.
+// Sets files on an <input type="file"> element using BiDi input.setFiles.
+func (r *Router) handleVibiumElSetFiles(session *BrowserSession, cmd bidiCommand) {
+	ep := extractElementParams(cmd.Params)
+
+	context, err := r.resolveContext(session, cmd.Params)
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	// Extract files array
+	filesRaw, ok := cmd.Params["files"]
+	if !ok {
+		r.sendError(session, cmd.ID, fmt.Errorf("el.setFiles requires 'files' parameter"))
+		return
+	}
+	filesArr, ok := filesRaw.([]interface{})
+	if !ok {
+		r.sendError(session, cmd.ID, fmt.Errorf("el.setFiles: 'files' must be an array"))
+		return
+	}
+	files := make([]string, len(filesArr))
+	for i, f := range filesArr {
+		s, ok := f.(string)
+		if !ok {
+			r.sendError(session, cmd.ID, fmt.Errorf("el.setFiles: each file must be a string"))
+			return
+		}
+		files[i] = s
+	}
+
+	// Resolve the element to get its BiDi sharedId
+	sharedID, err := r.resolveElementRef(session, context, ep)
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	// Call input.setFiles
+	_, err = r.sendInternalCommand(session, "input.setFiles", map[string]interface{}{
+		"context": context,
+		"element": map[string]interface{}{
+			"sharedId": sharedID,
+		},
+		"files": files,
+	})
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{"set": true})
+}
+
 // --- Helper methods for interaction handlers ---
 
 // clickAtCenter performs a mouse click at the center of an element.
