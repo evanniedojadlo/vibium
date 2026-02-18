@@ -1,6 +1,6 @@
 # Are We Playwright Yet?
 
-Vibium's Playwright-equivalent API coverage. 170 commands across 23 categories, tracked across 6 implementation targets.
+Vibium's Playwright-equivalent API coverage. 171 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -272,10 +272,11 @@ Vibium's Playwright-equivalent API coverage. 170 commands across 23 categories, 
 | `context.tracing.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `context.tracing.stopGroup()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
-## Evaluation (5 commands)
+## Evaluation (6 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
+| `page.evaluate(script)` | ✅ | ✅ | ⬜ | ⬜ | ✅ | ✅ |
 | `page.eval(expr)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.evalHandle(expr)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.addScript(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
