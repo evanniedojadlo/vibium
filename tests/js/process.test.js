@@ -7,7 +7,8 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { execSync } = require('node:child_process');
 
-const { browser, browserSync } = require('../../clients/javascript/dist');
+const { browser } = require('../../clients/javascript/dist');
+const { browser: browserSync } = require('../../clients/javascript/dist/sync');
 
 /**
  * Get PIDs of Chrome for Testing processes spawned by clicker
@@ -66,12 +67,13 @@ describe('JS Process Cleanup', () => {
     );
   });
 
-  test('sync API cleans up Chrome on quit()', async () => {
+  test('sync API cleans up Chrome on close()', async () => {
     const pidsBefore = getClickerChromePids();
 
-    const vibe = browserSync.launch({ headless: true });
-    vibe.go('https://the-internet.herokuapp.com/');
-    vibe.quit();
+    const bro = browserSync.launch({ headless: true });
+    const page = bro.page();
+    page.go('https://the-internet.herokuapp.com/');
+    bro.close();
 
     await sleep(2000);
 

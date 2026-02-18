@@ -1,5 +1,6 @@
 import { SyncBridge } from './bridge';
-import { ActionOptions, BoundingBox, ElementInfo } from '../element';
+import { ElementListSync } from './element-list';
+import { ActionOptions, BoundingBox, ElementInfo, SelectorOptions } from '../element';
 
 export class ElementSync {
   private bridge: SyncBridge;
@@ -176,5 +177,29 @@ export class ElementSync {
 
   waitFor(options?: { state?: string; timeout?: number }): void {
     this.bridge.call('element.waitFor', [this.elementId, options]);
+  }
+
+  setFiles(files: string[], options?: ActionOptions): void {
+    this.bridge.call('element.setFiles', [this.elementId, files, options]);
+  }
+
+  role(): string {
+    const result = this.bridge.call<{ role: string }>('element.role', [this.elementId]);
+    return result.role;
+  }
+
+  label(): string {
+    const result = this.bridge.call<{ label: string }>('element.label', [this.elementId]);
+    return result.label;
+  }
+
+  find(selector: string | SelectorOptions, options?: { timeout?: number }): ElementSync {
+    const result = this.bridge.call<{ elementId: number; info: ElementInfo }>('element.find', [this.elementId, selector, options]);
+    return new ElementSync(this.bridge, result.elementId, result.info);
+  }
+
+  findAll(selector: string | SelectorOptions, options?: { timeout?: number }): ElementListSync {
+    const result = this.bridge.call<{ listId: number; elementIds: number[]; count: number }>('element.findAll', [this.elementId, selector, options]);
+    return new ElementListSync(this.bridge, result.listId);
   }
 }

@@ -13,8 +13,19 @@ export { ConsoleMessage } from './console';
 export { Download } from './download';
 export { WebSocketInfo } from './websocket';
 
-// Sync API
-export { browserSync, VibeSync, ElementSync } from './sync';
+// Sync API — import from 'vibium/sync' for the sync browser launcher
+export {
+  BrowserSync,
+  PageSync,
+  ElementSync,
+  ElementListSync,
+  KeyboardSync,
+  MouseSync,
+  TouchSync,
+  ClockSync,
+  BrowserContextSync,
+  TracingSync,
+} from './sync';
 
 // Error types
 export {

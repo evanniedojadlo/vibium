@@ -118,9 +118,10 @@ export class SyncBridge {
       if (result === 'timed-out') {
         this.terminate();
       } else {
-        // Quit succeeded, just mark as terminated
+        // Quit succeeded, terminate worker thread so process can exit
         this.terminated = true;
         activeBridges.delete(this);
+        this.worker.terminate();
       }
     } catch {
       // If anything fails, force terminate
