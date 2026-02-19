@@ -315,6 +315,17 @@ class Page:
         })
         return result["value"]
 
+    async def evaluate(self, script: str) -> Any:
+        """Execute a JS script (multi-statement, use 'return' for values)."""
+        result = await self._client.send("script.callFunction", {
+            "functionDeclaration": f"() => {{ {script} }}",
+            "target": {"context": self._context_id},
+            "arguments": [],
+            "awaitPromise": True,
+            "resultOwnership": "root",
+        })
+        return result.get("result", {}).get("value")
+
     async def eval_handle(self, expression: str) -> str:
         """Evaluate a JS expression and return a handle ID."""
         result = await self._client.send("vibium:page.evalHandle", {

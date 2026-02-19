@@ -11,7 +11,7 @@ const assert = require('node:assert');
 const { fork } = require('child_process');
 const path = require('path');
 
-const { browser } = require('../../clients/javascript/dist/sync');
+const { browser } = require('../../../clients/javascript/dist/sync');
 
 // --- Server child process ---
 
@@ -568,10 +568,7 @@ describe('Sync API: Route handler callback', () => {
         body: JSON.stringify({ message: 'mocked', count: 99 }),
       });
     });
-    vibe.evaluate('doFetch()');
-    vibe.waitFor('#result');
-    // Give the fetch a moment to complete
-    vibe.wait(200);
+    vibe.evaluate('return doFetch()');
     const text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.message, 'mocked');
@@ -588,8 +585,7 @@ describe('Sync API: Route handler callback', () => {
       capturedMethod = route.request.method;
       route.continue();
     });
-    vibe.evaluate('doFetch()');
-    vibe.wait(200);
+    vibe.evaluate('return doFetch()');
     assert.ok(capturedUrl.includes('/api/data'), 'Should capture URL');
     assert.strictEqual(capturedMethod, 'GET');
   });
@@ -601,8 +597,7 @@ describe('Sync API: Route handler callback', () => {
       route.abort();
     });
     // fetch will fail — check that it doesn't hang
-    vibe.evaluate('doFetch().catch(e => { document.getElementById("result").textContent = "ABORTED"; })');
-    vibe.wait(200);
+    vibe.evaluate('return doFetch().catch(e => { document.getElementById("result").textContent = "ABORTED"; })');
     const text = vibe.find('#result').text();
     assert.strictEqual(text, 'ABORTED');
   });
@@ -613,8 +608,7 @@ describe('Sync API: Route handler callback', () => {
     vibe.route('**/api/data', () => {
       // No action — should default to continue
     });
-    vibe.evaluate('doFetch()');
-    vibe.wait(200);
+    vibe.evaluate('return doFetch()');
     const text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.message, 'real data');
@@ -625,8 +619,7 @@ describe('Sync API: Route handler callback', () => {
     vibe.go(`${baseURL}/fetch`);
     // Static action (unchanged API)
     vibe.route('**/api/data', { status: 200, body: '{"static":true}' });
-    vibe.evaluate('doFetch()');
-    vibe.wait(200);
+    vibe.evaluate('return doFetch()');
     const text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.static, true);
@@ -638,15 +631,14 @@ describe('Sync API: Route handler callback', () => {
     vibe.route('**/api/data', (route) => {
       route.fulfill({ status: 200, body: '{"handler":"active"}' });
     });
-    vibe.evaluate('doFetch()');
-    vibe.wait(200);
+    vibe.evaluate('return doFetch()');
     let text = vibe.find('#result').text();
     assert.strictEqual(JSON.parse(text).handler, 'active');
 
-    // Remove the route
+    // Remove the route — clear result first
+    vibe.evaluate('document.getElementById("result").textContent = ""');
     vibe.unroute('**/api/data');
-    vibe.evaluate('doFetch()');
-    vibe.wait(200);
+    vibe.evaluate('return doFetch()');
     text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.message, 'real data', 'Should get real data after unroute');
@@ -740,6 +732,51 @@ describe('Sync API: Dialog handler callback', () => {
     vibe.onDialog('accept');
     vibe.find('#alert-btn').click();
     assert.ok(true, 'Static accept still works');
+  });
+});
+
+describe('Sync API: onPage/onPopup', () => {
+  test('onPage fires for new tabs', () => {
+    const bro = browser.launch({ headless: true });
+    try {
+      const pages = [];
+      bro.onPage((p) => pages.push(p));
+      bro.newPage();
+      assert.strictEqual(pages.length, 1);
+      assert.ok(pages[0], 'Should receive a PageSync');
+    } finally {
+      bro.close();
+    }
+  });
+
+  test('onPopup fires for window.open', () => {
+    const bro = browser.launch({ headless: true });
+    try {
+      const popups = [];
+      bro.onPopup((p) => popups.push(p));
+      const page = bro.page();
+      page.evaluate("window.open('about:blank')");
+      assert.strictEqual(popups.length, 1);
+      assert.ok(popups[0], 'Should receive a PageSync');
+    } finally {
+      bro.close();
+    }
+  });
+
+  test('removeAllListeners stops onPage callbacks', () => {
+    const bro = browser.launch({ headless: true });
+    try {
+      const pages = [];
+      bro.onPage((p) => pages.push(p));
+      bro.newPage();
+      assert.strictEqual(pages.length, 1);
+
+      bro.removeAllListeners('page');
+      bro.newPage();
+      assert.strictEqual(pages.length, 1, 'Should still be 1 after removing listener');
+    } finally {
+      bro.close();
+    }
   });
 });
 

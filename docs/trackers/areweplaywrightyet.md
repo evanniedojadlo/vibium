@@ -1,6 +1,6 @@
 # Are We Playwright Yet?
 
-Vibium's Playwright-equivalent API coverage. 171 commands across 23 categories, tracked across 6 implementation targets.
+Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -31,9 +31,9 @@ Vibium's Playwright-equivalent API coverage. 171 commands across 23 categories, 
 | `browser.pages()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.close()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `browser.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
-| `browser.onPage(fn)` | ✅ | ✅ | ✅ | ⬜ | — | — |
-| `browser.onPopup(fn)` | ✅ | ✅ | ✅ | ⬜ | — | — |
-| `browser.removeAllListeners(event?)` | ✅ | ⬜ | ✅ | ⬜ | — | — |
+| `browser.onPage(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `browser.onPopup(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `browser.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.bringToFront()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
@@ -221,12 +221,14 @@ Vibium's Playwright-equivalent API coverage. 171 commands across 23 categories, 
 | `el.role()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `el.label()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Console, Errors & Workers (3 commands)
+## Console, Errors & Workers (5 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.onConsole(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.onError(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.consoleMessages()` | — | ✅ | — | ✅ | — | — |
+| `page.errors()` | — | ✅ | — | ✅ | — | — |
 | `page.workers()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Waiting (5 commands)
@@ -276,7 +278,7 @@ Vibium's Playwright-equivalent API coverage. 171 commands across 23 categories, 
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.evaluate(script)` | ✅ | ✅ | ⬜ | ⬜ | ✅ | ✅ |
+| `page.evaluate(script)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.eval(expr)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.evalHandle(expr)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.addScript(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |

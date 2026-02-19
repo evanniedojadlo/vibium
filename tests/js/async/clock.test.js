@@ -9,7 +9,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 
-const { browser } = require('../../clients/javascript/dist');
+const { browser } = require('../../../clients/javascript/dist');
 
 // --- Local test server ---
 

@@ -11,7 +11,7 @@ const assert = require('node:assert');
 const http = require('http');
 const { WebSocketServer } = require('ws');
 
-const { browser } = require('../../clients/javascript/dist');
+const { browser } = require('../../../clients/javascript/dist');
 
 // --- Local test servers ---
 

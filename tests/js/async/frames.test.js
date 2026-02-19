@@ -7,7 +7,7 @@ const { test, describe, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 
-const { browser } = require('../../clients/javascript/dist');
+const { browser } = require('../../../clients/javascript/dist');
 
 // Create a local HTTP server that serves pages with iframes
 function startServer() {

@@ -13,7 +13,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const { browser } = require('../../clients/javascript/dist');
+const { browser } = require('../../../clients/javascript/dist');
 
 // --- Local test server ---
 

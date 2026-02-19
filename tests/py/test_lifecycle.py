@@ -62,6 +62,88 @@ async def test_multiple_pages_independent(fresh_async_browser, test_server):
     assert await p2.title() == "Subpage"
 
 
+async def test_on_page(fresh_async_browser):
+    pages = []
+    fresh_async_browser.on_page(lambda p: pages.append(p))
+    await fresh_async_browser.new_page()
+    import asyncio
+    await asyncio.sleep(0.2)
+    assert len(pages) == 1
+    assert pages[0].id
+    fresh_async_browser.remove_all_listeners("page")
+
+
+async def test_on_popup(fresh_async_browser, test_server):
+    popups = []
+    fresh_async_browser.on_popup(lambda p: popups.append(p))
+    p = await fresh_async_browser.page()
+    await p.go(test_server)
+    await p.evaluate("window.open('about:blank')")
+    import asyncio
+    await asyncio.sleep(0.2)
+    assert len(popups) == 1
+    assert popups[0].id
+    fresh_async_browser.remove_all_listeners("popup")
+
+
+async def test_remove_all_listeners(fresh_async_browser):
+    pages = []
+    fresh_async_browser.on_page(lambda p: pages.append(p))
+    await fresh_async_browser.new_page()
+    import asyncio
+    await asyncio.sleep(0.2)
+    assert len(pages) == 1
+
+    fresh_async_browser.remove_all_listeners("page")
+    await fresh_async_browser.new_page()
+    await asyncio.sleep(0.2)
+    assert len(pages) == 1, "Should still be 1 after removing listener"
+
+
+def test_on_page_sync(fresh_sync_browser):
+    import time
+    initial = fresh_sync_browser.page()
+    pages = []
+    fresh_sync_browser.on_page(lambda p: pages.append(p))
+    fresh_sync_browser.new_page()
+    time.sleep(0.3)
+    # Filter out the initial page's late contextCreated event if it arrived
+    new_pages = [p for p in pages if p.id != initial.id]
+    assert len(new_pages) == 1
+    assert new_pages[0].id
+    fresh_sync_browser.remove_all_listeners("page")
+
+
+def test_on_popup_sync(fresh_sync_browser, test_server):
+    import time
+    popups = []
+    fresh_sync_browser.on_popup(lambda p: popups.append(p))
+    p = fresh_sync_browser.page()
+    p.go(test_server)
+    p.evaluate("window.open('about:blank')")
+    time.sleep(0.3)
+    assert len(popups) == 1
+    assert popups[0].id
+    fresh_sync_browser.remove_all_listeners("popup")
+
+
+def test_remove_all_listeners_sync(fresh_sync_browser):
+    import time
+    initial = fresh_sync_browser.page()
+    pages = []
+    fresh_sync_browser.on_page(lambda p: pages.append(p))
+    fresh_sync_browser.new_page()
+    time.sleep(0.3)
+    new_pages = [p for p in pages if p.id != initial.id]
+    assert len(new_pages) == 1
+
+    fresh_sync_browser.remove_all_listeners("page")
+    before_count = len(pages)
+    fresh_sync_browser.new_page()
+    time.sleep(0.3)
+    assert len(pages) == before_count, "Should not grow after removing listener"
+
+
 async def test_browser_close(test_server):
     from vibium.async_api import browser
     bro = await browser.launch(headless=True)

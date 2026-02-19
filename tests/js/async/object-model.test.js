@@ -6,7 +6,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 
-const { browser, Browser, Page, BrowserContext } = require('../../clients/javascript/dist');
+const { browser, Browser, Page, BrowserContext } = require('../../../clients/javascript/dist');
 
 describe('JS Object Model', () => {
   test('browser.launch() returns Browser instance', async () => {

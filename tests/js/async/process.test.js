@@ -1,14 +1,13 @@
 /**
- * JS Library Tests: Process Management
- * Tests that browser processes are cleaned up properly
+ * JS Library Tests: Async Process Management
+ * Tests that browser processes are cleaned up properly (async API)
  */
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { execSync } = require('node:child_process');
 
-const { browser } = require('../../clients/javascript/dist');
-const { browser: browserSync } = require('../../clients/javascript/dist/sync');
+const { browser } = require('../../../clients/javascript/dist');
 
 /**
  * Get PIDs of Chrome for Testing processes spawned by clicker
@@ -46,7 +45,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-describe('JS Process Cleanup', () => {
+describe('JS Async Process Cleanup', () => {
   test('async API cleans up Chrome on close()', async () => {
     const pidsBefore = getClickerChromePids();
 
@@ -54,26 +53,6 @@ describe('JS Process Cleanup', () => {
     const vibe = await bro.page();
     await vibe.go('https://the-internet.herokuapp.com/');
     await bro.close();
-
-    await sleep(2000);
-
-    const pidsAfter = getClickerChromePids();
-    const newPids = getNewPids(pidsBefore, pidsAfter);
-
-    assert.strictEqual(
-      newPids.length,
-      0,
-      `Chrome processes should be cleaned up. New PIDs remaining: ${newPids.join(', ')}`
-    );
-  });
-
-  test('sync API cleans up Chrome on close()', async () => {
-    const pidsBefore = getClickerChromePids();
-
-    const bro = browserSync.launch({ headless: true });
-    const vibe = bro.page();
-    vibe.go('https://the-internet.herokuapp.com/');
-    bro.close();
 
     await sleep(2000);
 

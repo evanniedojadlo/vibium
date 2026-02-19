@@ -7,7 +7,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 
-const { browser } = require('../../clients/javascript/dist');
+const { browser } = require('../../../clients/javascript/dist');
 
 describe('JS Lifecycle', () => {
   test('browser.page() returns default page', async () => {
@@ -136,6 +136,61 @@ describe('JS Lifecycle', () => {
 
       assert.ok(!url1.includes('/login'), 'Page 1 should not be on login');
       assert.ok(url2.includes('/login'), 'Page 2 should be on login');
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('browser.onPage() fires for new tabs', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      // Flush the initial page contextCreated event
+      await bro.page();
+      await new Promise(r => setTimeout(r, 200));
+
+      const pages = [];
+      bro.onPage((p) => pages.push(p));
+      await bro.newPage();
+      await new Promise(r => setTimeout(r, 200));
+      assert.strictEqual(pages.length, 1);
+      assert.ok(pages[0].id);
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('browser.onPopup() fires for window.open', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const popups = [];
+      bro.onPopup((p) => popups.push(p));
+      const page = await bro.page();
+      await page.evaluate("window.open('about:blank')");
+      await new Promise(r => setTimeout(r, 200));
+      assert.strictEqual(popups.length, 1);
+      assert.ok(popups[0].id);
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('browser.removeAllListeners() stops callbacks', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      // Flush the initial page contextCreated event
+      await bro.page();
+      await new Promise(r => setTimeout(r, 200));
+
+      const pages = [];
+      bro.onPage((p) => pages.push(p));
+      await bro.newPage();
+      await new Promise(r => setTimeout(r, 200));
+      assert.strictEqual(pages.length, 1);
+
+      bro.removeAllListeners('page');
+      await bro.newPage();
+      await new Promise(r => setTimeout(r, 200));
+      assert.strictEqual(pages.length, 1, 'Should still be 1 after removing listener');
     } finally {
       await bro.close();
     }

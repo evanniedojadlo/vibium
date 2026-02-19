@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 from .page import Page
 from .context import BrowserContext
@@ -20,6 +20,7 @@ class Browser:
         self._process = process
         self._page_callbacks: List[Callable[[Page], None]] = []
         self._popup_callbacks: List[Callable[[Page], None]] = []
+        self._seen_context_ids: Set[str] = set()
 
         # Listen for browsingContext.contextCreated events
         self._client.on_event(self._handle_event)
@@ -28,6 +29,10 @@ class Browser:
         if event.get("method") != "browsingContext.contextCreated":
             return
         params = event.get("params", {})
+        context_id = params.get("context")
+        if not context_id or context_id in self._seen_context_ids:
+            return
+        self._seen_context_ids.add(context_id)
         callbacks = self._popup_callbacks if params.get("originalOpener") else self._page_callbacks
         if callbacks:
             page = Page(self._client, params["context"])

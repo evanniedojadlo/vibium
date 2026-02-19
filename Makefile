@@ -123,34 +123,42 @@ test-cli: build-go
 
 # Run JS library tests (sequential to avoid resource exhaustion)
 test-js: build
-	@echo "━━━ JS Library Tests ━━━"
-	node --test --test-concurrency=1 tests/js/async-api.test.js tests/js/sync-api.test.js tests/js/auto-wait.test.js tests/js/browser-modes.test.js
+	@echo "━━━ JS Async API Tests ━━━"
+	node --test --test-concurrency=1 tests/js/async/async-api.test.js tests/js/async/auto-wait.test.js tests/js/async/browser-modes.test.js
+	@echo "━━━ JS Sync API Tests ━━━"
+	node --test --test-concurrency=1 tests/js/sync/sync-api.test.js
 	@echo "━━━ JS Element Finding Tests ━━━"
-	node --test --test-concurrency=1 tests/js/elements.test.js
+	node --test --test-concurrency=1 tests/js/async/elements.test.js
 	@echo "━━━ JS Interaction Tests ━━━"
-	node --test --test-concurrency=1 tests/js/interaction.test.js
+	node --test --test-concurrency=1 tests/js/async/interaction.test.js
 	@echo "━━━ JS Element State Tests ━━━"
-	node --test --test-concurrency=1 tests/js/state.test.js
+	node --test --test-concurrency=1 tests/js/async/state.test.js
 	@echo "━━━ JS Input & Eval Tests (Keyboard, Mouse, Screenshots, Eval) ━━━"
-	node --test --test-concurrency=1 tests/js/input-eval.test.js
+	node --test --test-concurrency=1 tests/js/async/input-eval.test.js
 	@echo "━━━ JS Network & Dialog Tests ━━━"
-	node --test --test-concurrency=1 tests/js/network-dialog.test.js
+	node --test --test-concurrency=1 tests/js/async/network-dialog.test.js
 	@echo "━━━ JS WebSocket Monitoring Tests ━━━"
-	node --test --test-concurrency=1 tests/js/websocket.test.js
+	node --test --test-concurrency=1 tests/js/async/websocket.test.js
 	@echo "━━━ JS Console & Error Tests ━━━"
-	node --test --test-concurrency=1 tests/js/console-error.test.js
+	node --test --test-concurrency=1 tests/js/async/console-error.test.js tests/js/sync/console-error.test.js
 	@echo "━━━ JS Download & File Tests ━━━"
-	node --test --test-concurrency=1 tests/js/download-file.test.js
+	node --test --test-concurrency=1 tests/js/async/download-file.test.js
 	@echo "━━━ JS Tracing Tests ━━━"
-	node --test --test-concurrency=1 tests/js/tracing.test.js
+	node --test --test-concurrency=1 tests/js/async/tracing.test.js
 	@echo "━━━ JS Clock Tests ━━━"
-	node --test --test-concurrency=1 tests/js/clock.test.js
+	node --test --test-concurrency=1 tests/js/async/clock.test.js
 	@echo "━━━ JS Emulation Tests ━━━"
-	node --test --test-concurrency=1 tests/js/emulation.test.js
+	node --test --test-concurrency=1 tests/js/async/emulation.test.js
+	@echo "━━━ JS Accessibility Tests ━━━"
+	node --test --test-concurrency=1 tests/js/async/a11y.test.js
+	@echo "━━━ JS Cookie & Storage Tests ━━━"
+	node --test --test-concurrency=1 tests/js/async/cookies.test.js
+	@echo "━━━ JS Frame Tests ━━━"
+	node --test --test-concurrency=1 tests/js/async/frames.test.js
 	@echo "━━━ JS Navigation & Lifecycle Tests ━━━"
-	node --test --test-concurrency=1 tests/js/object-model.test.js tests/js/navigation.test.js tests/js/lifecycle.test.js
+	node --test --test-concurrency=1 tests/js/async/object-model.test.js tests/js/async/navigation.test.js tests/js/async/lifecycle.test.js
 	@echo "━━━ JS Process Tests (sequential) ━━━"
-	node --test --test-concurrency=1 tests/js/process.test.js
+	node --test --test-concurrency=1 tests/js/async/process.test.js tests/js/sync/process.test.js
 
 # Run MCP server tests (sequential - browser sessions)
 test-mcp: build-go

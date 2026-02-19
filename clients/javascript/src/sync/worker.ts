@@ -116,6 +116,14 @@ function storeElementList(list: ElementList): number {
   return id;
 }
 
+// --- Page/popup event buffer ---
+// Events are buffered here during command processing. After the command completes,
+// buffered events are delivered via invokeMainThread BEFORE the result is sent.
+// This avoids the signal race between callback (signal=2) and result (signal=1).
+const pageEventBuffer: Array<{ type: 'page' | 'popup'; pageId: number }> = [];
+let onPageHandlerId: string | null = null;
+let onPopupHandlerId: string | null = null;
+
 // --- Dispatch table ---
 
 const handlers: Record<string, Handler> = {
@@ -184,6 +192,53 @@ const handlers: Record<string, Handler> = {
       }
     }
     return { pageIds: ids };
+  },
+
+  'browser.onPage': async (args) => {
+    if (!browserInstance) throw new Error('Browser not launched');
+    const [handlerId] = args as [string];
+    onPageHandlerId = handlerId;
+    // Snapshot existing page context IDs to skip late contextCreated events
+    const existingPages = await browserInstance.pages();
+    const knownContextIds = new Set(existingPages.map(p => p.id));
+    browserInstance.removeAllListeners('page');
+    // Yield to let any in-flight contextCreated events be processed
+    await new Promise(r => setImmediate(r));
+    browserInstance.onPage((page) => {
+      if (knownContextIds.has(page.id)) return;
+      knownContextIds.add(page.id); // Prevent duplicate events for same context
+      const id = storePage(page);
+      pageEventBuffer.push({ type: 'page', pageId: id });
+    });
+    return { success: true };
+  },
+
+  'browser.onPopup': async (args) => {
+    if (!browserInstance) throw new Error('Browser not launched');
+    const [handlerId] = args as [string];
+    onPopupHandlerId = handlerId;
+    // Snapshot existing page context IDs to skip late contextCreated events
+    const existingPages = await browserInstance.pages();
+    const knownContextIds = new Set(existingPages.map(p => p.id));
+    browserInstance.removeAllListeners('popup');
+    // Yield to let any in-flight contextCreated events be processed
+    await new Promise(r => setImmediate(r));
+    browserInstance.onPopup((page) => {
+      if (knownContextIds.has(page.id)) return;
+      knownContextIds.add(page.id); // Prevent duplicate events for same context
+      const id = storePage(page);
+      pageEventBuffer.push({ type: 'popup', pageId: id });
+    });
+    return { success: true };
+  },
+
+  'browser.removeAllListeners': async (args) => {
+    if (!browserInstance) throw new Error('Browser not launched');
+    const [event] = args as [string | undefined];
+    browserInstance.removeAllListeners(event as any);
+    if (!event || event === 'page') onPageHandlerId = null;
+    if (!event || event === 'popup') onPopupHandlerId = null;
+    return { success: true };
   },
 
   'browser.waitForPage': async (args) => {
@@ -1158,6 +1213,22 @@ parentPort!.on('message', async ({ cmd, port }: { cmd: Command; port: MessagePor
     result = await handleCommand(cmd);
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
+  }
+
+  // Deliver buffered page/popup events BEFORE the result.
+  // Events are buffered during command processing (e.g. contextCreated fires
+  // during newPage). We deliver them here, after the command completes, to
+  // avoid a signal race between callback (signal=2) and result (signal=1).
+  if (onPageHandlerId || onPopupHandlerId) {
+    // Yield so any pending BiDi events (contextCreated) are processed
+    await new Promise(r => setImmediate(r));
+    while (pageEventBuffer.length > 0) {
+      const event = pageEventBuffer.shift()!;
+      const handlerId = event.type === 'page' ? onPageHandlerId : onPopupHandlerId;
+      if (handlerId) {
+        await invokeMainThread(handlerId, { pageId: event.pageId });
+      }
+    }
   }
 
   port.postMessage({ result, error });

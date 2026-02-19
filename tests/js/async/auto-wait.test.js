@@ -6,7 +6,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 
-const { browser } = require('../../clients/javascript/dist');
+const { browser } = require('../../../clients/javascript/dist');
 
 describe('JS Auto-Wait', () => {
   test('find() waits for element to appear', async () => {

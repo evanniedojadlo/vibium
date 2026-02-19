@@ -213,6 +213,10 @@ class Page:
     def eval(self, expression: str) -> Any:
         return self._loop.run(self._async.eval(expression))
 
+    def evaluate(self, script: str) -> Any:
+        """Execute a JS script (multi-statement, use 'return' for values)."""
+        return self._loop.run(self._async.evaluate(script))
+
     def eval_handle(self, expression: str) -> str:
         return self._loop.run(self._async.eval_handle(expression))
 
