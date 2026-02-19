@@ -800,7 +800,7 @@ describe('Sync API: Expect download', () => {
   before(() => { bro = browser.launch({ headless: true }); });
   after(() => { bro.close(); });
 
-  test('expect.download() returns download info', { skip: 'download BiDi events not delivered in worker threads' }, () => {
+  test('expect.download() returns download info', () => {
     const vibe = bro.newPage();
     vibe.go(`${baseURL}/download`);
     const result = vibe.expect.download(() => {
