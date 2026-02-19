@@ -60,7 +60,6 @@ Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, 
 | `find({title: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `find({testid: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `find({xpath: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `find({near: '…'})` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `find({role, text}) combo` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
 ## Locator Chaining & Filtering (8 commands)
@@ -73,8 +72,6 @@ Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, 
 | `el.count()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.filter({hasText})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.filter({has})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.or(other)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `el.and(other)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Element Interaction (16 commands)
 
@@ -146,7 +143,6 @@ Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, 
 | `page.waitForResponse(pat)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.unroute(pattern)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.routeWebSocket(pat)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
 | `page.onWebSocket(fn)` | ✅ | — | ✅ | — | — | — |
 
 ## Request & Response (8 commands)
@@ -200,7 +196,6 @@ Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, 
 | `page.emulateMedia(opts)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.setContent(html)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.setGeolocation()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.grantPermissions()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `page.window()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.setWindow(opts)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
@@ -238,7 +233,7 @@ Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, 
 | `page.waitFor(selector)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.waitForFunction(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.waitForEvent(name)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
+| `page.waitForEvent(name)` | ✅ | ⬜ | ✅ | ⬜ | — | — |
 | `page.pause()` | ⬜ | ⬜ | ⬜ | ⬜ | — | ⬜ |
 
 ## Downloads & Files (4 commands)
@@ -290,6 +285,5 @@ Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.check(claim)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.check(claim, {near})` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `page.do(action)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | `page.do(action, {data})` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |

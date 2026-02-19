@@ -91,10 +91,11 @@ Open `hello.js` in any text editor and paste this:
 
 ```javascript
 const fs = require('fs')
-const { browserSync } = require('vibium')
+const { browser } = require('vibium/sync')
 
 // Launch a browser (you'll see it open!)
-const vibe = browserSync.launch()
+const bro = browser.launch()
+const vibe = bro.page()
 
 // Go to a website
 vibe.go('https://example.com')
@@ -112,7 +113,7 @@ link.click()
 console.log('Clicked!')
 
 // Close the browser
-vibe.quit()
+bro.close()
 console.log('Done!')
 ```
 
@@ -138,12 +139,13 @@ Check your folder - there's now a `screenshot.png` file!
 
 | Line | What It Does |
 |------|--------------|
-| `browserSync.launch()` | Opens Chrome |
+| `browser.launch()` | Opens Chrome, returns a Browser |
+| `bro.page()` | Gets the default page (tab) |
 | `vibe.go(url)` | Navigates to a URL |
 | `vibe.screenshot()` | Captures the page as PNG |
 | `vibe.find(selector)` | Finds an element by CSS selector |
 | `link.click()` | Clicks the element |
-| `vibe.quit()` | Closes the browser |
+| `bro.close()` | Closes the browser |
 
 ---
 
@@ -151,7 +153,7 @@ Check your folder - there's now a `screenshot.png` file!
 
 **Hide the browser** (run headless):
 ```javascript
-const vibe = browserSync.launch({ headless: true })
+const bro = browser.launch({ headless: true })
 ```
 
 **Use async/await** (for more complex scripts):
@@ -159,10 +161,11 @@ const vibe = browserSync.launch({ headless: true })
 const { browser } = require('vibium')
 
 async function main() {
-  const vibe = await browser.launch()
+  const bro = await browser.launch()
+  const vibe = await bro.page()
   await vibe.go('https://example.com')
   // ...
-  await vibe.quit()
+  await bro.close()
 }
 
 main()
@@ -190,7 +193,7 @@ Run `npm install vibium` in your project folder.
 
 Try running with headless mode disabled (it's disabled by default, but just in case):
 ```javascript
-const vibe = browserSync.launch({ headless: false })
+const bro = browser.launch({ headless: false })
 ```
 
 ### Permission denied (Linux)

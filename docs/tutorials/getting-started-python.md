@@ -79,10 +79,11 @@ Or just let it download automatically on first run.
 Create a file called `hello.py`:
 
 ```python
-from vibium import browser_sync as browser
+from vibium import browser
 
 # Launch a browser (you'll see it open!)
-vibe = browser.launch()
+bro = browser.launch()
+vibe = bro.page()
 
 # Go to a website
 vibe.go("https://example.com")
@@ -101,7 +102,7 @@ link.click()
 print("Clicked!")
 
 # Close the browser
-vibe.quit()
+bro.close()
 print("Done!")
 ```
 
@@ -127,13 +128,14 @@ Check your folder - there's now a `screenshot.png` file!
 
 | Line | What It Does |
 |------|--------------|
-| `browser.launch()` | Opens Chrome |
+| `browser.launch()` | Opens Chrome, returns a Browser |
+| `bro.page()` | Gets the default page (tab) |
 | `vibe.go(url)` | Navigates to a URL |
 | `vibe.screenshot()` | Captures the page as PNG bytes |
 | `vibe.find(selector)` | Finds an element by CSS selector |
 | `link.text()` | Gets the element's text content |
 | `link.click()` | Clicks the element |
-| `vibe.quit()` | Closes the browser |
+| `bro.close()` | Closes the browser |
 
 ---
 
@@ -141,19 +143,20 @@ Check your folder - there's now a `screenshot.png` file!
 
 **Hide the browser** (run headless):
 ```python
-vibe = browser.launch(headless=True)
+bro = browser.launch(headless=True)
 ```
 
 **Use async/await** (for more complex scripts):
 ```python
 import asyncio
-from vibium import browser
+from vibium.async_api import browser
 
 async def main():
-    vibe = await browser.launch()
+    bro = await browser.launch()
+    vibe = await bro.page()
     await vibe.go("https://example.com")
     # ...
-    await vibe.quit()
+    await bro.close()
 
 asyncio.run(main())
 ```
@@ -191,7 +194,7 @@ pip install vibium
 
 Try running with headless mode disabled (it's disabled by default, but just in case):
 ```python
-vibe = browser.launch(headless=False)
+bro = browser.launch(headless=False)
 ```
 
 ### Permission denied (Linux)

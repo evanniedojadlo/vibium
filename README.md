@@ -114,22 +114,20 @@ VIBIUM_SKIP_BROWSER_DOWNLOAD=1 npm install vibium
 ### JS/TS Client
 
 ```javascript
-// Option 1: require (REPL-friendly)
-const { browserSync } = require('vibium')
+// Sync (require-friendly)
+const { browser } = require('vibium/sync')
 
-// Option 2: dynamic import (REPL with --experimental-repl-await)
-const { browser } = await import('vibium')
-
-// Option 3: static import (in .mjs or .ts files)
-import { browser, browserSync } from 'vibium'
+// Async (import)
+import { browser } from 'vibium'
 ```
 
 **Sync API:**
 ```javascript
 const fs = require('fs')
-const { browserSync } = require('vibium')
+const { browser } = require('vibium/sync')
 
-const vibe = browserSync.launch()
+const bro = browser.launch()
+const vibe = bro.page()
 vibe.go('https://example.com')
 
 const png = vibe.screenshot()
@@ -137,15 +135,15 @@ fs.writeFileSync('screenshot.png', png)
 
 const link = vibe.find('a')
 link.click()
-vibe.quit()
+bro.close()
 ```
 
 **Async API:**
 ```javascript
-const fs = await import('fs/promises')
-const { browser } = await import('vibium')
+import { browser } from 'vibium'
 
-const vibe = await browser.launch()
+const bro = await browser.launch()
+const vibe = await bro.page()
 await vibe.go('https://example.com')
 
 const png = await vibe.screenshot()
@@ -153,20 +151,25 @@ await fs.writeFile('screenshot.png', png)
 
 const link = await vibe.find('a')
 await link.click()
-await vibe.quit()
+await bro.close()
 ```
 
 ### Python Client
 
 ```python
-from vibium import browser, browser_sync
+# Sync (default)
+from vibium import browser
+
+# Async
+from vibium.async_api import browser
 ```
 
 **Sync API:**
 ```python
-from vibium import browser_sync as browser
+from vibium import browser
 
-vibe = browser.launch()
+bro = browser.launch()
+vibe = bro.page()
 vibe.go("https://example.com")
 
 png = vibe.screenshot()
@@ -175,16 +178,17 @@ with open("screenshot.png", "wb") as f:
 
 link = vibe.find("a")
 link.click()
-vibe.quit()
+bro.close()
 ```
 
 **Async API:**
 ```python
 import asyncio
-from vibium import browser
+from vibium.async_api import browser
 
 async def main():
-    vibe = await browser.launch()
+    bro = await browser.launch()
+    vibe = await bro.page()
     await vibe.go("https://example.com")
 
     png = await vibe.screenshot()
@@ -193,7 +197,7 @@ async def main():
 
     link = await vibe.find("a")
     await link.click()
-    await vibe.quit()
+    await bro.close()
 
 asyncio.run(main())
 ```
