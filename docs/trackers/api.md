@@ -1,6 +1,6 @@
-# Are We Playwright Yet?
+# Vibium API
 
-Vibium's Playwright-equivalent API coverage. 173 commands across 23 categories, tracked across 6 implementation targets.
+173 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 

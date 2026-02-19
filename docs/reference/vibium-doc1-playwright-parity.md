@@ -1,6 +1,6 @@
 # Doc #1: Vibium Playwright-Equivalent Functionality
 
-**Tracker:** docs/trackers/areweplaywrightyet.md
+**Tracker:** docs/trackers/api.md
 **Goal:** Build Vibium's native API to Playwright-level DX, powered by WebDriver BiDi with JS injection fallback where BiDi doesn't yet cover a feature.
 
 This is the primary design document. Doc #2 (WebDriver spec parity) and Doc #3 (Selenium compat layer) build on top of this work.
