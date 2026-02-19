@@ -1,7 +1,7 @@
 /**
  * JS Library Tests: Network Interception & Dialogs
  * Tests page.route, route.fulfill/continue/abort, page.onRequest/onResponse,
- * page.waitForRequest/waitForResponse, page.onDialog, dialog.accept/dismiss.
+ * page.expect.request/response, page.onDialog, dialog.accept/dismiss.
  *
  * Uses a local HTTP server — no external network dependencies.
  */
@@ -25,6 +25,21 @@ before(async () => {
     } else if (req.url === '/text') {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end('hello world');
+    } else if (req.url === '/page2') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end('<html><head><title>Page 2</title></head><body><h1>Page 2</h1></body></html>');
+    } else if (req.url === '/nav-test') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`<html><head><title>Nav Test</title></head><body><a id="link" href="/page2">Go to page 2</a></body></html>`);
+    } else if (req.url === '/download-file') {
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': 'attachment; filename="test.txt"',
+      });
+      res.end('download content');
+    } else if (req.url === '/download') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end('<html><head><title>Download</title></head><body><a href="/download-file" id="download-link" download="test.txt">Download</a></body></html>');
     } else {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end('<html><head><title>Test Page</title></head><body>Test Content</body></html>');
@@ -247,7 +262,7 @@ describe('Network Events: onRequest/onResponse', () => {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.waitForResponse('**/json');
+      const responsePromise = vibe.expect.response('**/json');
       await vibe.eval(`fetch('${baseURL}/json')`);
       const resp = await responsePromise;
 
@@ -260,14 +275,14 @@ describe('Network Events: onRequest/onResponse', () => {
   });
 });
 
-describe('Network Waiters: waitForRequest/waitForResponse', () => {
-  test('waitForResponse() resolves on matching response', async () => {
+describe('Network Waiters: expect.request/expect.response', () => {
+  test('expect.response() resolves on matching response', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.waitForResponse('**/json');
+      const responsePromise = vibe.expect.response('**/json');
       await vibe.eval(`fetch('${baseURL}/json')`);
 
       const resp = await responsePromise;
@@ -278,13 +293,13 @@ describe('Network Waiters: waitForRequest/waitForResponse', () => {
     }
   });
 
-  test('waitForRequest() resolves on matching request', async () => {
+  test('expect.request() resolves on matching request', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const requestPromise = vibe.waitForRequest('**/text');
+      const requestPromise = vibe.expect.request('**/text');
       await vibe.eval(`fetch('${baseURL}/text')`);
 
       const req = await requestPromise;
@@ -347,13 +362,13 @@ describe('Response Body: response.body() and response.json()', () => {
     }
   });
 
-  test('response.body() works with waitForResponse', async () => {
+  test('response.body() works with expect.response', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.waitForResponse('**/text');
+      const responsePromise = vibe.expect.response('**/text');
       await vibe.eval(`fetch('${baseURL}/text')`);
       const resp = await responsePromise;
 
@@ -364,13 +379,13 @@ describe('Response Body: response.body() and response.json()', () => {
     }
   });
 
-  test('response.json() works with waitForResponse', async () => {
+  test('response.json() works with expect.response', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.waitForResponse('**/json');
+      const responsePromise = vibe.expect.response('**/json');
       await vibe.eval(`fetch('${baseURL}/json')`);
       const resp = await responsePromise;
 
@@ -469,6 +484,95 @@ describe('Dialogs: page.onDialog', () => {
       // No onDialog handler — should auto-dismiss
       const result = await vibe.eval('confirm("Auto dismiss?")');
       assert.strictEqual(result, false);
+    } finally {
+      await bro.close();
+    }
+  });
+});
+
+// --- Expect Navigation ---
+
+describe('Expect: navigation', () => {
+  test('expect.navigation() resolves with URL on link click', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(`${baseURL}/nav-test`);
+
+      const link = await vibe.find('#link');
+      const url = await vibe.expect.navigation(async () => {
+        await link.click();
+      });
+
+      assert.ok(url.includes('/page2'), `Navigation URL should include /page2, got: ${url}`);
+    } finally {
+      await bro.close();
+    }
+  });
+});
+
+// --- Expect Download ---
+
+describe('Expect: download', () => {
+  test('expect.download() resolves with Download object', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(`${baseURL}/download`);
+
+      const link = await vibe.find('#download-link');
+      const download = await vibe.expect.download(async () => {
+        await link.click();
+      });
+
+      assert.ok(download, 'Should resolve with a Download object');
+      assert.ok(download.url().includes('/download-file'), `Download URL should include /download-file, got: ${download.url()}`);
+      assert.strictEqual(download.suggestedFilename(), 'test.txt');
+    } finally {
+      await bro.close();
+    }
+  });
+});
+
+// --- Expect Dialog ---
+
+describe('Expect: dialog', () => {
+  test('expect.dialog() resolves with Dialog object', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      // Use setTimeout because alert() blocks eval — the dialog must fire
+      // asynchronously so expect.dialog can capture it.
+      await vibe.eval('setTimeout(() => alert("Hello from expect"), 50)');
+      const dialog = await vibe.expect.dialog();
+
+      assert.ok(dialog, 'Should resolve with a Dialog object');
+      assert.strictEqual(dialog.type(), 'alert');
+      assert.strictEqual(dialog.message(), 'Hello from expect');
+      await dialog.accept();
+    } finally {
+      await bro.close();
+    }
+  });
+});
+
+// --- Expect Event ---
+
+describe('Expect: event', () => {
+  test('expect.event("response") resolves on fetch', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      const result = await vibe.expect.event('response', async () => {
+        await vibe.eval(`fetch('${baseURL}/json')`);
+      });
+
+      assert.ok(result, 'Should resolve with event data');
+      assert.ok(typeof result.url === 'function', 'Should be a Response object with url()');
     } finally {
       await bro.close();
     }

@@ -1,4 +1,4 @@
-"""Navigation tests — go, back, forward, reload, url, title, content, waitForURL, waitForLoad (9 async tests)."""
+"""Navigation tests — go, back, forward, reload, url, title, content, waitUntil.url, waitUntil.loaded (9 async tests)."""
 
 import pytest
 
@@ -42,21 +42,21 @@ async def test_content(async_page, test_server):
     assert "Welcome to test-app" in html
 
 
-async def test_wait_for_url(async_page, test_server):
+async def test_wait_until_url(async_page, test_server):
     await async_page.go(test_server)
     link = await async_page.find('a[href="/subpage"]')
     await link.click()
-    await async_page.wait_for_url("**/subpage")
+    await async_page.wait_until.url("**/subpage")
     assert "/subpage" in await async_page.url()
 
 
-async def test_wait_for_load(async_page, test_server):
+async def test_wait_until_loaded(async_page, test_server):
     await async_page.go(test_server)
-    await async_page.wait_for_load()
+    await async_page.wait_until.loaded()
     assert await async_page.title() == "Test App"
 
 
-async def test_wait_for_url_timeout(async_page, test_server):
+async def test_wait_until_url_timeout(async_page, test_server):
     await async_page.go(test_server)
     with pytest.raises(Exception):
-        await async_page.wait_for_url("**/never-going-here", timeout=1000)
+        await async_page.wait_until.url("**/never-going-here", timeout=1000)

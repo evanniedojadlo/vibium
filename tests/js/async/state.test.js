@@ -1,8 +1,8 @@
 /**
  * JS Library Tests: Element State + Waiting
  * Tests el.text, innerText, html, value, attr, bounds, isVisible, isHidden,
- * isEnabled, isChecked, isEditable, eval, screenshot, waitFor.
- * Also tests page.waitFor, page.wait, page.waitForFunction.
+ * isEnabled, isChecked, isEditable, eval, screenshot, waitUntil.
+ * Also tests page.wait, page.waitUntil.
  */
 
 const { test, describe } = require('node:test');
@@ -265,14 +265,14 @@ describe('Element State: screenshot', () => {
 // --- Page-level Waiting ---
 
 describe('Page Waiting', () => {
-  test('waitFor(selector) resolves when element exists', async () => {
+  test('find(selector) auto-waits for element', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go('https://example.com');
 
-      const h1 = await vibe.waitFor('h1');
-      assert.ok(h1, 'waitFor should return an element');
+      const h1 = await vibe.find('h1');
+      assert.ok(h1, 'find should return an element (auto-waits)');
       const text = await h1.text();
       assert.strictEqual(text, 'Example Domain');
     } finally {
@@ -295,14 +295,14 @@ describe('Page Waiting', () => {
     }
   });
 
-  test('waitForFunction resolves when function returns truthy', async () => {
+  test('waitUntil(fn) resolves when function returns truthy', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go('https://example.com');
 
-      const result = await vibe.waitForFunction('() => document.querySelector("h1") !== null');
-      assert.ok(result, 'waitForFunction should return truthy value');
+      const result = await vibe.waitUntil('() => document.querySelector("h1") !== null');
+      assert.ok(result, 'waitUntil should return truthy value');
     } finally {
       await bro.close();
     }
@@ -383,8 +383,8 @@ describe('Element State Checkpoint', () => {
       console.log('html:', await h1.html());
       assert.strictEqual(await h1.html(), 'Example Domain');
 
-      // Wait for element
-      await vibe.waitFor('h1');
+      // Wait for element (find auto-waits)
+      await vibe.find('h1');
 
       // Element screenshot
       const buf = await link.screenshot();

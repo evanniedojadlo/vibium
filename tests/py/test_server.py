@@ -140,6 +140,14 @@ WS_PAGE_HTML = """<html><head><title>WebSocket</title></head><body>
   </script>
 </body></html>"""
 
+NAV_TEST_HTML = """<html><head><title>Nav Test</title></head><body>
+  <a id="link" href="/page2">Go to page 2</a>
+</body></html>"""
+
+PAGE2_HTML = """<html><head><title>Page 2</title></head><body>
+  <h1>Page 2</h1>
+</body></html>"""
+
 DOWNLOAD_HTML = """<html><head><title>Download</title></head><body>
   <a href="/download-file" id="download-link" download="test.txt">Download</a>
 </body></html>"""
@@ -187,6 +195,8 @@ HTML_ROUTES = {
     "/dynamic-loading": DYNAMIC_LOADING_HTML,
     "/ws-page": WS_PAGE_HTML,
     "/download": DOWNLOAD_HTML,
+    "/nav-test": NAV_TEST_HTML,
+    "/page2": PAGE2_HTML,
     "/a11y": A11Y_HTML,
 }
 

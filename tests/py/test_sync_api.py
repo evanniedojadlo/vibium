@@ -3,7 +3,7 @@
 Tests all sync-specific patterns: basic lifecycle, navigation, evaluation,
 finding, interaction, state, keyboard/mouse, clock, viewport/emulation,
 context, dialog handlers, route handlers, console/error collection,
-wait_for_request/response, and full checkpoint.
+expect request/response, and full checkpoint.
 """
 
 import time
@@ -149,10 +149,10 @@ def test_find_all(bro, test_server):
     assert els.count() == 4
 
 
-def test_wait_for(bro, test_server):
+def test_find_auto_waits(bro, test_server):
     vibe = bro.page()
     vibe.go(test_server + "/dynamic-loading")
-    el = vibe.wait_for("#loaded", timeout=5000)
+    el = vibe.find("#loaded", timeout=5000)
     assert isinstance(el, Element)
 
 
@@ -199,7 +199,7 @@ def test_click_navigates(bro, test_server):
     vibe.go(test_server)
     link = vibe.find('a[href="/subpage"]')
     link.click()
-    vibe.wait_for_url("**/subpage")
+    vibe.wait_until.url("**/subpage")
     assert vibe.title() == "Subpage"
 
 
@@ -640,27 +640,78 @@ def test_on_error_collect(bro, test_server):
 
 
 # ===========================================================================
-# Wait for request/response (2)
+# Expect request/response (2)
 # ===========================================================================
 
-def test_wait_for_request_returns_dict(bro, test_server):
+def test_expect_request_returns_dict(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
-    vibe.eval("setTimeout(() => doFetch(), 100)")
-    req = vibe.wait_for_request("**/api/data", timeout=5000)
+    req = vibe.expect.request("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
     assert isinstance(req, dict)
     assert "url" in req
     assert "api/data" in req["url"]
 
 
-def test_wait_for_response_returns_dict(bro, test_server):
+def test_expect_response_returns_dict(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
-    vibe.eval("setTimeout(() => doFetch(), 100)")
-    resp = vibe.wait_for_response("**/api/data", timeout=5000)
+    resp = vibe.expect.response("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
     assert isinstance(resp, dict)
     assert "url" in resp
     assert resp["status"] == 200
+
+
+# ===========================================================================
+# Expect navigation (1)
+# ===========================================================================
+
+def test_expect_navigation(bro, test_server):
+    vibe = bro.new_page()
+    vibe.go(test_server + "/nav-test")
+    with vibe.expect.navigation() as info:
+        vibe.find("#link").click()
+    assert info.value is not None
+    assert "/page2" in info.value
+
+
+# ===========================================================================
+# Expect download (1)
+# ===========================================================================
+
+def test_expect_download(bro, test_server):
+    vibe = bro.new_page()
+    vibe.go(test_server + "/download")
+    with vibe.expect.download() as info:
+        vibe.find("#download-link").click()
+    assert info.value is not None
+    assert "/download-file" in info.value["url"]
+    assert info.value["suggested_filename"] == "test.txt"
+
+
+# ===========================================================================
+# Expect dialog (1)
+# ===========================================================================
+
+def test_expect_dialog(bro, test_server):
+    vibe = bro.new_page()
+    vibe.go(test_server)
+    with vibe.expect.dialog() as info:
+        vibe.eval('setTimeout(() => alert("Hello from expect"), 50)')
+    assert info.value is not None
+    assert info.value["type"] == "alert"
+    assert info.value["message"] == "Hello from expect"
+
+
+# ===========================================================================
+# Expect event (1)
+# ===========================================================================
+
+def test_expect_event_navigation(bro, test_server):
+    vibe = bro.new_page()
+    vibe.go(test_server + "/nav-test")
+    with vibe.expect.event("navigation") as info:
+        vibe.find("#link").click()
+    assert info.value is not None
 
 
 # ===========================================================================

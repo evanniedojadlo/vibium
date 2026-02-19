@@ -27,7 +27,7 @@ describe('Interaction: Checkpoint', () => {
       const loginBtn = await vibe.find('button[type="submit"]');
       await loginBtn.click();
 
-      await vibe.waitForURL('**/secure');
+      await vibe.waitUntil.url('**/secure');
       const url = await vibe.url();
       assert.ok(url.includes('/secure'), `Should be on /secure page, got: ${url}`);
     } finally {
@@ -99,7 +99,7 @@ describe('Interaction: Click variants', () => {
       const link = await vibe.find('a[href="/login"]');
       await link.click();
 
-      await vibe.waitForURL('**/login');
+      await vibe.waitUntil.url('**/login');
       const url = await vibe.url();
       assert.ok(url.includes('/login'), `Should navigate to /login, got: ${url}`);
     } finally {
@@ -200,7 +200,7 @@ describe('Interaction: Input methods', () => {
       // Press Enter to submit instead of clicking
       await password.press('Enter');
 
-      await vibe.waitForURL('**/secure');
+      await vibe.waitUntil.url('**/secure');
       const url = await vibe.url();
       assert.ok(url.includes('/secure'), `Enter should submit form, got: ${url}`);
     } finally {

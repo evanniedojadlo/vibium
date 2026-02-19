@@ -1,7 +1,7 @@
 /**
  * JS Library Tests: Navigation
  * Tests page.go(), back(), forward(), reload(), url(), title(), content(),
- * waitForURL(), waitForLoad()
+ * waitUntil.url(), waitUntil.loaded()
  */
 
 const { test, describe } = require('node:test');
@@ -94,14 +94,14 @@ describe('JS Navigation', () => {
     }
   });
 
-  test('page.waitForURL() waits for matching URL', async () => {
+  test('page.waitUntil.url() waits for matching URL', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go('https://the-internet.herokuapp.com/login');
 
-      // URL should already match — waitForURL should return immediately
-      await vibe.waitForURL('/login', { timeout: 5000 });
+      // URL should already match — waitUntil.url should return immediately
+      await vibe.waitUntil.url('/login', { timeout: 5000 });
 
       const url = await vibe.url();
       assert.ok(url.includes('/login'), 'Should have matched login URL');
@@ -110,12 +110,12 @@ describe('JS Navigation', () => {
     }
   });
 
-  test('page.waitForLoad() waits for load state', async () => {
+  test('page.waitUntil.loaded() waits for load state', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go('https://the-internet.herokuapp.com/');
-      await vibe.waitForLoad('complete', { timeout: 10000 });
+      await vibe.waitUntil.loaded('complete', { timeout: 10000 });
       // If we get here, it passed
       assert.ok(true);
     } finally {
@@ -123,14 +123,14 @@ describe('JS Navigation', () => {
     }
   });
 
-  test('page.waitForURL() times out on mismatch', async () => {
+  test('page.waitUntil.url() times out on mismatch', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go('https://the-internet.herokuapp.com/');
 
       await assert.rejects(
-        () => vibe.waitForURL('**/nonexistent-page-xyz', { timeout: 1000 }),
+        () => vibe.waitUntil.url('**/nonexistent-page-xyz', { timeout: 1000 }),
         /timeout/i,
         'Should timeout when URL does not match'
       );

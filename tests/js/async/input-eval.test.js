@@ -362,7 +362,7 @@ describe('Input & Eval Checkpoint', () => {
       // Submit the form
       const btn = await vibe.find('button[type="submit"]');
       await btn.click();
-      await vibe.waitForURL('**/secure');
+      await vibe.waitUntil.url('**/secure');
 
       const url = await vibe.url();
       assert.ok(url.includes('/secure'), `Should be on /secure, got: ${url}`);

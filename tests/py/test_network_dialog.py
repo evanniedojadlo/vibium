@@ -155,19 +155,19 @@ async def test_response_url_status(net_browser, test_server):
 
 # --- Waiters ---
 
-async def test_wait_for_response(net_browser, test_server):
+async def test_expect_response(net_browser, test_server):
     vibe = await net_browser.new_page()
     await vibe.go(test_server + "/fetch")
     await vibe.eval("setTimeout(() => doFetch(), 100)")
-    resp = await vibe.wait_for_response("**/api/data", timeout=5000)
+    resp = await vibe.expect.response("**/api/data", timeout=5000)
     assert resp.status() == 200
 
 
-async def test_wait_for_request(net_browser, test_server):
+async def test_expect_request(net_browser, test_server):
     vibe = await net_browser.new_page()
     await vibe.go(test_server + "/fetch")
     await vibe.eval("setTimeout(() => doFetch(), 100)")
-    req = await vibe.wait_for_request("**/api/data", timeout=5000)
+    req = await vibe.expect.request("**/api/data", timeout=5000)
     assert "api/data" in req.url()
 
 
@@ -177,7 +177,7 @@ async def test_body_text(net_browser, test_server):
     vibe = await net_browser.new_page()
     await vibe.go(test_server)
     await vibe.eval("setTimeout(() => fetch('/text'), 100)")
-    resp = await vibe.wait_for_response("**/text", timeout=5000)
+    resp = await vibe.expect.response("**/text", timeout=5000)
     body = await resp.body()
     assert body is not None
     assert "hello world" in body
@@ -187,27 +187,27 @@ async def test_body_json(net_browser, test_server):
     vibe = await net_browser.new_page()
     await vibe.go(test_server)
     await vibe.eval("setTimeout(() => fetch('/json'), 100)")
-    resp = await vibe.wait_for_response("**/json", timeout=5000)
+    resp = await vibe.expect.response("**/json", timeout=5000)
     data = await resp.json()
     assert data is not None
     assert data["name"] == "vibium"
 
 
-async def test_body_via_wait(net_browser, test_server):
+async def test_body_via_expect(net_browser, test_server):
     vibe = await net_browser.new_page()
     await vibe.go(test_server + "/fetch")
     await vibe.eval("setTimeout(() => doFetch(), 100)")
-    resp = await vibe.wait_for_response("**/api/data", timeout=5000)
+    resp = await vibe.expect.response("**/api/data", timeout=5000)
     body = await resp.body()
     assert body is not None
     assert "real data" in body
 
 
-async def test_json_via_wait(net_browser, test_server):
+async def test_json_via_expect(net_browser, test_server):
     vibe = await net_browser.new_page()
     await vibe.go(test_server + "/fetch")
     await vibe.eval("setTimeout(() => doFetch(), 100)")
-    resp = await vibe.wait_for_response("**/api/data", timeout=5000)
+    resp = await vibe.expect.response("**/api/data", timeout=5000)
     data = await resp.json()
     assert data["count"] == 42
 
@@ -264,6 +264,53 @@ async def test_auto_dismiss(net_browser, test_server):
     # No handler — should auto-dismiss
     result = await vibe.eval('confirm("Auto dismiss?")')
     assert result is False
+
+
+# --- Expect navigation ---
+
+async def test_expect_navigation(net_browser, test_server):
+    vibe = await net_browser.new_page()
+    await vibe.go(test_server + "/nav-test")
+    link = await vibe.find("#link")
+    async with vibe.expect.navigation() as info:
+        await link.click()
+    assert info.value is not None
+    assert "/page2" in info.value
+
+
+# --- Expect download ---
+
+async def test_expect_download(net_browser, test_server):
+    vibe = await net_browser.new_page()
+    await vibe.go(test_server + "/download")
+    link = await vibe.find("#download-link")
+    async with vibe.expect.download() as info:
+        await link.click()
+    assert info.value is not None
+    assert info.value.url().endswith("/download-file") or "/download-file" in info.value.url()
+    assert info.value.suggested_filename() == "test.txt"
+
+
+# --- Expect dialog ---
+
+async def test_expect_dialog(net_browser, test_server):
+    vibe = await net_browser.new_page()
+    await vibe.go(test_server)
+    async with vibe.expect.dialog() as info:
+        await vibe.eval('setTimeout(() => alert("Hello from expect"), 50)')
+    assert info.value is not None
+    assert info.value.type() == "alert"
+    assert info.value.message() == "Hello from expect"
+
+
+# --- Expect event ---
+
+async def test_expect_event_response(net_browser, test_server):
+    vibe = await net_browser.new_page()
+    await vibe.go(test_server + "/fetch")
+    await vibe.eval("setTimeout(() => doFetch(), 100)")
+    result = await vibe.expect.event("response", timeout=5000)
+    assert result is not None
 
 
 # --- Checkpoint ---

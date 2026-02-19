@@ -82,6 +82,18 @@ const PROMPT_HTML = `<html><head><title>Prompt</title></head><body>
   <div id="result"></div>
 </body></html>`;
 
+const NAV_TEST_HTML = `<html><head><title>Nav Test</title></head><body>
+  <a id="link" href="/page2">Go to page 2</a>
+</body></html>`;
+
+const PAGE2_HTML = `<html><head><title>Page 2</title></head><body>
+  <h1>Page 2</h1>
+</body></html>`;
+
+const DOWNLOAD_HTML = `<html><head><title>Download</title></head><body>
+  <a href="/download-file" id="download-link" download="test.txt">Download</a>
+</body></html>`;
+
 const FETCH_HTML = `<html><head><title>Fetch</title></head><body>
   <div id="result"></div>
   <script>
@@ -104,12 +116,23 @@ const routes = {
   '/clock': CLOCK_HTML,
   '/prompt': PROMPT_HTML,
   '/fetch': FETCH_HTML,
+  '/nav-test': NAV_TEST_HTML,
+  '/page2': PAGE2_HTML,
+  '/download': DOWNLOAD_HTML,
 };
 
 const server = http.createServer((req, res) => {
   if (req.url === '/api/data') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ message: 'real data', count: 42 }));
+    return;
+  }
+  if (req.url === '/download-file') {
+    res.writeHead(200, {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': 'attachment; filename="test.txt"',
+    });
+    res.end('download content');
     return;
   }
   res.writeHead(200, { 'Content-Type': 'text/html' });

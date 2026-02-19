@@ -213,10 +213,10 @@ describe('Sync API: Element finding', () => {
     assert.strictEqual(links.count(), 4);
   });
 
-  test('waitFor() waits for element', () => {
+  test('find() auto-waits for element', () => {
     const vibe = bro.page();
     vibe.go(baseURL);
-    const el = vibe.waitFor('h1.heading');
+    const el = vibe.find('h1.heading');
     assert.ok(el, 'Should return an ElementSync');
   });
 });
@@ -274,7 +274,7 @@ describe('Sync API: Element interaction', () => {
     vibe.go(baseURL);
     const link = vibe.find('a[href="/subpage"]');
     link.click();
-    vibe.waitFor('h3'); // wait for subpage to load
+    vibe.find('h3'); // wait for subpage to load
     assert.strictEqual(vibe.title(), 'Subpage');
   });
 
@@ -780,6 +780,69 @@ describe('Sync API: onPage/onPopup', () => {
   });
 });
 
+describe('Sync API: Expect navigation', () => {
+  let bro;
+  before(() => { bro = browser.launch({ headless: true }); });
+  after(() => { bro.close(); });
+
+  test('expect.navigation() returns URL on link click', () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/nav-test`);
+    const result = vibe.expect.navigation(() => {
+      vibe.find('#link').click();
+    });
+    assert.ok(result.url.includes('/page2'), `Should include /page2, got: ${result.url}`);
+  });
+});
+
+describe('Sync API: Expect download', () => {
+  let bro;
+  before(() => { bro = browser.launch({ headless: true }); });
+  after(() => { bro.close(); });
+
+  test('expect.download() returns download info', { skip: 'download BiDi events not delivered in worker threads' }, () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/download`);
+    const result = vibe.expect.download(() => {
+      vibe.find('#download-link').click();
+    });
+    assert.ok(result.url.includes('/download-file'), `Should include /download-file, got: ${result.url}`);
+    assert.strictEqual(result.suggestedFilename, 'test.txt');
+  });
+});
+
+describe('Sync API: Expect dialog', () => {
+  let bro;
+  before(() => { bro = browser.launch({ headless: true }); });
+  after(() => { bro.close(); });
+
+  test('expect.dialog() returns dialog info', () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/prompt`);
+    // Trigger alert asynchronously — alert() blocks the page, so we use
+    // setTimeout to let expectDialogStart register before the dialog opens.
+    vibe.eval('setTimeout(() => document.getElementById("alert-btn").click(), 50)');
+    const result = vibe.expect.dialog();
+    assert.strictEqual(result.type, 'alert');
+    assert.strictEqual(result.message, 'hello');
+  });
+});
+
+describe('Sync API: Expect event', () => {
+  let bro;
+  before(() => { bro = browser.launch({ headless: true }); });
+  after(() => { bro.close(); });
+
+  test('expect.event("navigation") returns URL', () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/nav-test`);
+    const result = vibe.expect.event('navigation', () => {
+      vibe.find('#link').click();
+    });
+    assert.ok(result.data, 'Should have event data');
+  });
+});
+
 describe('Sync API: Full checkpoint', () => {
   test('Phase 8 checkpoint', () => {
     const bro = browser.launch({ headless: true });
@@ -791,7 +854,7 @@ describe('Sync API: Full checkpoint', () => {
 
       const link = vibe.find('a[href="/subpage"]');
       link.click();
-      vibe.waitFor('h3'); // wait for subpage to load
+      vibe.find('h3'); // wait for subpage to load
       assert.strictEqual(vibe.title(), 'Subpage');
 
       const png = vibe.screenshot();
