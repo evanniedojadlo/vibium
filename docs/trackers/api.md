@@ -287,7 +287,7 @@
 | `page.evalHandle(expr)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.addScript(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.addStyle(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.expose(name, fn)` | ✅ | — | ✅ | — | — | — |
+| `page.expose(name, fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 
 ## AI-Native Methods (4 commands)
 

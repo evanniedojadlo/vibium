@@ -195,6 +195,10 @@ export class PageSync {
     this._bridge.call('page.addStyle', [this._pageId, source]);
   }
 
+  expose(name: string, fn: string): void {
+    this._bridge.call('page.expose', [this._pageId, name, fn]);
+  }
+
   // --- Lifecycle ---
 
   bringToFront(): void {

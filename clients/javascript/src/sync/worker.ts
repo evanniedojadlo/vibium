@@ -365,6 +365,12 @@ const handlers: Record<string, Handler> = {
     return { success: true };
   },
 
+  'page.expose': async (args) => {
+    const [pageId, name, fn] = args as [number, string, string];
+    await getPage(pageId).expose(name, fn);
+    return { success: true };
+  },
+
   'page.find': async (args) => {
     const [pageId, selector, options] = args as [number, string | SelectorOptions, unknown];
     const element = await getPage(pageId).find(selector, options as any);
