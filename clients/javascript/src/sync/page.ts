@@ -30,6 +30,22 @@ export class PageSync {
     this.mouse = new MouseSync(bridge, pageId);
     this.touch = new TouchSync(bridge, pageId);
     this.clock = new ClockSync(bridge, pageId);
+
+    // Initialize waitUntil namespace
+    this.waitUntil = Object.assign(
+      (fn: string, options?: { timeout?: number }) => {
+        const result = bridge.call<{ value: unknown }>('page.waitForFunction', [pageId, fn, options]);
+        return result.value;
+      },
+      {
+        url: (pattern: string, options?: { timeout?: number }) => {
+          bridge.call('page.waitForURL', [pageId, pattern, options]);
+        },
+        loaded: (state?: string, options?: { timeout?: number }) => {
+          bridge.call('page.waitForLoad', [pageId, state, options]);
+        },
+      }
+    );
   }
 
   // --- Navigation ---
@@ -79,28 +95,67 @@ export class PageSync {
     return new ElementListSync(this._bridge, result.listId);
   }
 
-  waitFor(selector: string | SelectorOptions, options?: FindOptions): ElementSync {
-    const result = this._bridge.call<{ elementId: number; info: ElementInfo }>('page.waitFor', [this._pageId, selector, options]);
-    return new ElementSync(this._bridge, result.elementId, result.info);
+  // --- Waiting ---
+
+  /** Expect namespace — set up a listener before performing an action. */
+  get expect(): {
+    response(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; status: number; headers: Record<string, string> };
+    request(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; method: string; headers: Record<string, string>; postData: string | null };
+    navigation(fn?: () => void, options?: { timeout?: number }): { url: string };
+    download(fn?: () => void, options?: { timeout?: number }): { url: string; suggestedFilename: string };
+    dialog(fn?: () => void, options?: { timeout?: number }): { type: string; message: string; defaultValue: string };
+    event(name: string, fn?: () => void, options?: { timeout?: number }): unknown;
+  } {
+    const bridge = this._bridge;
+    const pageId = this._pageId;
+    return {
+      response(pattern: string, fn?: () => void, options?: { timeout?: number }) {
+        if (fn) {
+          bridge.call('page.expectResponseStart', [pageId, pattern, options]);
+          fn();
+          return bridge.call('page.expectResponseFinish', [pageId]);
+        }
+        return bridge.call('page.waitForResponse', [pageId, pattern, options]);
+      },
+      request(pattern: string, fn?: () => void, options?: { timeout?: number }) {
+        if (fn) {
+          bridge.call('page.expectRequestStart', [pageId, pattern, options]);
+          fn();
+          return bridge.call('page.expectRequestFinish', [pageId]);
+        }
+        return bridge.call('page.waitForRequest', [pageId, pattern, options]);
+      },
+      navigation(fn?: () => void, options?: { timeout?: number }) {
+        bridge.call('page.expectNavigationStart', [pageId, options]);
+        if (fn) fn();
+        return bridge.call('page.expectNavigationFinish', [pageId]);
+      },
+      download(fn?: () => void, options?: { timeout?: number }) {
+        bridge.call('page.expectDownloadStart', [pageId, options]);
+        if (fn) fn();
+        return bridge.call('page.expectDownloadFinish', [pageId]);
+      },
+      dialog(fn?: () => void, options?: { timeout?: number }) {
+        bridge.call('page.expectDialogStart', [pageId, options]);
+        if (fn) fn();
+        return bridge.call('page.expectDialogFinish', [pageId]);
+      },
+      event(name: string, fn?: () => void, options?: { timeout?: number }) {
+        bridge.call('page.expectEventStart', [pageId, name, options]);
+        if (fn) fn();
+        return bridge.call('page.expectEventFinish', [pageId]);
+      },
+    };
   }
 
-  // --- Waiting ---
+  /** Wait until a condition is met. Callable with a function, or use .url() / .loaded() sub-methods. */
+  readonly waitUntil: ((fn: string, options?: { timeout?: number }) => unknown) & {
+    url(pattern: string, options?: { timeout?: number }): void;
+    loaded(state?: string, options?: { timeout?: number }): void;
+  };
 
   wait(ms: number): void {
     this._bridge.call('page.wait', [this._pageId, ms]);
-  }
-
-  waitForURL(pattern: string, options?: { timeout?: number }): void {
-    this._bridge.call('page.waitForURL', [this._pageId, pattern, options]);
-  }
-
-  waitForLoad(state?: string, options?: { timeout?: number }): void {
-    this._bridge.call('page.waitForLoad', [this._pageId, state, options]);
-  }
-
-  waitForFunction<T = unknown>(fn: string, options?: { timeout?: number }): T {
-    const result = this._bridge.call<{ value: T }>('page.waitForFunction', [this._pageId, fn, options]);
-    return result.value;
   }
 
   // --- Screenshots & PDF ---
@@ -244,14 +299,6 @@ export class PageSync {
 
   setHeaders(headers: Record<string, string>): void {
     this._bridge.call('page.setHeaders', [this._pageId, headers]);
-  }
-
-  waitForRequest(pattern: string, options?: { timeout?: number }): { url: string; method: string; headers: Record<string, string>; postData: string | null } {
-    return this._bridge.call('page.waitForRequest', [this._pageId, pattern, options]);
-  }
-
-  waitForResponse(pattern: string, options?: { timeout?: number }): { url: string; status: number; headers: Record<string, string> } {
-    return this._bridge.call('page.waitForResponse', [this._pageId, pattern, options]);
   }
 
   // --- Events ---

@@ -310,10 +310,10 @@ export class Element {
     return Buffer.from(result.data, 'base64');
   }
 
-  /** Wait for the element to reach a state: "visible", "hidden", "attached", or "detached". */
-  async waitFor(options?: { state?: string; timeout?: number }): Promise<void> {
+  /** Wait until the element reaches a state: "visible", "hidden", "attached", or "detached". */
+  async waitUntil(state?: string, options?: { timeout?: number }): Promise<void> {
     await this.client.send('vibium:el.waitFor', this.commandParams({
-      state: options?.state,
+      state,
       timeout: options?.timeout,
     }));
   }
@@ -423,7 +423,7 @@ export type FluentElement = Promise<Element> & {
   label(): Promise<string>;
   eval<T = unknown>(fn: string): Promise<T>;
   screenshot(): Promise<Buffer>;
-  waitFor(options?: { state?: string; timeout?: number }): Promise<void>;
+  waitUntil(state?: string, options?: { timeout?: number }): Promise<void>;
   // Finding
   find(selector: string | SelectorOptions, options?: { timeout?: number }): FluentElement;
   findAll(selector: string | SelectorOptions, options?: { timeout?: number }): Promise<ElementList>;
@@ -466,7 +466,7 @@ export function fluent(promise: Promise<Element>): FluentElement {
   p.label = () => promise.then(el => el.label());
   p.eval = (fn) => promise.then(el => el.eval(fn));
   p.screenshot = () => promise.then(el => el.screenshot());
-  p.waitFor = (opts?) => promise.then(el => el.waitFor(opts));
+  p.waitUntil = (state?, opts?) => promise.then(el => el.waitUntil(state, opts));
   // Finding
   p.find = (sel, opts?) => fluent(promise.then(el => el.find(sel, opts)));
   p.findAll = (sel, opts?) => promise.then(el => el.findAll(sel, opts));

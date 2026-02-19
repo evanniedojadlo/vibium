@@ -132,6 +132,8 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 				"log.entryAdded",
 				"browsingContext.downloadWillBegin",
 				"browsingContext.downloadEnd",
+				"browsingContext.load",
+				"browsingContext.fragmentNavigated",
 			},
 		})
 		r.setupDownloads(session)

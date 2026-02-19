@@ -186,7 +186,8 @@ class Element:
         result = await self._client.send("vibium:el.screenshot", self._command_params())
         return base64.b64decode(result["data"])
 
-    async def wait_for(self, state: Optional[str] = None, timeout: Optional[int] = None) -> None:
+    async def wait_until(self, state: Optional[str] = None, timeout: Optional[int] = None) -> None:
+        """Wait until the element reaches a state: visible, hidden, attached, or detached."""
         await self._client.send("vibium:el.waitFor", self._command_params({
             "state": state,
             "timeout": timeout,

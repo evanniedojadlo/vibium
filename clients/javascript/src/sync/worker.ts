@@ -244,7 +244,7 @@ const handlers: Record<string, Handler> = {
   'browser.waitForPage': async (args) => {
     if (!browserInstance) throw new Error('Browser not launched');
     const [options] = args as [{ timeout?: number } | undefined];
-    const timeout = options?.timeout ?? 30000;
+    const timeout = options?.timeout ?? 10000;
     const page = await new Promise<Page>((resolve, reject) => {
       const timer = setTimeout(() => {
         browserInstance?.removeAllListeners('page');
@@ -262,7 +262,7 @@ const handlers: Record<string, Handler> = {
   'browser.waitForPopup': async (args) => {
     if (!browserInstance) throw new Error('Browser not launched');
     const [options] = args as [{ timeout?: number } | undefined];
-    const timeout = options?.timeout ?? 30000;
+    const timeout = options?.timeout ?? 10000;
     const page = await new Promise<Page>((resolve, reject) => {
       const timer = setTimeout(() => {
         browserInstance?.removeAllListeners('popup');
@@ -383,13 +383,6 @@ const handlers: Record<string, Handler> = {
     return { listId, elementIds, count: list.count() };
   },
 
-  'page.waitFor': async (args) => {
-    const [pageId, selector, options] = args as [number, string | SelectorOptions, unknown];
-    const element = await getPage(pageId).waitFor(selector, options as any);
-    const elementId = storeElement(element);
-    return { elementId, info: element.info };
-  },
-
   'page.wait': async (args) => {
     const [pageId, ms] = args as [number, number];
     await getPage(pageId).wait(ms);
@@ -398,19 +391,19 @@ const handlers: Record<string, Handler> = {
 
   'page.waitForURL': async (args) => {
     const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
-    await getPage(pageId).waitForURL(pattern, options);
+    await getPage(pageId).waitUntil.url(pattern, options);
     return { success: true };
   },
 
   'page.waitForLoad': async (args) => {
     const [pageId, state, options] = args as [number, string | undefined, { timeout?: number } | undefined];
-    await getPage(pageId).waitForLoad(state, options);
+    await getPage(pageId).waitUntil.loaded(state, options);
     return { success: true };
   },
 
   'page.waitForFunction': async (args) => {
     const [pageId, fn, options] = args as [number, string, { timeout?: number } | undefined];
-    const value = await getPage(pageId).waitForFunction(fn, options);
+    const value = await getPage(pageId).waitUntil(fn, options);
     return { value };
   },
 
@@ -579,7 +572,7 @@ const handlers: Record<string, Handler> = {
   'page.waitForRequest': async (args) => {
     const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    const request = await page.waitForRequest(pattern, options);
+    const request = await page.expect.request(pattern, undefined, options);
     return {
       url: request.url(),
       method: request.method(),
@@ -591,12 +584,134 @@ const handlers: Record<string, Handler> = {
   'page.waitForResponse': async (args) => {
     const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    const response = await page.waitForResponse(pattern, options);
+    const response = await page.expect.response(pattern, undefined, options);
     return {
       url: response.url(),
       status: response.status(),
       headers: response.headers(),
     };
+  },
+
+  'page.expectResponseStart': async (args) => {
+    const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
+    const page = getPage(pageId);
+    (page as any)._pendingExpectResponse = page.expect.response(pattern, undefined, options);
+    return { success: true };
+  },
+
+  'page.expectResponseFinish': async (args) => {
+    const [pageId] = args as [number];
+    const page = getPage(pageId);
+    const response = await (page as any)._pendingExpectResponse;
+    delete (page as any)._pendingExpectResponse;
+    return {
+      url: response.url(),
+      status: response.status(),
+      headers: response.headers(),
+    };
+  },
+
+  'page.expectRequestStart': async (args) => {
+    const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
+    const page = getPage(pageId);
+    (page as any)._pendingExpectRequest = page.expect.request(pattern, undefined, options);
+    return { success: true };
+  },
+
+  'page.expectRequestFinish': async (args) => {
+    const [pageId] = args as [number];
+    const page = getPage(pageId);
+    const request = await (page as any)._pendingExpectRequest;
+    delete (page as any)._pendingExpectRequest;
+    return {
+      url: request.url(),
+      method: request.method(),
+      headers: request.headers(),
+      postData: request.postData(),
+    };
+  },
+
+  'page.expectNavigationStart': async (args) => {
+    const [pageId, options] = args as [number, { timeout?: number } | undefined];
+    const page = getPage(pageId);
+    (page as any)._pendingExpectNavigation = page.expect.navigation(undefined, options);
+    return { success: true };
+  },
+
+  'page.expectNavigationFinish': async (args) => {
+    const [pageId] = args as [number];
+    const page = getPage(pageId);
+    const url = await (page as any)._pendingExpectNavigation;
+    delete (page as any)._pendingExpectNavigation;
+    return { url };
+  },
+
+  'page.expectDownloadStart': async (args) => {
+    const [pageId, options] = args as [number, { timeout?: number } | undefined];
+    const page = getPage(pageId);
+    (page as any)._pendingExpectDownload = page.expect.download(undefined, options);
+    return { success: true };
+  },
+
+  'page.expectDownloadFinish': async (args) => {
+    const [pageId] = args as [number];
+    const page = getPage(pageId);
+    const download = await (page as any)._pendingExpectDownload;
+    delete (page as any)._pendingExpectDownload;
+    return {
+      url: download.url(),
+      suggestedFilename: download.suggestedFilename(),
+    };
+  },
+
+  'page.expectDialogStart': async (args) => {
+    const [pageId, options] = args as [number, { timeout?: number } | undefined];
+    const page = getPage(pageId);
+    (page as any)._pendingExpectDialog = page.expect.dialog(undefined, options);
+    return { success: true };
+  },
+
+  'page.expectDialogFinish': async (args) => {
+    const [pageId] = args as [number];
+    const page = getPage(pageId);
+    const dialog = await (page as any)._pendingExpectDialog;
+    delete (page as any)._pendingExpectDialog;
+    return {
+      type: dialog.type(),
+      message: dialog.message(),
+      defaultValue: dialog.defaultValue(),
+    };
+  },
+
+  'page.expectEventStart': async (args) => {
+    const [pageId, name, options] = args as [number, string, { timeout?: number } | undefined];
+    const page = getPage(pageId);
+    (page as any)._pendingExpectEvent = page.expect.event(name, undefined, options);
+    return { success: true };
+  },
+
+  'page.expectEventFinish': async (args) => {
+    const [pageId] = args as [number];
+    const page = getPage(pageId);
+    const data = await (page as any)._pendingExpectEvent;
+    delete (page as any)._pendingExpectEvent;
+    // Return the event data — for typed events, serialize known shapes
+    if (data && typeof data === 'object') {
+      if ('url' in data && 'status' in data) {
+        // Response-like
+        return { url: data.url(), status: data.status(), headers: data.headers() };
+      }
+      if ('url' in data && 'method' in data) {
+        // Request-like
+        return { url: data.url(), method: data.method(), headers: data.headers() };
+      }
+      if ('type' in data && 'message' in data) {
+        // Dialog-like
+        return { type: data.type(), message: data.message(), defaultValue: data.defaultValue() };
+      }
+    }
+    // For string (navigation URL) or other simple values, wrap in data
+    return { data };
   },
 
   // --- Page events (simplified for sync) ---
@@ -1106,9 +1221,9 @@ const handlers: Record<string, Handler> = {
     return { data: buffer.toString('base64') };
   },
 
-  'element.waitFor': async (args) => {
-    const [elementId, options] = args as [number, any];
-    await getElement(elementId).waitFor(options);
+  'element.waitUntil': async (args) => {
+    const [elementId, state, options] = args as [number, string | undefined, any];
+    await getElement(elementId).waitUntil(state, options);
     return { success: true };
   },
 

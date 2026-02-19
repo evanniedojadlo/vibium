@@ -1,12 +1,12 @@
 # Vibium API
 
-173 commands across 23 categories, tracked across 6 implementation targets.
+175 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
 ---
 
-## Navigation (9 commands)
+## Navigation (7 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -16,8 +16,6 @@
 | `page.reload()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.url()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.title()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.waitForURL(pattern)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.waitForLoad(state?)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.content()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Pages & Contexts (12 commands)
@@ -94,7 +92,7 @@
 | `el.scrollIntoView()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.dispatchEvent(type)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
-## Element State (14 commands)
+## Element State (13 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -111,7 +109,6 @@
 | `el.isEditable()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.eval(fn)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.screenshot()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.waitFor({state})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Keyboard & Mouse (10 commands)
 
@@ -128,7 +125,7 @@
 | `page.mouse.wheel(dx,dy)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.touch.tap(x,y)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
-## Network Interception (13 commands)
+## Network Interception (10 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -139,8 +136,6 @@
 | `page.onRequest(fn)` | ✅ | — | ✅ | — | — | — |
 | `page.onResponse(fn)` | ✅ | — | ✅ | — | — | — |
 | `page.setHeaders(headers)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.waitForRequest(pat)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.waitForResponse(pat)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.unroute(pattern)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.onWebSocket(fn)` | ✅ | — | ✅ | — | — | — |
@@ -226,14 +221,28 @@
 | `page.errors()` | — | ✅ | — | ✅ | — | — |
 | `page.workers()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
-## Waiting (5 commands)
+## Waiting (12 commands)
+
+### Expect — set up before the action
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.waitFor(selector)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.expect.response(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.expect.request(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.expect.navigation(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.expect.event(name, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.expect.download(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.expect.dialog(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+
+### Wait Until — poll after the cause
+
+| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
+|---------|----------|---------|----------|---------|-----|-----|
+| `page.waitUntil.url(pat)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `page.waitUntil.loaded(state?)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `page.waitUntil(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `el.waitUntil(state)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.waitForFunction(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.waitForEvent(name)` | ✅ | ⬜ | ✅ | ⬜ | — | — |
 | `page.pause()` | ⬜ | ⬜ | ⬜ | ⬜ | — | ⬜ |
 
 ## Downloads & Files (4 commands)

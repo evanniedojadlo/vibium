@@ -128,8 +128,9 @@ class Element:
     def screenshot(self) -> bytes:
         return self._loop.run(self._async.screenshot())
 
-    def wait_for(self, state: Optional[str] = None, timeout: Optional[int] = None) -> None:
-        self._loop.run(self._async.wait_for(state, timeout))
+    def wait_until(self, state: Optional[str] = None, timeout: Optional[int] = None) -> None:
+        """Wait until the element reaches a state: visible, hidden, attached, or detached."""
+        self._loop.run(self._async.wait_until(state, timeout))
 
     # --- Finding (scoped) ---
 

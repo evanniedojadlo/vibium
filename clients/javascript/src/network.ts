@@ -97,7 +97,7 @@ export class Response {
     return (req?.request as string) ?? '';
   }
 
-  /** Response body as a string. Requires a data collector (set up by onResponse/waitForResponse). */
+  /** Response body as a string. Requires a data collector (set up by onResponse/expect.response). */
   async body(): Promise<string | null> {
     if (!this.client) return null;
     const reqId = this.requestId();
@@ -117,7 +117,7 @@ export class Response {
     }
   }
 
-  /** Response body parsed as JSON. Requires a data collector (set up by onResponse/waitForResponse). */
+  /** Response body parsed as JSON. Requires a data collector (set up by onResponse/expect.response). */
   async json(): Promise<unknown> {
     const text = await this.body();
     if (text === null) return null;

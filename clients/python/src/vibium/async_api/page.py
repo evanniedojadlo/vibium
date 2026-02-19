@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import fnmatch
 import re
@@ -108,6 +109,7 @@ class Page:
         self._console_callbacks: List[Callable] = []
         self._error_callbacks: List[Callable] = []
         self._download_callbacks: List[Callable] = []
+        self._navigation_callbacks: List[Callable] = []
         self._pending_downloads: Dict[str, Download] = {}
         self._ws_callbacks: List[Callable] = []
         self._ws_connections: Dict[int, WebSocketInfo] = {}
@@ -228,63 +230,317 @@ class Page:
 
     # --- Waiting ---
 
-    async def wait_for(
-        self,
-        selector: Optional[str] = None,
-        /,
-        *,
-        role: Optional[str] = None,
-        text: Optional[str] = None,
-        label: Optional[str] = None,
-        placeholder: Optional[str] = None,
-        alt: Optional[str] = None,
-        title: Optional[str] = None,
-        testid: Optional[str] = None,
-        xpath: Optional[str] = None,
-        near: Optional[str] = None,
-        timeout: Optional[int] = None,
-    ) -> Element:
-        """Wait for a selector to appear on the page."""
-        params: Dict[str, Any] = {"context": self._context_id, "timeout": timeout}
-        if selector is not None:
-            params["selector"] = selector
-        else:
-            for key, val in [("role", role), ("text", text), ("label", label),
-                             ("placeholder", placeholder), ("alt", alt), ("title", title),
-                             ("testid", testid), ("xpath", xpath), ("near", near)]:
-                if val is not None:
-                    params[key] = val
+    @property
+    def expect(self) -> _ExpectNamespace:
+        """Expect namespace — set up a listener before performing an action."""
+        return _ExpectNamespace(self)
 
-        result = await self._client.send("vibium:page.waitFor", params)
-        info = ElementInfo(tag=result["tag"], text=result["text"], box=BoundingBox(**result["box"]))
-        sel_str = selector or ""
-        sel_params = {"selector": selector} if selector else {
-            k: v for k, v in params.items() if k not in ("context", "timeout")
-        }
-        return Element(self._client, self._context_id, sel_str, info, None, sel_params)
+    @property
+    def wait_until(self) -> _WaitUntilNamespace:
+        """Wait until a condition is met. Callable or use .url() / .loaded() sub-methods."""
+        return _WaitUntilNamespace(self)
 
     async def wait(self, ms: int) -> None:
         """Wait for a fixed amount of time (milliseconds)."""
         await self._client.send("vibium:page.wait", {"context": self._context_id, "ms": ms})
 
-    async def wait_for_url(self, pattern: str, timeout: Optional[int] = None) -> None:
-        """Wait until the page URL matches a pattern."""
+    async def _wait_for_url(self, pattern: str, timeout: Optional[int] = None) -> None:
+        """Internal: wait until the page URL matches a pattern."""
         await self._client.send("vibium:page.waitForURL", {
             "context": self._context_id, "pattern": pattern, "timeout": timeout,
         })
 
-    async def wait_for_load(self, state: Optional[str] = None, timeout: Optional[int] = None) -> None:
-        """Wait until the page reaches a load state."""
+    async def _wait_for_load(self, state: Optional[str] = None, timeout: Optional[int] = None) -> None:
+        """Internal: wait until the page reaches a load state."""
         await self._client.send("vibium:page.waitForLoad", {
             "context": self._context_id, "state": state, "timeout": timeout,
         })
 
-    async def wait_for_function(self, fn: str, timeout: Optional[int] = None) -> Any:
-        """Wait until a function returns a truthy value."""
+    async def _wait_for_function(self, fn: str, timeout: Optional[int] = None) -> Any:
+        """Internal: wait until a function returns a truthy value."""
         result = await self._client.send("vibium:page.waitForFunction", {
             "context": self._context_id, "fn": fn, "timeout": timeout,
         })
         return result["value"]
+
+    async def _expect_response(self, pattern: str, timeout: Optional[int] = None) -> Response:
+        """Internal: wait for a response matching a URL pattern."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(response: Response) -> None:
+            if _match_pattern(pattern, response.url()):
+                self._response_callbacks.remove(handler)
+                if not future.done():
+                    future.set_result(response)
+
+        self._ensure_data_collector()
+        self._response_callbacks.append(handler)
+
+        try:
+            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+        except asyncio.TimeoutError:
+            if handler in self._response_callbacks:
+                self._response_callbacks.remove(handler)
+            raise TimeoutError(f"Timeout waiting for response matching '{pattern}'")
+
+    async def _setup_expect_response(self, pattern: str, timeout: Optional[int] = None) -> Any:
+        """Internal: set up response listener and return a coroutine to await later."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(response: Response) -> None:
+            if _match_pattern(pattern, response.url()):
+                self._response_callbacks.remove(handler)
+                if not future.done():
+                    future.set_result(response)
+
+        self._ensure_data_collector()
+        self._response_callbacks.append(handler)
+
+        async def _wait() -> Response:
+            try:
+                return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+            except asyncio.TimeoutError:
+                if handler in self._response_callbacks:
+                    self._response_callbacks.remove(handler)
+                raise TimeoutError(f"Timeout waiting for response matching '{pattern}'")
+
+        return _wait()
+
+    async def _expect_request(self, pattern: str, timeout: Optional[int] = None) -> Request:
+        """Internal: wait for a request matching a URL pattern."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(request: Request) -> None:
+            if _match_pattern(pattern, request.url()):
+                self._request_callbacks.remove(handler)
+                if not future.done():
+                    future.set_result(request)
+
+        self._ensure_data_collector()
+        self._request_callbacks.append(handler)
+
+        try:
+            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+        except asyncio.TimeoutError:
+            if handler in self._request_callbacks:
+                self._request_callbacks.remove(handler)
+            raise TimeoutError(f"Timeout waiting for request matching '{pattern}'")
+
+    async def _setup_expect_request(self, pattern: str, timeout: Optional[int] = None) -> Any:
+        """Internal: set up request listener and return a coroutine to await later."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(request: Request) -> None:
+            if _match_pattern(pattern, request.url()):
+                self._request_callbacks.remove(handler)
+                if not future.done():
+                    future.set_result(request)
+
+        self._ensure_data_collector()
+        self._request_callbacks.append(handler)
+
+        async def _wait() -> Request:
+            try:
+                return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+            except asyncio.TimeoutError:
+                if handler in self._request_callbacks:
+                    self._request_callbacks.remove(handler)
+                raise TimeoutError(f"Timeout waiting for request matching '{pattern}'")
+
+        return _wait()
+
+    async def _expect_navigation(self, timeout: Optional[int] = None) -> str:
+        """Internal: wait for a navigation event. Resolves with URL."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(url: str) -> None:
+            self._navigation_callbacks.remove(handler)
+            if not future.done():
+                future.set_result(url)
+
+        self._navigation_callbacks.append(handler)
+
+        try:
+            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+        except asyncio.TimeoutError:
+            if handler in self._navigation_callbacks:
+                self._navigation_callbacks.remove(handler)
+            raise TimeoutError("Timeout waiting for navigation")
+
+    async def _setup_expect_navigation(self, timeout: Optional[int] = None) -> Any:
+        """Internal: set up navigation listener and return a coroutine to await later."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(url: str) -> None:
+            self._navigation_callbacks.remove(handler)
+            if not future.done():
+                future.set_result(url)
+
+        self._navigation_callbacks.append(handler)
+
+        async def _wait() -> str:
+            try:
+                return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+            except asyncio.TimeoutError:
+                if handler in self._navigation_callbacks:
+                    self._navigation_callbacks.remove(handler)
+                raise TimeoutError("Timeout waiting for navigation")
+
+        return _wait()
+
+    async def _expect_download(self, timeout: Optional[int] = None) -> Download:
+        """Internal: wait for a download event."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(download: Download) -> None:
+            self._download_callbacks.remove(handler)
+            if not future.done():
+                future.set_result(download)
+
+        self._download_callbacks.append(handler)
+
+        try:
+            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+        except asyncio.TimeoutError:
+            if handler in self._download_callbacks:
+                self._download_callbacks.remove(handler)
+            raise TimeoutError("Timeout waiting for download")
+
+    async def _setup_expect_download(self, timeout: Optional[int] = None) -> Any:
+        """Internal: set up download listener and return a coroutine to await later."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(download: Download) -> None:
+            self._download_callbacks.remove(handler)
+            if not future.done():
+                future.set_result(download)
+
+        self._download_callbacks.append(handler)
+
+        async def _wait() -> Download:
+            try:
+                return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+            except asyncio.TimeoutError:
+                if handler in self._download_callbacks:
+                    self._download_callbacks.remove(handler)
+                raise TimeoutError("Timeout waiting for download")
+
+        return _wait()
+
+    async def _expect_dialog(self, timeout: Optional[int] = None) -> Dialog:
+        """Internal: wait for a dialog event. Callback presence prevents auto-dismiss."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(dialog: Dialog) -> None:
+            self._dialog_callbacks.remove(handler)
+            if not future.done():
+                future.set_result(dialog)
+
+        self._dialog_callbacks.append(handler)
+
+        try:
+            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+        except asyncio.TimeoutError:
+            if handler in self._dialog_callbacks:
+                self._dialog_callbacks.remove(handler)
+            raise TimeoutError("Timeout waiting for dialog")
+
+    async def _setup_expect_dialog(self, timeout: Optional[int] = None) -> Any:
+        """Internal: set up dialog listener and return a coroutine to await later."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        def handler(dialog: Dialog) -> None:
+            self._dialog_callbacks.remove(handler)
+            if not future.done():
+                future.set_result(dialog)
+
+        self._dialog_callbacks.append(handler)
+
+        async def _wait() -> Dialog:
+            try:
+                return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+            except asyncio.TimeoutError:
+                if handler in self._dialog_callbacks:
+                    self._dialog_callbacks.remove(handler)
+                raise TimeoutError("Timeout waiting for dialog")
+
+        return _wait()
+
+    async def _expect_event(self, name: str, timeout: Optional[int] = None) -> Any:
+        """Internal: wait for a named event."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        callback_list = self._get_callback_list(name)
+        if callback_list is None:
+            raise ValueError(f"Unknown event name: '{name}'")
+
+        def handler(data: Any) -> None:
+            callback_list.remove(handler)
+            if not future.done():
+                future.set_result(data)
+
+        if name in ("request", "response"):
+            self._ensure_data_collector()
+        callback_list.append(handler)
+
+        try:
+            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+        except asyncio.TimeoutError:
+            if handler in callback_list:
+                callback_list.remove(handler)
+            raise TimeoutError(f"Timeout waiting for event '{name}'")
+
+    async def _setup_expect_event(self, name: str, timeout: Optional[int] = None) -> Any:
+        """Internal: set up event listener and return a coroutine to await later."""
+        timeout_ms = timeout or 10000
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+
+        callback_list = self._get_callback_list(name)
+        if callback_list is None:
+            raise ValueError(f"Unknown event name: '{name}'")
+
+        def handler(data: Any) -> None:
+            callback_list.remove(handler)
+            if not future.done():
+                future.set_result(data)
+
+        if name in ("request", "response"):
+            self._ensure_data_collector()
+        callback_list.append(handler)
+
+        async def _wait() -> Any:
+            try:
+                return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
+            except asyncio.TimeoutError:
+                if handler in callback_list:
+                    callback_list.remove(handler)
+                raise TimeoutError(f"Timeout waiting for event '{name}'")
+
+        return _wait()
+
+    def _get_callback_list(self, name: str) -> Optional[List[Callable]]:
+        """Map event name to callback list."""
+        mapping = {
+            "request": self._request_callbacks,
+            "response": self._response_callbacks,
+            "dialog": self._dialog_callbacks,
+            "download": self._download_callbacks,
+            "navigation": self._navigation_callbacks,
+            "console": self._console_callbacks,
+            "error": self._error_callbacks,
+        }
+        return mapping.get(name)
 
     # --- Screenshots & PDF ---
 
@@ -494,49 +750,6 @@ class Page:
                 self._client.send("vibium:page.onWebSocket", {"context": self._context_id})
             )
 
-    async def wait_for_request(self, pattern: str, timeout: Optional[int] = None) -> Request:
-        """Wait for a request matching a URL pattern."""
-        import asyncio
-        timeout_ms = timeout or 30000
-        future: asyncio.Future = asyncio.get_event_loop().create_future()
-
-        def handler(request: Request) -> None:
-            if _match_pattern(pattern, request.url()):
-                self._request_callbacks.remove(handler)
-                if not future.done():
-                    future.set_result(request)
-
-        self._ensure_data_collector()
-        self._request_callbacks.append(handler)
-
-        try:
-            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
-        except asyncio.TimeoutError:
-            if handler in self._request_callbacks:
-                self._request_callbacks.remove(handler)
-            raise TimeoutError(f"Timeout waiting for request matching '{pattern}'")
-
-    async def wait_for_response(self, pattern: str, timeout: Optional[int] = None) -> Response:
-        """Wait for a response matching a URL pattern."""
-        import asyncio
-        timeout_ms = timeout or 30000
-        future: asyncio.Future = asyncio.get_event_loop().create_future()
-
-        def handler(response: Response) -> None:
-            if _match_pattern(pattern, response.url()):
-                self._response_callbacks.remove(handler)
-                if not future.done():
-                    future.set_result(response)
-
-        self._ensure_data_collector()
-        self._response_callbacks.append(handler)
-
-        try:
-            return await asyncio.wait_for(future, timeout=timeout_ms / 1000)
-        except asyncio.TimeoutError:
-            if handler in self._response_callbacks:
-                self._response_callbacks.remove(handler)
-            raise TimeoutError(f"Timeout waiting for response matching '{pattern}'")
 
     # --- Dialog Handling ---
 
@@ -566,6 +779,8 @@ class Page:
             self._error_callbacks.clear()
         if not event or event == "download":
             self._download_callbacks.clear()
+        if not event or event == "navigation":
+            self._navigation_callbacks.clear()
         if not event or event == "websocket":
             self._ws_callbacks.clear()
         if (not self._request_callbacks and not self._response_callbacks and not self._routes):
@@ -632,6 +847,16 @@ class Page:
             self._handle_download_completed(params)
         elif method == "log.entryAdded":
             self._handle_log_entry_added(params)
+        elif method == "browsingContext.load":
+            url = params.get("url", "")
+            if url:
+                for cb in self._navigation_callbacks:
+                    cb(url)
+        elif method == "browsingContext.fragmentNavigated":
+            url = params.get("url", "")
+            if url:
+                for cb in self._navigation_callbacks:
+                    cb(url)
         elif method == "vibium:ws.created":
             self._handle_ws_created(params)
         elif method == "vibium:ws.message":
@@ -748,3 +973,196 @@ class Page:
         ws = self._ws_connections.pop(ws_id, None)
         if ws:
             ws._emit_close(code, reason)
+
+
+class _ExpectedResponse:
+    """Returned by expect.response(). Awaitable and usable as async context manager."""
+
+    def __init__(self, page: Page, pattern: str, timeout: Optional[int] = None) -> None:
+        self._page = page
+        self._pattern = pattern
+        self._timeout = timeout
+        self._wait_coro: Any = None
+        self.value: Optional[Response] = None
+
+    def __await__(self):
+        return self._page._expect_response(self._pattern, self._timeout).__await__()
+
+    async def __aenter__(self):
+        self._wait_coro = await self._page._setup_expect_response(self._pattern, self._timeout)
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if exc_type is None and self._wait_coro:
+            self.value = await self._wait_coro
+
+
+class _ExpectedRequest:
+    """Returned by expect.request(). Awaitable and usable as async context manager."""
+
+    def __init__(self, page: Page, pattern: str, timeout: Optional[int] = None) -> None:
+        self._page = page
+        self._pattern = pattern
+        self._timeout = timeout
+        self._wait_coro: Any = None
+        self.value: Optional[Request] = None
+
+    def __await__(self):
+        return self._page._expect_request(self._pattern, self._timeout).__await__()
+
+    async def __aenter__(self):
+        self._wait_coro = await self._page._setup_expect_request(self._pattern, self._timeout)
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if exc_type is None and self._wait_coro:
+            self.value = await self._wait_coro
+
+
+class _ExpectedNavigation:
+    """Returned by expect.navigation(). Awaitable and usable as async context manager."""
+
+    def __init__(self, page: Page, timeout: Optional[int] = None) -> None:
+        self._page = page
+        self._timeout = timeout
+        self._wait_coro: Any = None
+        self.value: Optional[str] = None
+
+    def __await__(self):
+        return self._page._expect_navigation(self._timeout).__await__()
+
+    async def __aenter__(self):
+        self._wait_coro = await self._page._setup_expect_navigation(self._timeout)
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if exc_type is None and self._wait_coro:
+            self.value = await self._wait_coro
+
+
+class _ExpectedDownload:
+    """Returned by expect.download(). Awaitable and usable as async context manager."""
+
+    def __init__(self, page: Page, timeout: Optional[int] = None) -> None:
+        self._page = page
+        self._timeout = timeout
+        self._wait_coro: Any = None
+        self.value: Optional[Download] = None
+
+    def __await__(self):
+        return self._page._expect_download(self._timeout).__await__()
+
+    async def __aenter__(self):
+        self._wait_coro = await self._page._setup_expect_download(self._timeout)
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if exc_type is None and self._wait_coro:
+            self.value = await self._wait_coro
+
+
+class _ExpectedDialog:
+    """Returned by expect.dialog(). Awaitable and usable as async context manager."""
+
+    def __init__(self, page: Page, timeout: Optional[int] = None) -> None:
+        self._page = page
+        self._timeout = timeout
+        self._wait_coro: Any = None
+        self.value: Optional[Dialog] = None
+
+    def __await__(self):
+        return self._page._expect_dialog(self._timeout).__await__()
+
+    async def __aenter__(self):
+        self._wait_coro = await self._page._setup_expect_dialog(self._timeout)
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if exc_type is None and self._wait_coro:
+            self.value = await self._wait_coro
+
+
+class _ExpectedEvent:
+    """Returned by expect.event(). Awaitable and usable as async context manager."""
+
+    def __init__(self, page: Page, name: str, timeout: Optional[int] = None) -> None:
+        self._page = page
+        self._name = name
+        self._timeout = timeout
+        self._wait_coro: Any = None
+        self.value: Any = None
+
+    def __await__(self):
+        return self._page._expect_event(self._name, self._timeout).__await__()
+
+    async def __aenter__(self):
+        self._wait_coro = await self._page._setup_expect_event(self._name, self._timeout)
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if exc_type is None and self._wait_coro:
+            self.value = await self._wait_coro
+
+
+class _ExpectNamespace:
+    """Namespace for expect methods on Page."""
+
+    def __init__(self, page: Page) -> None:
+        self._page = page
+
+    def response(self, pattern: str, timeout: Optional[int] = None) -> _ExpectedResponse:
+        """Wait for a response matching a URL pattern.
+
+        Can be awaited directly or used as async context manager:
+            resp = await page.expect.response("**/api")
+            async with page.expect.response("**/api") as info:
+                await el.click()
+            resp = info.value
+        """
+        return _ExpectedResponse(self._page, pattern, timeout)
+
+    def request(self, pattern: str, timeout: Optional[int] = None) -> _ExpectedRequest:
+        """Wait for a request matching a URL pattern.
+
+        Can be awaited directly or used as async context manager:
+            req = await page.expect.request("**/api")
+            async with page.expect.request("**/api") as info:
+                await el.click()
+            req = info.value
+        """
+        return _ExpectedRequest(self._page, pattern, timeout)
+
+    def navigation(self, timeout: Optional[int] = None) -> _ExpectedNavigation:
+        """Wait for a navigation event. Resolves with URL string."""
+        return _ExpectedNavigation(self._page, timeout)
+
+    def download(self, timeout: Optional[int] = None) -> _ExpectedDownload:
+        """Wait for a download event."""
+        return _ExpectedDownload(self._page, timeout)
+
+    def dialog(self, timeout: Optional[int] = None) -> _ExpectedDialog:
+        """Wait for a dialog event."""
+        return _ExpectedDialog(self._page, timeout)
+
+    def event(self, name: str, timeout: Optional[int] = None) -> _ExpectedEvent:
+        """Wait for a named event."""
+        return _ExpectedEvent(self._page, name, timeout)
+
+
+class _WaitUntilNamespace:
+    """Namespace for waitUntil methods on Page. Also callable for waitForFunction."""
+
+    def __init__(self, page: Page) -> None:
+        self._page = page
+
+    async def __call__(self, fn: str, timeout: Optional[int] = None) -> Any:
+        """Wait until a function returns a truthy value."""
+        return await self._page._wait_for_function(fn, timeout)
+
+    async def url(self, pattern: str, timeout: Optional[int] = None) -> None:
+        """Wait until the page URL matches a pattern."""
+        await self._page._wait_for_url(pattern, timeout)
+
+    async def loaded(self, state: Optional[str] = None, timeout: Optional[int] = None) -> None:
+        """Wait until the page reaches a load state."""
+        await self._page._wait_for_load(state, timeout)

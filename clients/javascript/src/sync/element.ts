@@ -175,8 +175,8 @@ export class ElementSync {
     return Buffer.from(result.data, 'base64');
   }
 
-  waitFor(options?: { state?: string; timeout?: number }): void {
-    this.bridge.call('element.waitFor', [this.elementId, options]);
+  waitUntil(state?: string, options?: { timeout?: number }): void {
+    this.bridge.call('element.waitUntil', [this.elementId, state, options]);
   }
 
   setFiles(files: string[], options?: ActionOptions): void {

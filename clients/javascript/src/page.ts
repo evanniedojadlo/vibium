@@ -196,6 +196,7 @@ export class Page {
   private consoleCallbacks: ((msg: ConsoleMessage) => void)[] = [];
   private errorCallbacks: ((error: Error) => void)[] = [];
   private downloadCallbacks: ((download: Download) => void)[] = [];
+  private navigationCallbacks: ((url: string) => void)[] = [];
   private pendingDownloads: Map<string, Download> = new Map();
   private wsCallbacks: ((ws: WebSocketInfo) => void)[] = [];
   private wsConnections: Map<number, WebSocketInfo> = new Map();
@@ -210,6 +211,50 @@ export class Page {
     this.mouse = new Mouse(client, contextId);
     this.touch = new Touch(client, contextId);
     this.clock = new Clock(client, contextId);
+
+    // Initialize expect namespace
+    const self = this;
+    this.expect = {
+      response(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Response> {
+        const promise = self._expectResponse(pattern, options);
+        if (fn) return fn().then(() => promise);
+        return promise;
+      },
+      request(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Request> {
+        const promise = self._expectRequest(pattern, options);
+        if (fn) return fn().then(() => promise);
+        return promise;
+      },
+      navigation(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<string> {
+        const promise = self._expectNavigation(options);
+        if (fn) return fn().then(() => promise);
+        return promise;
+      },
+      download(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Download> {
+        const promise = self._expectDownload(options);
+        if (fn) return fn().then(() => promise);
+        return promise;
+      },
+      dialog(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Dialog> {
+        const promise = self._expectDialog(options);
+        if (fn) return fn().then(() => promise);
+        return promise;
+      },
+      event(name: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<unknown> {
+        const promise = self._expectEvent(name, options);
+        if (fn) return fn().then(() => promise);
+        return promise;
+      },
+    };
+
+    // Initialize waitUntil namespace
+    this.waitUntil = Object.assign(
+      (fn: string, options?: { timeout?: number }) => self._waitForFunction(fn, options),
+      {
+        url: (pattern: string, options?: { timeout?: number }) => self._waitForURL(pattern, options),
+        loaded: (state?: string, options?: { timeout?: number }) => self._waitForLoad(state, options),
+      }
+    );
 
     // Listen for network and dialog events
     this.eventHandler = (event: BiDiEvent) => {
@@ -235,6 +280,20 @@ export class Page {
         const logContext = source?.context;
         if (logContext && logContext !== this.contextId) return;
         this.handleLogEntryAdded(params);
+      } else if (event.method === 'browsingContext.load') {
+        const url = params.url as string | undefined;
+        if (url) {
+          for (const cb of this.navigationCallbacks) {
+            cb(url);
+          }
+        }
+      } else if (event.method === 'browsingContext.fragmentNavigated') {
+        const url = params.url as string | undefined;
+        if (url) {
+          for (const cb of this.navigationCallbacks) {
+            cb(url);
+          }
+        }
       } else if (event.method === 'vibium:ws.created') {
         this.handleWsCreated(params);
       } else if (event.method === 'vibium:ws.message') {
@@ -299,8 +358,8 @@ export class Page {
     return result.content;
   }
 
-  /** Wait until the page URL matches a pattern. */
-  async waitForURL(pattern: string, options?: { timeout?: number }): Promise<void> {
+  /** @internal Wait until the page URL matches a pattern. */
+  async _waitForURL(pattern: string, options?: { timeout?: number }): Promise<void> {
     await this.client.send('vibium:page.waitForURL', {
       context: this.contextId,
       pattern,
@@ -308,8 +367,8 @@ export class Page {
     });
   }
 
-  /** Wait until the page reaches a load state. */
-  async waitForLoad(state?: string, options?: { timeout?: number }): Promise<void> {
+  /** @internal Wait until the page reaches a load state. */
+  async _waitForLoad(state?: string, options?: { timeout?: number }): Promise<void> {
     await this.client.send('vibium:page.waitForLoad', {
       context: this.contextId,
       state,
@@ -514,29 +573,29 @@ export class Page {
 
   // --- Page-level Waiting ---
 
-  /** Wait for a selector to appear on the page. Returns the element when found. */
-  waitFor(selector: string | SelectorOptions, options?: FindOptions): FluentElement {
-    const promise = (async () => {
-      const params: Record<string, unknown> = {
-        context: this.contextId,
-        timeout: options?.timeout,
-      };
+  /** Expect namespace — set up a listener before performing an action. */
+  readonly expect: {
+    /** Wait for a response matching a URL pattern. Optionally pass fn to trigger the action. */
+    response(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Response>;
+    /** Wait for a request matching a URL pattern. Optionally pass fn to trigger the action. */
+    request(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Request>;
+    /** Wait for a navigation event. Optionally pass fn to trigger the action. Resolves with URL. */
+    navigation(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<string>;
+    /** Wait for a download. Optionally pass fn to trigger the action. */
+    download(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Download>;
+    /** Wait for a dialog. Optionally pass fn to trigger the action. */
+    dialog(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Dialog>;
+    /** Wait for a named event. Optionally pass fn to trigger the action. */
+    event(name: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<unknown>;
+  };
 
-      if (typeof selector === 'string') {
-        params.selector = selector;
-      } else {
-        Object.assign(params, selector);
-        if (selector.timeout && !options?.timeout) params.timeout = selector.timeout;
-      }
-
-      const result = await this.client.send<VibiumFindResult>('vibium:page.waitFor', params);
-      const info: ElementInfo = { tag: result.tag, text: result.text, box: result.box };
-      const selectorStr = typeof selector === 'string' ? selector : '';
-      const selectorParams = typeof selector === 'string' ? { selector } : { ...selector };
-      return new Element(this.client, this.contextId, selectorStr, info, undefined, selectorParams);
-    })();
-    return fluent(promise);
-  }
+  /** Wait until a condition is met. Callable with a function, or use .url() / .loaded() sub-methods. */
+  readonly waitUntil: ((fn: string, options?: { timeout?: number }) => Promise<unknown>) & {
+    /** Wait until the page URL matches a pattern. */
+    url(pattern: string, options?: { timeout?: number }): Promise<void>;
+    /** Wait until the page reaches a load state. */
+    loaded(state?: string, options?: { timeout?: number }): Promise<void>;
+  };
 
   /** Wait for a fixed amount of time (milliseconds). Discouraged but useful for debugging. */
   async wait(ms: number): Promise<void> {
@@ -546,8 +605,8 @@ export class Page {
     });
   }
 
-  /** Wait until a function returns a truthy value. The fn is polled repeatedly. */
-  async waitForFunction<T = unknown>(fn: string, options?: { timeout?: number }): Promise<T> {
+  /** @internal Wait until a function returns a truthy value. */
+  async _waitForFunction<T = unknown>(fn: string, options?: { timeout?: number }): Promise<T> {
     const result = await this.client.send<{ value: T }>('vibium:page.waitForFunction', {
       context: this.contextId,
       fn,
@@ -664,7 +723,7 @@ export class Page {
    * Remove all listeners for a given event, or all events if no event specified.
    * Supported events: 'request', 'response', 'dialog', 'console', 'error', 'download', 'websocket'.
    */
-  removeAllListeners(event?: 'request' | 'response' | 'dialog' | 'console' | 'error' | 'download' | 'websocket'): void {
+  removeAllListeners(event?: 'request' | 'response' | 'dialog' | 'console' | 'error' | 'download' | 'navigation' | 'websocket'): void {
     if (!event || event === 'request') {
       this.requestCallbacks = [];
     }
@@ -683,6 +742,9 @@ export class Page {
     if (!event || event === 'download') {
       this.downloadCallbacks = [];
     }
+    if (!event || event === 'navigation') {
+      this.navigationCallbacks = [];
+    }
     if (!event || event === 'websocket') {
       this.wsCallbacks = [];
     }
@@ -692,9 +754,9 @@ export class Page {
     }
   }
 
-  /** Wait for a request matching a URL pattern. */
-  waitForRequest(pattern: string, options?: { timeout?: number }): Promise<Request> {
-    const timeout = options?.timeout ?? 30000;
+  /** @internal Wait for a request matching a URL pattern. */
+  _expectRequest(pattern: string, options?: { timeout?: number }): Promise<Request> {
+    const timeout = options?.timeout ?? 10000;
     return new Promise<Request>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.requestCallbacks = this.requestCallbacks.filter(cb => cb !== handler);
@@ -712,10 +774,10 @@ export class Page {
     });
   }
 
-  /** Wait for a response matching a URL pattern. */
-  waitForResponse(pattern: string, options?: { timeout?: number }): Promise<Response> {
+  /** @internal Wait for a response matching a URL pattern. */
+  _expectResponse(pattern: string, options?: { timeout?: number }): Promise<Response> {
     this.ensureDataCollector();
-    const timeout = options?.timeout ?? 30000;
+    const timeout = options?.timeout ?? 10000;
     return new Promise<Response>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.responseCallbacks = this.responseCallbacks.filter(cb => cb !== handler);
@@ -730,6 +792,123 @@ export class Page {
         }
       };
       this.responseCallbacks.push(handler);
+    });
+  }
+
+  /** @internal Wait for a navigation event. Resolves with the URL. */
+  _expectNavigation(options?: { timeout?: number }): Promise<string> {
+    const timeout = options?.timeout ?? 10000;
+    return new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.navigationCallbacks = this.navigationCallbacks.filter(cb => cb !== handler);
+        reject(new Error(`Timeout waiting for navigation`));
+      }, timeout);
+
+      const handler = (url: string) => {
+        clearTimeout(timer);
+        this.navigationCallbacks = this.navigationCallbacks.filter(cb => cb !== handler);
+        resolve(url);
+      };
+      this.navigationCallbacks.push(handler);
+    });
+  }
+
+  /** @internal Wait for a download event. */
+  _expectDownload(options?: { timeout?: number }): Promise<Download> {
+    const timeout = options?.timeout ?? 10000;
+    return new Promise<Download>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.downloadCallbacks = this.downloadCallbacks.filter(cb => cb !== handler);
+        reject(new Error(`Timeout waiting for download`));
+      }, timeout);
+
+      const handler = (download: Download) => {
+        clearTimeout(timer);
+        this.downloadCallbacks = this.downloadCallbacks.filter(cb => cb !== handler);
+        resolve(download);
+      };
+      this.downloadCallbacks.push(handler);
+    });
+  }
+
+  /** @internal Wait for a dialog event. The registered callback prevents auto-dismiss. */
+  _expectDialog(options?: { timeout?: number }): Promise<Dialog> {
+    const timeout = options?.timeout ?? 10000;
+    return new Promise<Dialog>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.dialogCallbacks = this.dialogCallbacks.filter(cb => cb !== handler);
+        reject(new Error(`Timeout waiting for dialog`));
+      }, timeout);
+
+      const handler = (dialog: Dialog) => {
+        clearTimeout(timer);
+        this.dialogCallbacks = this.dialogCallbacks.filter(cb => cb !== handler);
+        resolve(dialog);
+      };
+      this.dialogCallbacks.push(handler);
+    });
+  }
+
+  /** @internal Wait for a named event. Maps event name to the appropriate callback array. */
+  _expectEvent(name: string, options?: { timeout?: number }): Promise<unknown> {
+    const timeout = options?.timeout ?? 10000;
+    return new Promise<unknown>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error(`Timeout waiting for event '${name}'`));
+      }, timeout);
+
+      let cleanup: () => void;
+
+      switch (name) {
+        case 'request': {
+          const handler = (req: Request) => { clearTimeout(timer); cleanup(); resolve(req); };
+          this.requestCallbacks.push(handler);
+          cleanup = () => { this.requestCallbacks = this.requestCallbacks.filter(cb => cb !== handler); };
+          this.ensureDataCollector();
+          break;
+        }
+        case 'response': {
+          const handler = (resp: Response) => { clearTimeout(timer); cleanup(); resolve(resp); };
+          this.responseCallbacks.push(handler);
+          cleanup = () => { this.responseCallbacks = this.responseCallbacks.filter(cb => cb !== handler); };
+          this.ensureDataCollector();
+          break;
+        }
+        case 'dialog': {
+          const handler = (dialog: Dialog) => { clearTimeout(timer); cleanup(); resolve(dialog); };
+          this.dialogCallbacks.push(handler);
+          cleanup = () => { this.dialogCallbacks = this.dialogCallbacks.filter(cb => cb !== handler); };
+          break;
+        }
+        case 'download': {
+          const handler = (download: Download) => { clearTimeout(timer); cleanup(); resolve(download); };
+          this.downloadCallbacks.push(handler);
+          cleanup = () => { this.downloadCallbacks = this.downloadCallbacks.filter(cb => cb !== handler); };
+          break;
+        }
+        case 'navigation': {
+          const handler = (url: string) => { clearTimeout(timer); cleanup(); resolve(url); };
+          this.navigationCallbacks.push(handler);
+          cleanup = () => { this.navigationCallbacks = this.navigationCallbacks.filter(cb => cb !== handler); };
+          break;
+        }
+        case 'console': {
+          const handler = (msg: ConsoleMessage) => { clearTimeout(timer); cleanup(); resolve(msg); };
+          this.consoleCallbacks.push(handler);
+          cleanup = () => { this.consoleCallbacks = this.consoleCallbacks.filter(cb => cb !== handler); };
+          break;
+        }
+        case 'error': {
+          const handler = (err: Error) => { clearTimeout(timer); cleanup(); resolve(err); };
+          this.errorCallbacks.push(handler);
+          cleanup = () => { this.errorCallbacks = this.errorCallbacks.filter(cb => cb !== handler); };
+          break;
+        }
+        default:
+          clearTimeout(timer);
+          reject(new Error(`Unknown event name: '${name}'`));
+      }
     });
   }
 
