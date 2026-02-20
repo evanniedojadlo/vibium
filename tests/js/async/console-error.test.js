@@ -174,6 +174,134 @@ describe('Error Events: page.onError', () => {
   });
 });
 
+// --- Collect Mode ---
+
+describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
+  test('onConsole("collect") + consoleMessages() captures console.log', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      vibe.onConsole('collect');
+      await vibe.eval('console.log("collect hello")');
+      await vibe.wait(300);
+
+      const messages = vibe.consoleMessages();
+      const match = messages.find(m => m.text.includes('collect hello'));
+      assert.ok(match, `Should find console.log message, got: ${JSON.stringify(messages)}`);
+      assert.strictEqual(match.type, 'log');
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('onConsole("collect") + consoleMessages() captures console.warn', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      vibe.onConsole('collect');
+      await vibe.eval('console.warn("collect warning")');
+      await vibe.wait(300);
+
+      const messages = vibe.consoleMessages();
+      const match = messages.find(m => m.text.includes('collect warning'));
+      assert.ok(match, `Should find console.warn message, got: ${JSON.stringify(messages)}`);
+      assert.strictEqual(match.type, 'warn');
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('consoleMessages() clears buffer after retrieval', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      vibe.onConsole('collect');
+      await vibe.eval('console.log("first")');
+      await vibe.wait(300);
+
+      const first = vibe.consoleMessages();
+      assert.ok(first.length >= 1, 'Should have messages');
+
+      const second = vibe.consoleMessages();
+      assert.strictEqual(second.length, 0, 'Buffer should be empty after retrieval');
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('consoleMessages() returns [] when not collecting', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      const messages = vibe.consoleMessages();
+      assert.deepStrictEqual(messages, []);
+    } finally {
+      await bro.close();
+    }
+  });
+});
+
+describe('Collect Mode: onError("collect") + errors()', () => {
+  test('onError("collect") + errors() captures uncaught exception', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      vibe.onError('collect');
+      await vibe.eval('setTimeout(() => { throw new Error("collect boom") }, 0)');
+      await vibe.wait(500);
+
+      const errs = vibe.errors();
+      const match = errs.find(e => e.message.includes('collect boom'));
+      assert.ok(match, `Should capture uncaught exception, got: ${JSON.stringify(errs)}`);
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('errors() clears buffer after retrieval', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      vibe.onError('collect');
+      await vibe.eval('setTimeout(() => { throw new Error("err1") }, 0)');
+      await vibe.wait(500);
+
+      const first = vibe.errors();
+      assert.ok(first.length >= 1, 'Should have errors');
+
+      const second = vibe.errors();
+      assert.strictEqual(second.length, 0, 'Buffer should be empty after retrieval');
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('errors() returns [] when not collecting', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      const errs = vibe.errors();
+      assert.deepStrictEqual(errs, []);
+    } finally {
+      await bro.close();
+    }
+  });
+});
+
 // --- removeAllListeners ---
 
 describe('removeAllListeners for console/error', () => {
@@ -217,6 +345,49 @@ describe('removeAllListeners for console/error', () => {
 
       const matching = errors.find(e => e.message.includes('should not capture'));
       assert.ok(!matching, 'Should not capture errors after removeAllListeners');
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('removeAllListeners("console") stops collect mode', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      vibe.onConsole('collect');
+      await vibe.eval('console.log("before remove")');
+      await vibe.wait(300);
+
+      const msgsBefore = vibe.consoleMessages();
+      assert.ok(msgsBefore.length >= 1, 'Should have captured message before clear');
+
+      vibe.removeAllListeners('console');
+      await vibe.eval('console.log("after remove")');
+      await vibe.wait(300);
+
+      const msgsAfter = vibe.consoleMessages();
+      assert.deepStrictEqual(msgsAfter, [], 'Should return [] after removeAllListeners clears collect mode');
+    } finally {
+      await bro.close();
+    }
+  });
+
+  test('removeAllListeners("error") stops collect mode', async () => {
+    const bro = await browser.launch({ headless: true });
+    try {
+      const vibe = await bro.page();
+      await vibe.go(baseURL);
+
+      vibe.onError('collect');
+      vibe.removeAllListeners('error');
+
+      await vibe.eval('setTimeout(() => { throw new Error("should not collect") }, 0)');
+      await vibe.wait(500);
+
+      const errs = vibe.errors();
+      assert.deepStrictEqual(errs, [], 'Should return [] after removeAllListeners clears collect mode');
     } finally {
       await bro.close();
     }

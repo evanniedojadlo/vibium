@@ -100,3 +100,97 @@ async def test_remove_error(fresh_async_browser, test_server):
     await vibe.eval('setTimeout(() => { throw new Error("removed") }, 0)')
     await vibe.wait(300)
     assert not any("removed" in e for e in errors)
+
+
+# --- Collect Mode ---
+
+async def test_collect_console_log(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    vibe.on_console("collect")
+    await vibe.eval('console.log("collect hello")')
+    await vibe.wait(300)
+    messages = vibe.console_messages()
+    assert any(m["text"] == "collect hello" and m["type"] == "log" for m in messages)
+
+
+async def test_collect_console_warn(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    vibe.on_console("collect")
+    await vibe.eval('console.warn("collect warning")')
+    await vibe.wait(300)
+    messages = vibe.console_messages()
+    assert any(m["type"] == "warn" and "collect warning" in m["text"] for m in messages)
+
+
+async def test_collect_console_clears_buffer(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    vibe.on_console("collect")
+    await vibe.eval('console.log("first")')
+    await vibe.wait(300)
+    first = vibe.console_messages()
+    assert len(first) >= 1
+    second = vibe.console_messages()
+    assert len(second) == 0, "Buffer should be empty after retrieval"
+
+
+async def test_collect_console_returns_empty_when_not_collecting(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    messages = vibe.console_messages()
+    assert messages == []
+
+
+async def test_collect_error(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    vibe.on_error("collect")
+    await vibe.eval('setTimeout(() => { throw new Error("collect boom") }, 0)')
+    await vibe.wait(500)
+    errs = vibe.errors()
+    assert any("collect boom" in e["message"] for e in errs)
+
+
+async def test_collect_error_clears_buffer(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    vibe.on_error("collect")
+    await vibe.eval('setTimeout(() => { throw new Error("err1") }, 0)')
+    await vibe.wait(500)
+    first = vibe.errors()
+    assert len(first) >= 1
+    second = vibe.errors()
+    assert len(second) == 0, "Buffer should be empty after retrieval"
+
+
+async def test_collect_error_returns_empty_when_not_collecting(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    errs = vibe.errors()
+    assert errs == []
+
+
+async def test_remove_all_listeners_stops_console_collect(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    vibe.on_console("collect")
+    await vibe.eval('console.log("before remove")')
+    await vibe.wait(300)
+    msgs = vibe.console_messages()
+    assert len(msgs) >= 1
+    vibe.remove_all_listeners("console")
+    await vibe.eval('console.log("after remove")')
+    await vibe.wait(300)
+    assert vibe.console_messages() == [], "Should return [] after removeAllListeners"
+
+
+async def test_remove_all_listeners_stops_error_collect(fresh_async_browser, test_server):
+    vibe = await fresh_async_browser.new_page()
+    await vibe.go(test_server)
+    vibe.on_error("collect")
+    vibe.remove_all_listeners("error")
+    await vibe.eval('setTimeout(() => { throw new Error("should not collect") }, 0)')
+    await vibe.wait(500)
+    assert vibe.errors() == [], "Should return [] after removeAllListeners"

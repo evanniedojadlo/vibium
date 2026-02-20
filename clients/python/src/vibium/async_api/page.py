@@ -116,6 +116,10 @@ class Page:
         self._intercept_id: Optional[str] = None
         self._data_collector_id: Optional[str] = None
 
+        # Console/error collect-mode buffers (None = not collecting)
+        self._console_buffer: Optional[List[Dict[str, str]]] = None
+        self._error_buffer: Optional[List[Dict[str, str]]] = None
+
         # Register event handler
         self._event_handler = self._handle_event
         self._client.on_event(self._event_handler)
@@ -756,11 +760,47 @@ class Page:
     def on_dialog(self, handler: Callable[[Dialog], Any]) -> None:
         self._dialog_callbacks.append(handler)
 
-    def on_console(self, handler: Callable[[ConsoleMessage], None]) -> None:
-        self._console_callbacks.append(handler)
+    def on_console(self, handler: Union[Callable[[ConsoleMessage], None], str]) -> None:
+        """Register a handler for console messages, or pass 'collect' to buffer them."""
+        if handler == "collect":
+            if self._console_buffer is None:
+                self._console_buffer = []
 
-    def on_error(self, handler: Callable[[Exception], None]) -> None:
-        self._error_callbacks.append(handler)
+                def _collector(msg: ConsoleMessage) -> None:
+                    if self._console_buffer is not None:
+                        self._console_buffer.append({"type": msg.type(), "text": msg.text()})
+
+                self._console_callbacks.append(_collector)
+        else:
+            self._console_callbacks.append(handler)
+
+    def console_messages(self) -> List[Dict[str, str]]:
+        """Return collected console messages and clear the buffer. Returns [] if not collecting."""
+        msgs = list(self._console_buffer) if self._console_buffer is not None else []
+        if self._console_buffer is not None:
+            self._console_buffer.clear()
+        return msgs
+
+    def on_error(self, handler: Union[Callable[[Exception], None], str]) -> None:
+        """Register a handler for uncaught page errors, or pass 'collect' to buffer them."""
+        if handler == "collect":
+            if self._error_buffer is None:
+                self._error_buffer = []
+
+                def _collector(error: Exception) -> None:
+                    if self._error_buffer is not None:
+                        self._error_buffer.append({"message": str(error)})
+
+                self._error_callbacks.append(_collector)
+        else:
+            self._error_callbacks.append(handler)
+
+    def errors(self) -> List[Dict[str, str]]:
+        """Return collected errors and clear the buffer. Returns [] if not collecting."""
+        errs = list(self._error_buffer) if self._error_buffer is not None else []
+        if self._error_buffer is not None:
+            self._error_buffer.clear()
+        return errs
 
     def on_download(self, handler: Callable[[Download], None]) -> None:
         self._download_callbacks.append(handler)
@@ -775,8 +815,10 @@ class Page:
             self._dialog_callbacks.clear()
         if not event or event == "console":
             self._console_callbacks.clear()
+            self._console_buffer = None
         if not event or event == "error":
             self._error_callbacks.clear()
+            self._error_buffer = None
         if not event or event == "download":
             self._download_callbacks.clear()
         if not event or event == "navigation":

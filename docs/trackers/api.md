@@ -1,6 +1,6 @@
 # Vibium API
 
-175 commands across 23 categories, tracked across 6 implementation targets.
+174 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -211,15 +211,14 @@
 | `el.role()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `el.label()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Console, Errors & Workers (5 commands)
+## Console & Errors (4 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.onConsole(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.onError(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.consoleMessages()` | — | ✅ | — | ✅ | — | — |
-| `page.errors()` | — | ✅ | — | ✅ | — | — |
-| `page.workers()` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| `page.consoleMessages()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.errors()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
 ## Waiting (12 commands)
 

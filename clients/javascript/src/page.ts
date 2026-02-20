@@ -204,6 +204,10 @@ export class Page {
   private interceptId: string | null = null;
   private dataCollectorId: string | null = null;
 
+  // Console/error collect-mode buffers (null = not collecting)
+  private _consoleBuffer: { type: string; text: string }[] | null = null;
+  private _errorBuffer: { message: string }[] | null = null;
+
   constructor(client: BiDiClient, contextId: string) {
     this.client = client;
     this.contextId = contextId;
@@ -735,9 +739,11 @@ export class Page {
     }
     if (!event || event === 'console') {
       this.consoleCallbacks = [];
+      this._consoleBuffer = null;
     }
     if (!event || event === 'error') {
       this.errorCallbacks = [];
+      this._errorBuffer = null;
     }
     if (!event || event === 'download') {
       this.downloadCallbacks = [];
@@ -955,14 +961,46 @@ export class Page {
     this.dialogCallbacks.push(handler);
   }
 
-  /** Register a handler for console messages (console.log, warn, error, etc.). */
-  onConsole(handler: (message: ConsoleMessage) => void): void {
-    this.consoleCallbacks.push(handler);
+  /** Register a handler for console messages, or pass 'collect' to buffer them for consoleMessages(). */
+  onConsole(handler: ((message: ConsoleMessage) => void) | 'collect'): void {
+    if (handler === 'collect') {
+      if (this._consoleBuffer === null) {
+        this._consoleBuffer = [];
+        this.consoleCallbacks.push((msg) => {
+          this._consoleBuffer?.push({ type: msg.type(), text: msg.text() });
+        });
+      }
+    } else {
+      this.consoleCallbacks.push(handler);
+    }
   }
 
-  /** Register a handler for uncaught page errors (unhandled exceptions). */
-  onError(handler: (error: Error) => void): void {
-    this.errorCallbacks.push(handler);
+  /** Return collected console messages and clear the buffer. Returns [] if not collecting. */
+  consoleMessages(): { type: string; text: string }[] {
+    const msgs = this._consoleBuffer || [];
+    if (this._consoleBuffer) this._consoleBuffer = [];
+    return msgs;
+  }
+
+  /** Register a handler for uncaught page errors, or pass 'collect' to buffer them for errors(). */
+  onError(handler: ((error: Error) => void) | 'collect'): void {
+    if (handler === 'collect') {
+      if (this._errorBuffer === null) {
+        this._errorBuffer = [];
+        this.errorCallbacks.push((error) => {
+          this._errorBuffer?.push({ message: error.message });
+        });
+      }
+    } else {
+      this.errorCallbacks.push(handler);
+    }
+  }
+
+  /** Return collected errors and clear the buffer. Returns [] if not collecting. */
+  errors(): { message: string }[] {
+    const errs = this._errorBuffer || [];
+    if (this._errorBuffer) this._errorBuffer = [];
+    return errs;
   }
 
   /** Register a handler for file downloads. */
