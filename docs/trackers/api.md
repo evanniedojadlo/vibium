@@ -133,23 +133,23 @@
 | `route.fulfill(response)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `route.continue(overrides?)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `route.abort(reason?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.onRequest(fn)` | ✅ | — | ✅ | — | — | — |
-| `page.onResponse(fn)` | ✅ | — | ✅ | — | — | — |
+| `page.onRequest(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.onResponse(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.setHeaders(headers)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.unroute(pattern)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.onWebSocket(fn)` | ✅ | — | ✅ | — | — | — |
+| `page.onWebSocket(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 
 ## Request & Response (8 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `request.url()` | ✅ | — | ✅ | — | — | — |
-| `request.method()` | ✅ | — | ✅ | — | — | — |
-| `request.headers()` | ✅ | — | ✅ | — | — | — |
+| `request.url()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `request.method()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `request.headers()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `request.postData()` | ✅ | — | ✅ | — | — | — |
-| `response.status()` | ✅ | — | ✅ | — | — | — |
-| `response.headers()` | ✅ | — | ✅ | — | — | — |
+| `response.status()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `response.headers()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `response.body()` | ✅ | — | ✅ | — | — | — |
 | `response.json()` | ✅ | — | ✅ | — | — | — |
 
@@ -249,7 +249,7 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.onDownload(fn)` | ✅ | — | ✅ | — | — | — |
+| `page.onDownload(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `download.saveAs(path)` | ✅ | — | ✅ | — | ⬜ | ⬜ |
 | `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.onFileChooser(fn)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |

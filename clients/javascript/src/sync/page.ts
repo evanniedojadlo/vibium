@@ -8,6 +8,64 @@ import { DialogSync, DialogData } from './dialog';
 import { ElementInfo, SelectorOptions } from '../element';
 import { A11yNode, ScreenshotOptions, FindOptions } from '../page';
 
+export interface RequestData {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+}
+
+export interface ResponseData {
+  url: string;
+  status: number;
+  headers: Record<string, string>;
+}
+
+export interface DownloadData {
+  url: string;
+  suggestedFilename: string;
+}
+
+type MessageHandler = (data: string, info: { direction: 'sent' | 'received' }) => void;
+type CloseHandler = (code?: number, reason?: string) => void;
+
+export class WebSocketInfoSync {
+  private _url: string;
+  private _isClosed = false;
+  private _messageHandlers: MessageHandler[] = [];
+  private _closeHandlers: CloseHandler[] = [];
+
+  constructor(url: string) {
+    this._url = url;
+  }
+
+  url(): string {
+    return this._url;
+  }
+
+  onMessage(fn: MessageHandler): void {
+    this._messageHandlers.push(fn);
+  }
+
+  onClose(fn: CloseHandler): void {
+    this._closeHandlers.push(fn);
+  }
+
+  isClosed(): boolean {
+    return this._isClosed;
+  }
+
+  /** @internal */
+  _emitMessage(data: string, direction: 'sent' | 'received'): void {
+    for (const fn of this._messageHandlers) fn(data, { direction });
+  }
+
+  /** @internal */
+  _emitClose(code?: number, reason?: string): void {
+    this._isClosed = true;
+    for (const fn of this._closeHandlers) fn(code, reason);
+  }
+}
+
 export class PageSync {
   /** @internal */
   readonly _bridge: SyncBridge;
@@ -22,6 +80,11 @@ export class PageSync {
   private _nextHandlerId = 0;
   private _routeHandlerIds = new Map<string, string>(); // pattern → handlerId
   private _dialogHandlerId: string | null = null;
+  private _requestHandlerId: string | null = null;
+  private _responseHandlerId: string | null = null;
+  private _downloadHandlerId: string | null = null;
+  private _wsHandlerId: string | null = null;
+  private _wsInstances = new Map<number, WebSocketInfoSync>();
 
   constructor(bridge: SyncBridge, pageId: number) {
     this._bridge = bridge;
@@ -343,7 +406,72 @@ export class PageSync {
     return result.errors;
   }
 
-  removeAllListeners(event?: 'request' | 'response' | 'dialog' | 'console' | 'error'): void {
+  onRequest(fn: (req: RequestData) => void): void {
+    const handlerId = `request_${this._pageId}_${this._nextHandlerId++}`;
+    this._bridge.registerHandler(handlerId, (data: RequestData) => {
+      fn(data);
+      return null;
+    });
+    if (this._requestHandlerId) {
+      this._bridge.unregisterHandler(this._requestHandlerId);
+    }
+    this._requestHandlerId = handlerId;
+    this._bridge.call('page.onRequestWithCallback', [this._pageId, handlerId]);
+  }
+
+  onResponse(fn: (resp: ResponseData) => void): void {
+    const handlerId = `response_${this._pageId}_${this._nextHandlerId++}`;
+    this._bridge.registerHandler(handlerId, (data: ResponseData) => {
+      fn(data);
+      return null;
+    });
+    if (this._responseHandlerId) {
+      this._bridge.unregisterHandler(this._responseHandlerId);
+    }
+    this._responseHandlerId = handlerId;
+    this._bridge.call('page.onResponseWithCallback', [this._pageId, handlerId]);
+  }
+
+  onDownload(fn: (dl: DownloadData) => void): void {
+    const handlerId = `download_${this._pageId}_${this._nextHandlerId++}`;
+    this._bridge.registerHandler(handlerId, (data: DownloadData) => {
+      fn(data);
+      return null;
+    });
+    if (this._downloadHandlerId) {
+      this._bridge.unregisterHandler(this._downloadHandlerId);
+    }
+    this._downloadHandlerId = handlerId;
+    this._bridge.call('page.onDownloadWithCallback', [this._pageId, handlerId]);
+  }
+
+  onWebSocket(fn: (ws: WebSocketInfoSync) => void): void {
+    const handlerId = `ws_${this._pageId}_${this._nextHandlerId++}`;
+    this._bridge.registerHandler(handlerId, (data: { type: string; wsId: number; url?: string; data?: string; direction?: 'sent' | 'received'; code?: number; reason?: string }) => {
+      if (data.type === 'created') {
+        const ws = new WebSocketInfoSync(data.url!);
+        this._wsInstances.set(data.wsId, ws);
+        fn(ws);
+      } else if (data.type === 'message') {
+        const ws = this._wsInstances.get(data.wsId);
+        if (ws) ws._emitMessage(data.data!, data.direction!);
+      } else if (data.type === 'close') {
+        const ws = this._wsInstances.get(data.wsId);
+        if (ws) {
+          ws._emitClose(data.code, data.reason);
+          this._wsInstances.delete(data.wsId);
+        }
+      }
+      return null;
+    });
+    if (this._wsHandlerId) {
+      this._bridge.unregisterHandler(this._wsHandlerId);
+    }
+    this._wsHandlerId = handlerId;
+    this._bridge.call('page.onWebSocketWithCallback', [this._pageId, handlerId]);
+  }
+
+  removeAllListeners(event?: 'request' | 'response' | 'dialog' | 'console' | 'error' | 'download' | 'websocket'): void {
     // Clean up callback handlers
     if (!event || event === 'dialog') {
       if (this._dialogHandlerId) {
@@ -352,10 +480,33 @@ export class PageSync {
       }
     }
     if (!event || event === 'request') {
+      if (this._requestHandlerId) {
+        this._bridge.unregisterHandler(this._requestHandlerId);
+        this._requestHandlerId = null;
+      }
       for (const [, handlerId] of this._routeHandlerIds) {
         this._bridge.unregisterHandler(handlerId);
       }
       this._routeHandlerIds.clear();
+    }
+    if (!event || event === 'response') {
+      if (this._responseHandlerId) {
+        this._bridge.unregisterHandler(this._responseHandlerId);
+        this._responseHandlerId = null;
+      }
+    }
+    if (!event || event === 'download') {
+      if (this._downloadHandlerId) {
+        this._bridge.unregisterHandler(this._downloadHandlerId);
+        this._downloadHandlerId = null;
+      }
+    }
+    if (!event || event === 'websocket') {
+      if (this._wsHandlerId) {
+        this._bridge.unregisterHandler(this._wsHandlerId);
+        this._wsHandlerId = null;
+      }
+      this._wsInstances.clear();
     }
     this._bridge.call('page.removeAllListeners', [this._pageId, event]);
   }

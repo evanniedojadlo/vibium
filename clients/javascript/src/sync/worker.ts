@@ -116,13 +116,20 @@ function storeElementList(list: ElementList): number {
   return id;
 }
 
-// --- Page/popup event buffer ---
+// --- Event buffers ---
 // Events are buffered here during command processing. After the command completes,
 // buffered events are delivered via invokeMainThread BEFORE the result is sent.
 // This avoids the signal race between callback (signal=2) and result (signal=1).
 const pageEventBuffer: Array<{ type: 'page' | 'popup'; pageId: number }> = [];
 let onPageHandlerId: string | null = null;
 let onPopupHandlerId: string | null = null;
+
+// Network/download/websocket event buffers — same pattern as page events.
+const networkEventBuffer: Array<{ handlerId: string; data: unknown }> = [];
+let onRequestHandlerIds = new Map<number, string>();  // pageId → handlerId
+let onResponseHandlerIds = new Map<number, string>(); // pageId → handlerId
+let onDownloadHandlerIds = new Map<number, string>(); // pageId → handlerId
+let onWebSocketHandlerIds = new Map<number, string>(); // pageId → handlerId
 
 // --- Dispatch table ---
 
@@ -806,9 +813,94 @@ const handlers: Record<string, Handler> = {
     return { errors: buffer };
   },
 
+  'page.onRequestWithCallback': async (args) => {
+    const [pageId, handlerId] = args as [number, string];
+    const page = getPage(pageId);
+    onRequestHandlerIds.set(pageId, handlerId);
+    page.onRequest((req) => {
+      const hid = onRequestHandlerIds.get(pageId);
+      if (!hid) return;
+      networkEventBuffer.push({
+        handlerId: hid,
+        data: { url: req.url(), method: req.method(), headers: req.headers() },
+      });
+    });
+    return { success: true };
+  },
+
+  'page.onResponseWithCallback': async (args) => {
+    const [pageId, handlerId] = args as [number, string];
+    const page = getPage(pageId);
+    onResponseHandlerIds.set(pageId, handlerId);
+    page.onResponse((resp) => {
+      const hid = onResponseHandlerIds.get(pageId);
+      if (!hid) return;
+      networkEventBuffer.push({
+        handlerId: hid,
+        data: { url: resp.url(), status: resp.status(), headers: resp.headers() },
+      });
+    });
+    return { success: true };
+  },
+
+  'page.onDownloadWithCallback': async (args) => {
+    const [pageId, handlerId] = args as [number, string];
+    const page = getPage(pageId);
+    onDownloadHandlerIds.set(pageId, handlerId);
+    page.onDownload((dl) => {
+      const hid = onDownloadHandlerIds.get(pageId);
+      if (!hid) return;
+      networkEventBuffer.push({
+        handlerId: hid,
+        data: { url: dl.url(), suggestedFilename: dl.suggestedFilename() },
+      });
+    });
+    return { success: true };
+  },
+
+  'page.onWebSocketWithCallback': async (args) => {
+    const [pageId, handlerId] = args as [number, string];
+    const page = getPage(pageId);
+    onWebSocketHandlerIds.set(pageId, handlerId);
+    let nextWsId = 0;
+    page.onWebSocket((ws) => {
+      const hid = onWebSocketHandlerIds.get(pageId);
+      if (!hid) return;
+      const wsId = nextWsId++;
+      networkEventBuffer.push({
+        handlerId: hid,
+        data: { type: 'created', wsId, url: ws.url() },
+      });
+
+      ws.onMessage((data, info) => {
+        const hid2 = onWebSocketHandlerIds.get(pageId);
+        if (!hid2) return;
+        networkEventBuffer.push({
+          handlerId: hid2,
+          data: { type: 'message', wsId, data, direction: info.direction },
+        });
+      });
+
+      ws.onClose((code, reason) => {
+        const hid2 = onWebSocketHandlerIds.get(pageId);
+        if (!hid2) return;
+        networkEventBuffer.push({
+          handlerId: hid2,
+          data: { type: 'close', wsId, code, reason },
+        });
+      });
+    });
+    return { success: true };
+  },
+
   'page.removeAllListeners': async (args) => {
     const [pageId, event] = args as [number, string | undefined];
     getPage(pageId).removeAllListeners(event as any);
+    // Clear handler IDs for removed events
+    if (!event || event === 'request') onRequestHandlerIds.delete(pageId);
+    if (!event || event === 'response') onResponseHandlerIds.delete(pageId);
+    if (!event || event === 'download') onDownloadHandlerIds.delete(pageId);
+    if (!event || event === 'websocket') onWebSocketHandlerIds.delete(pageId);
     return { success: true };
   },
 
@@ -1336,20 +1428,30 @@ parentPort!.on('message', async ({ cmd, port }: { cmd: Command; port: MessagePor
     error = err instanceof Error ? err.message : String(err);
   }
 
-  // Deliver buffered page/popup events BEFORE the result.
+  // Deliver buffered events BEFORE the result.
   // Events are buffered during command processing (e.g. contextCreated fires
-  // during newPage). We deliver them here, after the command completes, to
-  // avoid a signal race between callback (signal=2) and result (signal=1).
-  if (onPageHandlerId || onPopupHandlerId) {
-    // Yield so any pending BiDi events (contextCreated) are processed
+  // during newPage, or network events fire during navigate/evaluate).
+  // We deliver them here, after the command completes, to avoid
+  // a signal race between callback (signal=2) and result (signal=1).
+
+  // Yield so any pending BiDi events are processed
+  if (onPageHandlerId || onPopupHandlerId || networkEventBuffer.length > 0) {
     await new Promise(r => setImmediate(r));
-    while (pageEventBuffer.length > 0) {
-      const event = pageEventBuffer.shift()!;
-      const handlerId = event.type === 'page' ? onPageHandlerId : onPopupHandlerId;
-      if (handlerId) {
-        await invokeMainThread(handlerId, { pageId: event.pageId });
-      }
+  }
+
+  // Drain page/popup events
+  while (pageEventBuffer.length > 0) {
+    const event = pageEventBuffer.shift()!;
+    const handlerId = event.type === 'page' ? onPageHandlerId : onPopupHandlerId;
+    if (handlerId) {
+      await invokeMainThread(handlerId, { pageId: event.pageId });
     }
+  }
+
+  // Drain network/download/websocket events
+  while (networkEventBuffer.length > 0) {
+    const event = networkEventBuffer.shift()!;
+    await invokeMainThread(event.handlerId, event.data);
   }
 
   port.postMessage({ result, error });

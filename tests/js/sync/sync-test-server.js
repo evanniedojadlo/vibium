@@ -4,9 +4,10 @@
  * with Atomics.wait(), which would prevent an in-process server from responding.
  *
  * Usage: node sync-test-server.js
- * Prints the base URL to stdout, then serves until killed.
+ * Prints the base URL and WS URL to stdout, then serves until killed.
  */
 const http = require('http');
+const { WebSocketServer } = require('ws');
 
 const HOME_HTML = `<html><head><title>Test App</title></head><body>
   <h1 class="heading">Welcome to test-app</h1>
@@ -105,6 +106,27 @@ const FETCH_HTML = `<html><head><title>Fetch</title></head><body>
   </script>
 </body></html>`;
 
+const WS_PAGE_HTML = `<html><head><title>WebSocket</title></head><body>
+  <div id="ws-status">disconnected</div>
+  <div id="ws-messages"></div>
+  <script>
+    function createWS(url) {
+      const ws = new WebSocket(url);
+      ws.onopen = () => {
+        document.getElementById('ws-status').textContent = 'connected';
+      };
+      ws.onmessage = (e) => {
+        const div = document.getElementById('ws-messages');
+        div.textContent += e.data + '\\n';
+      };
+      ws.onclose = () => {
+        document.getElementById('ws-status').textContent = 'closed';
+      };
+      return ws;
+    }
+  </script>
+</body></html>`;
+
 const routes = {
   '/': HOME_HTML,
   '/subpage': SUBPAGE_HTML,
@@ -119,6 +141,7 @@ const routes = {
   '/nav-test': NAV_TEST_HTML,
   '/page2': PAGE2_HTML,
   '/download': DOWNLOAD_HTML,
+  '/ws-page': WS_PAGE_HTML,
 };
 
 const server = http.createServer((req, res) => {
@@ -139,8 +162,18 @@ const server = http.createServer((req, res) => {
   res.end(routes[req.url] || HOME_HTML);
 });
 
+// WebSocket echo server
+const wsServer = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+wsServer.on('connection', (ws) => {
+  ws.on('message', (data) => {
+    ws.send(data.toString());
+  });
+});
+
 server.listen(0, '127.0.0.1', () => {
   const { port } = server.address();
-  // Print URL to stdout so parent process can read it
+  const wsAddr = wsServer.address();
+  // Print HTTP base URL and WS URL to stdout so parent process can read them
   process.stdout.write(`http://127.0.0.1:${port}\n`);
+  process.stdout.write(`ws://127.0.0.1:${wsAddr.port}\n`);
 });

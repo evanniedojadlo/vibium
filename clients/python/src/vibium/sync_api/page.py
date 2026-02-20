@@ -372,6 +372,40 @@ class Page:
         """Return collected errors."""
         return list(self._errors)
 
+    def on_request(self, fn: Callable) -> None:
+        """Register a callback for every outgoing request.
+
+        fn receives a Request object with sync methods: url(), method(), headers().
+        """
+        async def _register() -> None:
+            self._async.on_request(fn)
+        self._loop.run(_register())
+
+    def on_response(self, fn: Callable) -> None:
+        """Register a callback for every completed response.
+
+        fn receives a Response object with sync methods: url(), status(), headers().
+        """
+        async def _register() -> None:
+            self._async.on_response(fn)
+        self._loop.run(_register())
+
+    def on_download(self, fn: Callable) -> None:
+        """Register a callback for file downloads.
+
+        fn receives a Download object with sync methods: url(), suggested_filename().
+        """
+        self._async.on_download(fn)
+
+    def on_web_socket(self, fn: Callable) -> None:
+        """Listen for WebSocket connections opened by the page.
+
+        fn receives a WebSocketInfo object with sync methods: url(), on_message(), on_close(), is_closed().
+        """
+        async def _register() -> None:
+            self._async.on_web_socket(fn)
+        self._loop.run(_register())
+
     def remove_all_listeners(self, event: Optional[str] = None) -> None:
         self._async.remove_all_listeners(event)
         if not event or event == "console":
