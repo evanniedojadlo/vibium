@@ -27,7 +27,6 @@ class Route:
             "url": req.url(),
             "method": req.method(),
             "headers": req.headers(),
-            "post_data": None,
         }
 
     def fulfill(

@@ -300,6 +300,8 @@ class Page:
                 action(sync_route)
                 decision = sync_route._decision
                 import asyncio
+                # Safe: this callback fires from the background event loop thread,
+                # so ensure_future schedules onto the already-running loop.
                 if decision["action"] == "fulfill":
                     opts = {k: v for k, v in decision.items() if k != "action" and v is not None}
                     asyncio.ensure_future(async_route.fulfill(**opts))
@@ -345,6 +347,8 @@ class Page:
                 action(sync_dialog)
                 decision = sync_dialog._decision
                 import asyncio
+                # Safe: this callback fires from the background event loop thread,
+                # so ensure_future schedules onto the already-running loop.
                 if decision["action"] == "accept":
                     asyncio.ensure_future(dialog.accept(decision.get("prompt_text")))
                 else:
@@ -381,12 +385,20 @@ class Page:
         import asyncio
 
         async def _wrapper(req: Any) -> None:
-            pd = await req.post_data()
-            fn(_SyncRequestData(req, pd))
+            try:
+                pd = await req.post_data()
+                fn(_SyncRequestData(req, pd))
+            except Exception as e:
+                import sys
+                print(f"vibium: error in on_request callback: {e}", file=sys.stderr)
 
         def _sync_wrapper(req: Any) -> None:
+            # Safe: callbacks fire from the background event loop thread,
+            # so ensure_future schedules onto the already-running loop.
             asyncio.ensure_future(_wrapper(req))
 
+        # Must run via loop thread: on_request() calls _ensure_data_collector()
+        # which uses asyncio.ensure_future() and needs a running event loop.
         async def _register() -> None:
             self._async.on_request(_sync_wrapper)
         self._loop.run(_register())
@@ -400,12 +412,20 @@ class Page:
         import asyncio
 
         async def _wrapper(resp: Any) -> None:
-            b = await resp.body()
-            fn(_SyncResponseData(resp, b))
+            try:
+                b = await resp.body()
+                fn(_SyncResponseData(resp, b))
+            except Exception as e:
+                import sys
+                print(f"vibium: error in on_response callback: {e}", file=sys.stderr)
 
         def _sync_wrapper(resp: Any) -> None:
+            # Safe: callbacks fire from the background event loop thread,
+            # so ensure_future schedules onto the already-running loop.
             asyncio.ensure_future(_wrapper(resp))
 
+        # Must run via loop thread: on_response() calls _ensure_data_collector()
+        # which uses asyncio.ensure_future() and needs a running event loop.
         async def _register() -> None:
             self._async.on_response(_sync_wrapper)
         self._loop.run(_register())
@@ -422,6 +442,8 @@ class Page:
 
         fn receives a WebSocketInfo object with sync methods: url(), on_message(), on_close(), is_closed().
         """
+        # Must run via loop thread: on_web_socket() uses asyncio.ensure_future()
+        # internally and needs a running event loop.
         async def _register() -> None:
             self._async.on_web_socket(fn)
         self._loop.run(_register())
