@@ -69,6 +69,82 @@ Here's an example of what the tree looks like for a login form:
 
 Each node has a `role` (what the element is). Nodes with explicit labels (`aria-label`, `<label for>`, etc.) also have a `name`. Some nodes have state properties like `checked`, `disabled`, or `expanded`.
 
+Two helper functions used throughout this tutorial:
+
+<!-- helpers -->
+```javascript
+function findByRole(node, role) {
+  if (node.role === role) return node
+  for (const child of node.children || []) {
+    const found = findByRole(child, role)
+    if (found) return found
+  }
+  return null
+}
+
+function collectRoles(node) {
+  const roles = [node.role]
+  if (node.children) {
+    for (const child of node.children) roles.push(...collectRoles(child))
+  }
+  return roles
+}
+```
+
+<!-- test: async "returns tree with role and children" -->
+```javascript
+await vibe.setContent(`
+  <h1>Welcome</h1>
+  <label for="user">Username</label>
+  <input id="user" type="text" />
+  <button aria-label="Sign in">Log In</button>
+`)
+
+const tree = await vibe.a11yTree()
+
+assert.strictEqual(tree.role, 'WebArea')
+assert.ok(Array.isArray(tree.children), 'tree should have children')
+
+const roles = collectRoles(tree)
+assert.ok(roles.includes('heading'), 'should have heading')
+assert.ok(roles.includes('textbox'), 'should have textbox')
+assert.ok(roles.includes('button'), 'should have button')
+```
+
+<!-- test: sync "returns tree with role and children" -->
+```javascript
+vibe.setContent(`
+  <h1>Welcome</h1>
+  <label for="user">Username</label>
+  <input id="user" type="text" />
+  <button aria-label="Sign in">Log In</button>
+`)
+
+const tree = vibe.a11yTree()
+
+assert.strictEqual(tree.role, 'WebArea')
+assert.ok(Array.isArray(tree.children), 'tree should have children')
+```
+
+<!-- test: async "shows names from explicit labels" -->
+```javascript
+await vibe.setContent(`
+  <label for="user">Username</label>
+  <input id="user" type="text" />
+  <button aria-label="Sign in">Log In</button>
+`)
+
+const tree = await vibe.a11yTree()
+
+const textbox = findByRole(tree, 'textbox')
+assert.ok(textbox, 'tree should have textbox')
+assert.strictEqual(textbox.name, 'Username')
+
+const button = findByRole(tree, 'button')
+assert.ok(button, 'tree should have button')
+assert.strictEqual(button.name, 'Sign in')
+```
+
 ---
 
 ## From Tree to Action
@@ -100,49 +176,191 @@ vibe.find({ role: 'button', text: 'Submit' }).click()
 | `placeholder` attribute | `placeholder` |
 | `title` attribute | `title` |
 
+<!-- test: async "find({ role, label }) + click with aria-label" -->
+```javascript
+await vibe.setContent(`
+  <div id="result">not clicked</div>
+  <button aria-label="Sign in" onclick="document.getElementById('result').textContent='signed in'">Log In</button>
+`)
+
+await vibe.find({ role: 'button', label: 'Sign in' }).click()
+
+const result = await vibe.find('#result')
+assert.strictEqual(await result.text(), 'signed in')
+```
+
+<!-- test: sync "find({ role, label }) + click with aria-label" -->
+```javascript
+vibe.setContent(`
+  <div id="result">not clicked</div>
+  <button aria-label="Sign in" onclick="document.getElementById('result').textContent='signed in'">Log In</button>
+`)
+
+vibe.find({ role: 'button', label: 'Sign in' }).click()
+
+assert.strictEqual(vibe.find('#result').text(), 'signed in')
+```
+
+<!-- test: async "find({ role, text }) + click for button text" -->
+```javascript
+await vibe.setContent(`
+  <div id="result">waiting</div>
+  <button onclick="document.getElementById('result').textContent='done'">Submit</button>
+`)
+
+await vibe.find({ role: 'button', text: 'Submit' }).click()
+
+const result = await vibe.find('#result')
+assert.strictEqual(await result.text(), 'done')
+```
+
+<!-- test: sync "find({ role, text }) + click for button text" -->
+```javascript
+vibe.setContent(`
+  <div id="result">waiting</div>
+  <button onclick="document.getElementById('result').textContent='done'">Submit</button>
+`)
+
+vibe.find({ role: 'button', text: 'Submit' }).click()
+
+assert.strictEqual(vibe.find('#result').text(), 'done')
+```
+
 ### CSS selectors
 
 CSS selectors always work for both finding and reading element state:
 
+<!-- test: async "CSS find + fill works for inputs" -->
 ```javascript
-const heading = vibe.find('h1')
-console.log(heading.text()) // Read text content
+await vibe.setContent(`
+  <label for="user">Username</label>
+  <input id="user" type="text" />
+`)
 
-const input = vibe.find('#username')
-console.log(input.value()) // Read input value
+await vibe.find('#user').fill('alice')
+
+const input = await vibe.find('#user')
+assert.strictEqual(await input.value(), 'alice')
+```
+
+<!-- test: sync "CSS find + fill works for inputs" -->
+```javascript
+vibe.setContent(`
+  <label for="user">Username</label>
+  <input id="user" type="text" />
+`)
+
+vibe.find('#user').fill('alice')
+
+assert.strictEqual(vibe.find('#user').value(), 'alice')
+```
+
+<!-- test: async "CSS find + text() works for reading state" -->
+```javascript
+await vibe.setContent('<h1>Welcome</h1>')
+
+const heading = await vibe.find('h1')
+assert.strictEqual(await heading.text(), 'Welcome')
+```
+
+<!-- test: sync "CSS find + text() works for reading state" -->
+```javascript
+vibe.setContent('<h1>Welcome</h1>')
+
+assert.strictEqual(vibe.find('h1').text(), 'Welcome')
 ```
 
 ### Using tree data in code
 
 You can read the tree programmatically and use its data to drive actions — useful for scripts and AI agents that discover page structure at runtime.
 
+<!-- test: async "tree data flows into find()" -->
 ```javascript
-const tree = vibe.a11yTree()
+await vibe.setContent(`
+  <div id="result">not clicked</div>
+  <button aria-label="Sign in" onclick="document.getElementById('result').textContent='signed in'">Log In</button>
+`)
 
-// Walk the tree to find a node by role
-function findByRole(node, role) {
-  if (node.role === role) return node
-  for (const child of node.children || []) {
-    const found = findByRole(child, role)
-    if (found) return found
-  }
-  return null
-}
+const tree = await vibe.a11yTree()
 
 // Discover the button's name from the tree, then click it
 const btn = findByRole(tree, 'button')
-console.log(btn.name) // "Sign in"
-vibe.find({ role: 'button', label: btn.name }).click()
+assert.ok(btn, 'tree should contain a button')
+assert.strictEqual(btn.name, 'Sign in')
+
+await vibe.find({ role: 'button', label: btn.name }).click()
+
+const result = await vibe.find('#result')
+assert.strictEqual(await result.text(), 'signed in')
 ```
 
-The tree also exposes element state. For example, you can check whether a checkbox is already checked before clicking it:
-
+<!-- test: sync "tree data flows into find()" -->
 ```javascript
+vibe.setContent(`
+  <div id="result">not clicked</div>
+  <button aria-label="Sign in" onclick="document.getElementById('result').textContent='signed in'">Log In</button>
+`)
+
+const tree = vibe.a11yTree()
+
+const btn = findByRole(tree, 'button')
+assert.ok(btn, 'tree should contain a button')
+assert.strictEqual(btn.name, 'Sign in')
+
+vibe.find({ role: 'button', label: btn.name }).click()
+assert.strictEqual(vibe.find('#result').text(), 'signed in')
+```
+
+The tree also exposes element state. For example, you can check whether a checkbox is already checked:
+
+<!-- test: async "captures checkbox state" -->
+```javascript
+await vibe.setContent(`
+  <label><input type="checkbox" checked /> Remember me</label>
+`)
+
+const tree = await vibe.a11yTree()
+
 const checkbox = findByRole(tree, 'checkbox')
+assert.ok(checkbox, 'tree should contain a checkbox')
+assert.strictEqual(checkbox.checked, true, 'checkbox should be checked')
+```
+
+You can use the tree state to decide whether to click:
+
+<!-- test: async "tree state drives action" -->
+```javascript
+await vibe.setContent('<input type="checkbox" aria-label="Remember me" />')
+
+const tree = await vibe.a11yTree()
+const checkbox = findByRole(tree, 'checkbox')
+assert.ok(checkbox, 'tree should contain a checkbox')
+assert.strictEqual(checkbox.checked, false, 'should start unchecked')
+
+if (!checkbox.checked) {
+  await vibe.find({ role: 'checkbox', label: checkbox.name }).click()
+}
+
+const tree2 = await vibe.a11yTree()
+const checkbox2 = findByRole(tree2, 'checkbox')
+assert.strictEqual(checkbox2.checked, true, 'should now be checked')
+```
+
+<!-- test: sync "tree state drives action" -->
+```javascript
+vibe.setContent('<input type="checkbox" aria-label="Remember me" />')
+
+const tree = vibe.a11yTree()
+const checkbox = findByRole(tree, 'checkbox')
+assert.strictEqual(checkbox.checked, false)
 
 if (!checkbox.checked) {
   vibe.find({ role: 'checkbox', label: checkbox.name }).click()
 }
+
+const tree2 = vibe.a11yTree()
+const checkbox2 = findByRole(tree2, 'checkbox')
+assert.strictEqual(checkbox2.checked, true)
 ```
 
 ---
@@ -151,12 +369,32 @@ if (!checkbox.checked) {
 
 On complex pages, the full tree can be large. Use `root` to inspect just one section:
 
+<!-- test: async "a11yTree({ root }) scopes to CSS selector" -->
 ```javascript
-// Only get the tree for the nav element
+await vibe.setContent(`
+  <h1>Title</h1>
+  <nav><a href="/a">Link A</a><a href="/b">Link B</a></nav>
+`)
+
+const navTree = await vibe.a11yTree({ root: 'nav' })
+
+const roles = collectRoles(navTree)
+assert.ok(roles.includes('link'), 'nav tree should include links')
+assert.ok(!roles.includes('heading'), 'nav tree should not include heading outside root')
+```
+
+<!-- test: sync "a11yTree({ root }) scopes to CSS selector" -->
+```javascript
+vibe.setContent(`
+  <h1>Title</h1>
+  <nav><a href="/a">Link A</a></nav>
+`)
+
 const navTree = vibe.a11yTree({ root: 'nav' })
 
-// Only get the tree for a specific element
-const formTree = vibe.a11yTree({ root: '#login-form' })
+const roles = collectRoles(navTree)
+assert.ok(roles.includes('link'), 'nav tree should include links')
+assert.ok(!roles.includes('heading'), 'should not include heading outside root')
 ```
 
 The `root` parameter accepts a CSS selector. The tree will only include that element and its descendants.
@@ -169,12 +407,28 @@ By default, `a11yTree()` hides generic container nodes (divs, spans with no sema
 
 Set `everything: true` to see all nodes:
 
+<!-- test: async "everything: true includes generic nodes" -->
 ```javascript
-// Default: only semantic elements
-const tree = vibe.a11yTree()
+await vibe.setContent('<div><span>hello</span></div>')
 
-// Show all nodes including generic containers
+const fullTree = await vibe.a11yTree({ everything: true })
+assert.ok(collectRoles(fullTree).includes('generic'), 'should include generic nodes')
+```
+
+<!-- test: sync "everything: true includes generic nodes" -->
+```javascript
+vibe.setContent('<div><span>hello</span></div>')
+
 const fullTree = vibe.a11yTree({ everything: true })
+assert.ok(collectRoles(fullTree).includes('generic'), 'should include generic nodes')
+```
+
+<!-- test: async "default filters generic nodes" -->
+```javascript
+await vibe.setContent('<div><span>hello</span></div>')
+
+const tree = await vibe.a11yTree()
+assert.ok(!collectRoles(tree).includes('generic'), 'should filter generic nodes')
 ```
 
 **When to use `everything: true`:**
@@ -277,6 +531,48 @@ async function main() {
 }
 
 main()
+```
+
+<!-- test: async "practical workflow" -->
+```javascript
+await vibe.setContent(`
+  <h1>Welcome</h1>
+  <label for="user">Username</label>
+  <input id="user" type="text" />
+  <button aria-label="Sign in" onclick="document.getElementById('user').value='submitted'">Log In</button>
+`)
+
+const tree = await vibe.a11yTree()
+assert.strictEqual(tree.role, 'WebArea')
+
+const btn = findByRole(tree, 'button')
+assert.strictEqual(btn.name, 'Sign in')
+
+await vibe.find('#user').fill('alice')
+await vibe.find({ role: 'button', label: btn.name }).click()
+
+const heading = await vibe.find('h1')
+assert.strictEqual(await heading.text(), 'Welcome')
+```
+
+<!-- test: sync "practical workflow" -->
+```javascript
+vibe.setContent(`
+  <h1>Welcome</h1>
+  <label for="user">Username</label>
+  <input id="user" type="text" />
+  <button aria-label="Sign in">Log In</button>
+`)
+
+const tree = vibe.a11yTree()
+assert.strictEqual(tree.role, 'WebArea')
+
+const btn = findByRole(tree, 'button')
+
+vibe.find('#user').fill('alice')
+vibe.find({ role: 'button', label: btn.name }).click()
+
+assert.strictEqual(vibe.find('h1').text(), 'Welcome')
 ```
 
 ---
