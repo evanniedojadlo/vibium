@@ -13,7 +13,7 @@ const { VIBIUM } = require('../helpers');
 
 describe('CLI: Navigation', () => {
   test('navigate command loads page and prints title', () => {
-    const result = execSync(`${VIBIUM} navigate https://example.com`, {
+    const result = execSync(`${VIBIUM} go https://example.com`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

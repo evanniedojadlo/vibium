@@ -7,7 +7,7 @@ Low-level tools and troubleshooting tips for Vibium contributors.
 Add `-v` or `--verbose` to any vibium command to see debug output:
 
 ```bash
-./clicker/bin/vibium navigate https://example.com -v
+./clicker/bin/vibium go https://example.com -v
 ```
 
 This shows BiDi protocol messages, timing info, and internal state.
@@ -96,7 +96,7 @@ If Chrome fails to start:
 
 If tests hang indefinitely:
 
-1. Run with verbose: `./clicker/bin/vibium navigate https://example.com -v`
+1. Run with verbose: `./clicker/bin/vibium go https://example.com -v`
 2. Check for zombie processes: `make double-tap`
 3. Try with `--wait-close 5` to keep browser open and inspect state
 
@@ -105,7 +105,7 @@ If tests hang indefinitely:
 For deep debugging, run vibium with verbose mode and pipe to a file:
 
 ```bash
-./clicker/bin/vibium navigate https://example.com -v 2>&1 | tee bidi.log
+./clicker/bin/vibium go https://example.com -v 2>&1 | tee bidi.log
 ```
 
 Search the log for `->` (sent) and `<-` (received) BiDi messages.

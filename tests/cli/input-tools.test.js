@@ -24,7 +24,7 @@ describe('CLI: Input Tools', () => {
       timeout: 5000,
     });
     assert.match(result, /# Vibium Browser Automation/, 'Should have title');
-    assert.match(result, /vibium navigate/, 'Should list navigate');
+    assert.match(result, /vibium go/, 'Should list go');
     assert.match(result, /vibium click/, 'Should list click');
     assert.match(result, /vibium screenshot/, 'Should list screenshot');
     assert.match(result, /vibium tab-new/, 'Should list new tab');

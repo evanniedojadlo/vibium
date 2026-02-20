@@ -69,7 +69,7 @@ The first command installs Vibium and the `vibium` binary, and downloads Chrome.
 ### CLI Quick Reference
 
 ```bash
-vibium navigate https://example.com   # go to a page
+vibium go https://example.com          # go to a page
 vibium text                            # get page text
 vibium click "a"                       # click an element
 vibium type "input" "hello"            # type into a field

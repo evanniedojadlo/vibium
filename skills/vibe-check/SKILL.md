@@ -8,7 +8,7 @@ description: Browser automation for AI agents. Use when the user needs to naviga
 The `vibium` CLI automates Chrome via the command line. The browser auto-launches on first use (daemon mode keeps it running between commands).
 
 ```
-vibium navigate <url> → vibium text → vibium screenshot -o shot.png
+vibium go <url> → vibium text → vibium screenshot -o shot.png
 ```
 
 ## Binary Resolution
@@ -26,7 +26,10 @@ Run `vibium --help` (or the resolved path) to confirm. Use the resolved path for
 ## Commands
 
 ### Navigation
-- `vibium navigate <url>` — go to a page
+- `vibium go <url>` — go to a page
+- `vibium back` — go back in history
+- `vibium forward` — go forward in history
+- `vibium reload` — reload the current page
 - `vibium url` — print current URL
 - `vibium title` — print page title
 
@@ -36,19 +39,34 @@ Run `vibium --help` (or the resolved path) to confirm. Use the resolved path for
 - `vibium html` — get page HTML (use `--outer` for outerHTML)
 - `vibium find "<selector>"` — element info (tag, text, bounding box)
 - `vibium find-all "<selector>"` — all matching elements (`--limit N`)
+- `vibium find-by-role` — find element by ARIA role/name (`--role`, `--name`, `--selector`, `--timeout`)
 - `vibium eval "<js>"` — run JavaScript and print result
-- `vibium screenshot -o file.png` — capture screenshot
+- `vibium screenshot -o file.png` — capture screenshot (`--full-page` for entire document)
+- `vibium a11y-tree` — accessibility tree (`--everything` for all nodes)
 
 ### Interaction
 - `vibium click "<selector>"` — click an element
-- `vibium type "<selector>" "<text>"` — type into an input
+- `vibium type "<selector>" "<text>"` — type into an input (appends to existing value)
+- `vibium fill "<selector>" "<text>"` — clear field and type new text (replaces value)
+- `vibium press <key> [selector]` — press a key on element or focused element
 - `vibium hover "<selector>"` — hover over an element
 - `vibium scroll [direction]` — scroll page (`--amount N`, `--selector`)
+- `vibium scroll-into-view "<selector>"` — scroll element into view (centered)
 - `vibium keys "<combo>"` — press keys (Enter, Control+a, Shift+Tab)
 - `vibium select "<selector>" "<value>"` — pick a dropdown option
+- `vibium check "<selector>"` — check a checkbox/radio (idempotent)
+- `vibium uncheck "<selector>"` — uncheck a checkbox (idempotent)
+
+### Element State
+- `vibium value "<selector>"` — get input/textarea/select value
+- `vibium attr "<selector>" "<attribute>"` — get HTML attribute value
+- `vibium is-visible "<selector>"` — check if element is visible (true/false)
 
 ### Waiting
 - `vibium wait "<selector>"` — wait for element (`--state visible|hidden|attached`, `--timeout ms`)
+- `vibium wait-for-url "<pattern>"` — wait until URL contains substring (`--timeout ms`)
+- `vibium wait-for-load` — wait until page is fully loaded (`--timeout ms`)
+- `vibium sleep <ms>` — pause execution (max 30000ms)
 
 ### Tabs
 - `vibium tabs` — list open tabs
@@ -56,7 +74,8 @@ Run `vibium --help` (or the resolved path) to confirm. Use the resolved path for
 - `vibium tab-switch <index|url>` — switch tab
 - `vibium tab-close [index]` — close tab
 
-### Daemon
+### Session
+- `vibium quit` — close the browser (daemon keeps running)
 - `vibium daemon start` — start background browser
 - `vibium daemon status` — check if running
 - `vibium daemon stop` — stop daemon
@@ -82,22 +101,36 @@ Use `--oneshot` (or `VIBIUM_ONESHOT=1`) to launch a fresh browser for each comma
 
 **Read a page:**
 ```sh
-vibium navigate https://example.com
+vibium go https://example.com
 vibium text
 ```
 
 **Fill a form:**
 ```sh
-vibium navigate https://example.com/login
-vibium type "input[name=email]" "user@example.com"
-vibium type "input[name=password]" "secret"
+vibium go https://example.com/login
+vibium fill "input[name=email]" "user@example.com"
+vibium fill "input[name=password]" "secret"
 vibium click "button[type=submit]"
+vibium wait-for-url "/dashboard"
+```
+
+**Check page structure without rendering:**
+```sh
+vibium go https://example.com
+vibium a11y-tree
 ```
 
 **Extract structured data:**
 ```sh
-vibium navigate https://example.com
+vibium go https://example.com
 vibium eval "JSON.stringify([...document.querySelectorAll('a')].map(a => a.href))"
+```
+
+**Inspect an element:**
+```sh
+vibium attr "a" "href"
+vibium value "input[name=email]"
+vibium is-visible ".modal"
 ```
 
 **Multi-tab workflow:**
@@ -107,10 +140,19 @@ vibium text "h1"
 vibium tab-switch 0
 ```
 
+**Full-page screenshot:**
+```sh
+vibium screenshot -o full.png --full-page
+```
+
 ## Tips
 
-- All click/type/hover actions auto-wait for the element to be actionable
+- All click/type/hover/fill actions auto-wait for the element to be actionable
+- Use `vibium fill` to replace a field's value, `vibium type` to append to it
 - Use `vibium find` to inspect an element before interacting
+- Use `vibium find-by-role` for semantic element lookup (more reliable than CSS selectors)
+- Use `vibium a11y-tree` to understand page structure without visual rendering
 - Use `vibium text "<selector>"` to read specific sections
 - `vibium eval` is the escape hatch for complex DOM queries
+- `vibium check`/`vibium uncheck` are idempotent — safe to call without checking state first
 - Screenshots save to the current directory by default (`-o` to change)

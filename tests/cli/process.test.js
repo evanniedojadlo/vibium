@@ -49,10 +49,10 @@ function sleep(ms) {
 }
 
 describe('CLI: Process Cleanup', () => {
-  test('navigate command cleans up Chrome on completion', async () => {
+  test('go command cleans up Chrome on completion', async () => {
     const pidsBefore = getClickerChromePids();
 
-    execSync(`${VIBIUM} navigate https://example.com`, {
+    execSync(`${VIBIUM} go https://example.com`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

@@ -247,7 +247,7 @@ By default, vibium runs in **daemon mode** — the browser stays open between co
 cd clicker/bin
 
 # Navigate to a URL
-vibium navigate https://example.com
+vibium go https://example.com
 
 # Interact with the current page (no URL needed)
 vibium find "h1"
@@ -264,7 +264,7 @@ vibium screenshot https://example.com -o shot.png
 Use `--oneshot` to launch a fresh browser for each command (the old behavior):
 
 ```bash
-vibium navigate https://example.com --oneshot
+vibium go https://example.com --oneshot
 ```
 
 ### Useful Flags
