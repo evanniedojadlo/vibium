@@ -85,3 +85,69 @@ def test_remove_response_listeners(sync_browser, test_server):
     vibe.eval("doFetch()")
     vibe.wait(500)
     assert len(statuses) == 0
+
+
+def test_on_request_post_data(sync_browser, test_server):
+    """on_request provides post_data for POST requests."""
+    vibe = sync_browser.new_page()
+    vibe.go(test_server + "/fetch")
+    captured = {}
+
+    def handler(req):
+        if "api/echo" in req.url():
+            captured["post_data"] = req.post_data()
+
+    vibe.on_request(handler)
+    vibe.eval("doPostFetch()")
+    vibe.wait(500)
+    import json
+    assert captured.get("post_data") is not None, "Should capture post_data"
+    parsed = json.loads(captured["post_data"])
+    assert parsed["hello"] == "world"
+
+
+def test_on_response_body(sync_browser, test_server):
+    """on_response provides body."""
+    vibe = sync_browser.new_page()
+    vibe.go(test_server + "/fetch")
+    captured = {}
+
+    def handler(resp):
+        if "api/data" in resp.url():
+            captured["body"] = resp.body()
+
+    vibe.on_response(handler)
+    vibe.eval("doFetch()")
+    vibe.wait(500)
+    import json
+    assert captured.get("body") is not None, "Should capture body"
+    parsed = json.loads(captured["body"])
+    assert parsed["message"] == "real data"
+    assert parsed["count"] == 42
+
+
+def test_expect_request_post_data(sync_browser, test_server):
+    """expect.request includes post_data."""
+    vibe = sync_browser.new_page()
+    vibe.go(test_server + "/fetch")
+
+    result = vibe.expect.request("**/api/echo", lambda: vibe.eval("doPostFetch()"))
+
+    import json
+    assert result["post_data"] is not None, "Should have post_data"
+    parsed = json.loads(result["post_data"])
+    assert parsed["hello"] == "world"
+
+
+def test_expect_response_body(sync_browser, test_server):
+    """expect.response includes body."""
+    vibe = sync_browser.new_page()
+    vibe.go(test_server + "/fetch")
+
+    result = vibe.expect.response("**/api/data", lambda: vibe.eval("doFetch()"))
+
+    import json
+    assert result["body"] is not None, "Should have body"
+    parsed = json.loads(result["body"])
+    assert parsed["message"] == "real data"
+    assert parsed["count"] == 42

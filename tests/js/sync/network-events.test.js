@@ -139,4 +139,68 @@ describe('Sync API: onRequest/onResponse', () => {
     vibe.wait(500);
     assert.strictEqual(statuses.length, 0, 'Should not capture responses after removeAllListeners');
   });
+
+  test('onRequest provides postData for POST requests', () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/fetch`);
+
+    let capturedPostData = null;
+    vibe.onRequest((req) => {
+      if (req.url.includes('/api/echo')) {
+        capturedPostData = req.postData;
+      }
+    });
+
+    vibe.evaluate('return doPostFetch()');
+    vibe.wait(500);
+    assert.ok(capturedPostData !== null, 'Should capture postData');
+    const parsed = JSON.parse(capturedPostData);
+    assert.strictEqual(parsed.hello, 'world');
+  });
+
+  test('onResponse provides body', () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/fetch`);
+
+    let capturedBody = null;
+    vibe.onResponse((resp) => {
+      if (resp.url.includes('/api/data')) {
+        capturedBody = resp.body;
+      }
+    });
+
+    vibe.evaluate('return doFetch()');
+    vibe.wait(500);
+    assert.ok(capturedBody !== null, 'Should capture body');
+    const parsed = JSON.parse(capturedBody);
+    assert.strictEqual(parsed.message, 'real data');
+    assert.strictEqual(parsed.count, 42);
+  });
+
+  test('expect.request includes postData', () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/fetch`);
+
+    const result = vibe.expect.request('**/api/echo', () => {
+      vibe.evaluate('return doPostFetch()');
+    });
+
+    assert.ok(result.postData !== null && result.postData !== undefined, 'Should have postData');
+    const parsed = JSON.parse(result.postData);
+    assert.strictEqual(parsed.hello, 'world');
+  });
+
+  test('expect.response includes body', () => {
+    const vibe = bro.newPage();
+    vibe.go(`${baseURL}/fetch`);
+
+    const result = vibe.expect.response('**/api/data', () => {
+      vibe.evaluate('return doFetch()');
+    });
+
+    assert.ok(result.body !== null && result.body !== undefined, 'Should have body');
+    const parsed = JSON.parse(result.body);
+    assert.strictEqual(parsed.message, 'real data');
+    assert.strictEqual(parsed.count, 42);
+  });
 });

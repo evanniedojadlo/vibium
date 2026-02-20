@@ -103,6 +103,15 @@ const FETCH_HTML = `<html><head><title>Fetch</title></head><body>
       const json = await res.json();
       document.getElementById('result').textContent = JSON.stringify(json);
     }
+    async function doPostFetch() {
+      const res = await fetch('/api/echo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hello: 'world' }),
+      });
+      const json = await res.json();
+      document.getElementById('result').textContent = JSON.stringify(json);
+    }
   </script>
 </body></html>`;
 
@@ -148,6 +157,15 @@ const server = http.createServer((req, res) => {
   if (req.url === '/api/data') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ message: 'real data', count: 42 }));
+    return;
+  }
+  if (req.url === '/api/echo' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ echo: JSON.parse(body) }));
+    });
     return;
   }
   if (req.url === '/download-file') {

@@ -375,19 +375,39 @@ class Page:
     def on_request(self, fn: Callable) -> None:
         """Register a callback for every outgoing request.
 
-        fn receives a Request object with sync methods: url(), method(), headers().
+        fn receives a request-like object with sync methods:
+        url(), method(), headers(), post_data().
         """
+        import asyncio
+
+        async def _wrapper(req: Any) -> None:
+            pd = await req.post_data()
+            fn(_SyncRequestData(req, pd))
+
+        def _sync_wrapper(req: Any) -> None:
+            asyncio.ensure_future(_wrapper(req))
+
         async def _register() -> None:
-            self._async.on_request(fn)
+            self._async.on_request(_sync_wrapper)
         self._loop.run(_register())
 
     def on_response(self, fn: Callable) -> None:
         """Register a callback for every completed response.
 
-        fn receives a Response object with sync methods: url(), status(), headers().
+        fn receives a response-like object with sync methods:
+        url(), status(), headers(), body(), json().
         """
+        import asyncio
+
+        async def _wrapper(resp: Any) -> None:
+            b = await resp.body()
+            fn(_SyncResponseData(resp, b))
+
+        def _sync_wrapper(resp: Any) -> None:
+            asyncio.ensure_future(_wrapper(resp))
+
         async def _register() -> None:
-            self._async.on_response(fn)
+            self._async.on_response(_sync_wrapper)
         self._loop.run(_register())
 
     def on_download(self, fn: Callable) -> None:
@@ -416,6 +436,52 @@ class Page:
             pass  # navigation callbacks are on async page
 
 
+class _SyncRequestData:
+    """Lightweight wrapper exposing request data as sync methods."""
+
+    def __init__(self, req: Any, post_data: Optional[str]) -> None:
+        self._req = req
+        self._post_data = post_data
+
+    def url(self) -> str:
+        return self._req.url()
+
+    def method(self) -> str:
+        return self._req.method()
+
+    def headers(self) -> Dict[str, str]:
+        return self._req.headers()
+
+    def post_data(self) -> Optional[str]:
+        return self._post_data
+
+
+class _SyncResponseData:
+    """Lightweight wrapper exposing response data as sync methods."""
+
+    def __init__(self, resp: Any, body: Optional[str]) -> None:
+        self._resp = resp
+        self._body = body
+
+    def url(self) -> str:
+        return self._resp.url()
+
+    def status(self) -> int:
+        return self._resp.status()
+
+    def headers(self) -> Dict[str, str]:
+        return self._resp.headers()
+
+    def body(self) -> Optional[str]:
+        return self._body
+
+    def json(self) -> Any:
+        import json as _json
+        if self._body is None:
+            return None
+        return _json.loads(self._body)
+
+
 class _SyncExpectedResponse:
     """Returned by expect.response(). Usable as context manager or direct call."""
 
@@ -435,7 +501,8 @@ class _SyncExpectedResponse:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         if exc_type is None and self._wait_coro:
             resp = self._page._loop.run(self._wait_coro)
-            self.value = {"url": resp.url(), "status": resp.status(), "headers": resp.headers()}
+            body = self._page._loop.run(resp.body())
+            self.value = {"url": resp.url(), "status": resp.status(), "headers": resp.headers(), "body": body}
 
 
 class _SyncExpectedRequest:
@@ -457,7 +524,8 @@ class _SyncExpectedRequest:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         if exc_type is None and self._wait_coro:
             req = self._page._loop.run(self._wait_coro)
-            self.value = {"url": req.url(), "method": req.method(), "headers": req.headers()}
+            post_data = self._page._loop.run(req.post_data())
+            self.value = {"url": req.url(), "method": req.method(), "headers": req.headers(), "post_data": post_data}
 
 
 class _SyncExpectedNavigation:
@@ -565,7 +633,8 @@ class _SyncExpectNamespace:
             )
             fn()
             resp = self._page._loop.run(wait_coro)
-            return {"url": resp.url(), "status": resp.status(), "headers": resp.headers()}
+            body = self._page._loop.run(resp.body())
+            return {"url": resp.url(), "status": resp.status(), "headers": resp.headers(), "body": body}
         return _SyncExpectedResponse(self._page, pattern, timeout)
 
     def request(self, pattern: str, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncExpectedRequest]:
@@ -580,7 +649,8 @@ class _SyncExpectNamespace:
             )
             fn()
             req = self._page._loop.run(wait_coro)
-            return {"url": req.url(), "method": req.method(), "headers": req.headers()}
+            post_data = self._page._loop.run(req.post_data())
+            return {"url": req.url(), "method": req.method(), "headers": req.headers(), "post_data": post_data}
         return _SyncExpectedRequest(self._page, pattern, timeout)
 
     def navigation(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[str, _SyncExpectedNavigation]:

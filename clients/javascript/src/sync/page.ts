@@ -12,12 +12,14 @@ export interface RequestData {
   url: string;
   method: string;
   headers: Record<string, string>;
+  postData: string | null;
 }
 
 export interface ResponseData {
   url: string;
   status: number;
   headers: Record<string, string>;
+  body: string | null;
 }
 
 export interface DownloadData {
@@ -162,7 +164,7 @@ export class PageSync {
 
   /** Expect namespace — set up a listener before performing an action. */
   get expect(): {
-    response(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; status: number; headers: Record<string, string> };
+    response(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; status: number; headers: Record<string, string>; body: string | null };
     request(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; method: string; headers: Record<string, string>; postData: string | null };
     navigation(fn?: () => void, options?: { timeout?: number }): { url: string };
     download(fn?: () => void, options?: { timeout?: number }): { url: string; suggestedFilename: string };

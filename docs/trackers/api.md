@@ -147,11 +147,11 @@
 | `request.url()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `request.method()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `request.headers()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `request.postData()` | ✅ | — | ✅ | — | — | — |
+| `request.postData()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `response.status()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `response.headers()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `response.body()` | ✅ | — | ✅ | — | — | — |
-| `response.json()` | ✅ | — | ✅ | — | — | — |
+| `response.body()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `response.json()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
 ## Dialogs (5 commands)
 

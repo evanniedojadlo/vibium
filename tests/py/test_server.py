@@ -90,6 +90,15 @@ FETCH_HTML = """<html><head><title>Fetch</title></head><body>
       const json = await res.json();
       document.getElementById('result').textContent = JSON.stringify(json);
     }
+    async function doPostFetch() {
+      const res = await fetch('/api/echo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hello: 'world' }),
+      });
+      const json = await res.json();
+      document.getElementById('result').textContent = JSON.stringify(json);
+    }
   </script>
 </body></html>"""
 
@@ -202,6 +211,19 @@ HTML_ROUTES = {
 
 
 class VibiumTestHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        path = self.path.split("?")[0]
+        if path == "/api/echo":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"echo": json.loads(body)}).encode())
+            return
+        self.send_response(404)
+        self.end_headers()
+
     def do_GET(self):
         path = self.path.split("?")[0]
 

@@ -590,7 +590,7 @@ const handlers: Record<string, Handler> = {
       url: request.url(),
       method: request.method(),
       headers: request.headers(),
-      postData: request.postData(),
+      postData: await request.postData(),
     };
   },
 
@@ -602,6 +602,7 @@ const handlers: Record<string, Handler> = {
       url: response.url(),
       status: response.status(),
       headers: response.headers(),
+      body: await response.body(),
     };
   },
 
@@ -621,6 +622,7 @@ const handlers: Record<string, Handler> = {
       url: response.url(),
       status: response.status(),
       headers: response.headers(),
+      body: await response.body(),
     };
   },
 
@@ -640,7 +642,7 @@ const handlers: Record<string, Handler> = {
       url: request.url(),
       method: request.method(),
       headers: request.headers(),
-      postData: request.postData(),
+      postData: await request.postData(),
     };
   },
 
@@ -817,12 +819,12 @@ const handlers: Record<string, Handler> = {
     const [pageId, handlerId] = args as [number, string];
     const page = getPage(pageId);
     onRequestHandlerIds.set(pageId, handlerId);
-    page.onRequest((req) => {
+    page.onRequest(async (req) => {
       const hid = onRequestHandlerIds.get(pageId);
       if (!hid) return;
       networkEventBuffer.push({
         handlerId: hid,
-        data: { url: req.url(), method: req.method(), headers: req.headers() },
+        data: { url: req.url(), method: req.method(), headers: req.headers(), postData: await req.postData() },
       });
     });
     return { success: true };
@@ -832,12 +834,12 @@ const handlers: Record<string, Handler> = {
     const [pageId, handlerId] = args as [number, string];
     const page = getPage(pageId);
     onResponseHandlerIds.set(pageId, handlerId);
-    page.onResponse((resp) => {
+    page.onResponse(async (resp) => {
       const hid = onResponseHandlerIds.get(pageId);
       if (!hid) return;
       networkEventBuffer.push({
         handlerId: hid,
-        data: { url: resp.url(), status: resp.status(), headers: resp.headers() },
+        data: { url: resp.url(), status: resp.status(), headers: resp.headers(), body: await resp.body() },
       });
     });
     return { success: true };
