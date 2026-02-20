@@ -111,8 +111,8 @@ func (r *Router) handleVibiumPageA11yTree(session *BrowserSession, cmd bidiComma
 	}
 
 	interestingOnly := true
-	if val, ok := cmd.Params["interestingOnly"].(bool); ok {
-		interestingOnly = val
+	if val, ok := cmd.Params["everything"].(bool); ok {
+		interestingOnly = !val
 	}
 
 	rootSelector := ""

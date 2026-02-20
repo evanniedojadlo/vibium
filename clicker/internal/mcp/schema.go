@@ -353,10 +353,10 @@ func GetToolSchemas() []Tool {
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"interestingOnly": map[string]interface{}{
+					"everything": map[string]interface{}{
 						"type":        "boolean",
-						"description": "Filter out generic/presentation nodes that are not interesting for accessibility. Default: true",
-						"default":     true,
+						"description": "Show all nodes including generic containers. Default: false",
+						"default":     false,
 					},
 				},
 				"additionalProperties": false,

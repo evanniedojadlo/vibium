@@ -474,7 +474,7 @@ export class Page {
   // --- Accessibility ---
 
   /** Get the accessibility tree for the page. */
-  async a11yTree(options?: { interestingOnly?: boolean; root?: string }): Promise<A11yNode> {
+  async a11yTree(options?: { everything?: boolean; root?: string }): Promise<A11yNode> {
     const result = await this.client.send<{ tree: A11yNode }>('vibium:page.a11yTree', {
       context: this.contextId,
       ...options,

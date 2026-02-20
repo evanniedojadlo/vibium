@@ -235,10 +235,10 @@ class Page:
 
     def a11y_tree(
         self,
-        interesting_only: Optional[bool] = None,
+        everything: Optional[bool] = None,
         root: Optional[str] = None,
     ) -> A11yNode:
-        return self._loop.run(self._async.a11y_tree(interesting_only, root))
+        return self._loop.run(self._async.a11y_tree(everything, root))
 
     # --- Frames ---
 

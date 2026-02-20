@@ -190,13 +190,13 @@ describe('Page Accessibility: a11yTree()', () => {
     }
   });
 
-  test('interestingOnly: false includes generic nodes', async () => {
+  test('everything: true includes generic nodes', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.setContent('<div><span>hello</span></div>');
 
-      const tree = await vibe.a11yTree({ interestingOnly: false });
+      const tree = await vibe.a11yTree({ everything: true });
 
       function findRoles(node) {
         const roles = [node.role];
@@ -209,13 +209,13 @@ describe('Page Accessibility: a11yTree()', () => {
       }
 
       const roles = findRoles(tree);
-      assert.ok(roles.includes('generic'), `interestingOnly:false should include generic roles, got: ${roles.join(', ')}`);
+      assert.ok(roles.includes('generic'), `everything:true should include generic roles, got: ${roles.join(', ')}`);
     } finally {
       await bro.close();
     }
   });
 
-  test('interestingOnly: true (default) filters generic nodes', async () => {
+  test('default filters generic nodes', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
@@ -234,7 +234,7 @@ describe('Page Accessibility: a11yTree()', () => {
       }
 
       const roles = findRoles(tree);
-      assert.ok(!roles.includes('generic'), `interestingOnly:true should filter generic roles, got: ${roles.join(', ')}`);
+      assert.ok(!roles.includes('generic'), `default should filter generic roles, got: ${roles.join(', ')}`);
     } finally {
       await bro.close();
     }

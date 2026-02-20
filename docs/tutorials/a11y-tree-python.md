@@ -8,7 +8,7 @@ Learn how to inspect page structure with `a11y_tree()` and use the results to fi
 
 - How to get a page's accessibility tree
 - How to use tree output to build selectors for `find()`
-- Filtering with `interesting_only` and scoping with `root`
+- Filtering with `everything` and scoping with `root`
 - When to use semantic selectors vs CSS selectors
 
 ---
@@ -162,25 +162,25 @@ The `root` parameter accepts a CSS selector. The tree will only include that ele
 
 ---
 
-## Filtering with `interesting_only`
+## Filtering with `everything`
 
-By default, `a11y_tree()` sets `interesting_only` to `True`, which hides generic container nodes (divs, spans with no semantic role). This keeps the output focused on meaningful elements.
+By default, `a11y_tree()` hides generic container nodes (divs, spans with no semantic role). This keeps the output focused on meaningful elements.
 
-Set it to `False` to see everything:
+Set `everything=True` to see all nodes:
 
 ```python
 # Default: only semantic elements
 tree = vibe.a11y_tree()
 
 # Show all nodes including generic containers
-full_tree = vibe.a11y_tree(interesting_only=False)
+full_tree = vibe.a11y_tree(everything=True)
 ```
 
-**When to use `interesting_only=False`:**
+**When to use `everything=True`:**
 - Debugging layout issues where you need to see the full DOM structure
 - When elements you expect aren't appearing in the default tree
 
-**When to keep the default (`True`):**
+**When to keep the default:**
 - Most of the time — the filtered tree is much easier to read
 - When looking for interactive elements (buttons, links, inputs)
 
@@ -365,7 +365,6 @@ Elements without semantic roles (plain divs, spans) appear as "generic" in the t
 ### Python-specific notes
 
 - Method name is `a11y_tree()` (snake_case), not `a11yTree()`
-- Option is `interesting_only` (snake_case), not `interestingOnly`
 - The tree is a Python dict, not a JavaScript object — access fields with `tree["role"]`, not `tree.role`
 
 ---

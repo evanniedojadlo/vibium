@@ -335,7 +335,7 @@ export class PageSync {
 
   // --- Accessibility ---
 
-  a11yTree(options?: { interestingOnly?: boolean; root?: string }): A11yNode {
+  a11yTree(options?: { everything?: boolean; root?: string }): A11yNode {
     const result = this._bridge.call<{ tree: A11yNode }>('page.a11yTree', [this._pageId, options]);
     return result.tree;
   }

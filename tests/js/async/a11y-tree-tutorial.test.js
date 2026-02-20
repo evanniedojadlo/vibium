@@ -178,14 +178,14 @@ describe('A11y Tree Tutorial (JS Async)', () => {
     }
   });
 
-  // "Filtering with interestingOnly"
-  test('interestingOnly: false includes generic nodes', async () => {
+  // "Filtering with everything"
+  test('everything: true includes generic nodes', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.setContent('<div><span>hello</span></div>');
 
-      const fullTree = await vibe.a11yTree({ interestingOnly: false });
+      const fullTree = await vibe.a11yTree({ everything: true });
 
       function collectRoles(node) {
         const roles = [node.role];
@@ -201,7 +201,7 @@ describe('A11y Tree Tutorial (JS Async)', () => {
     }
   });
 
-  test('default interestingOnly filters generic nodes', async () => {
+  test('default filters generic nodes', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();

@@ -125,14 +125,14 @@ describe('A11y Tree Tutorial (JS Sync)', () => {
     }
   });
 
-  // interestingOnly — sync
-  test('interestingOnly: false shows generic nodes (sync)', () => {
+  // everything — sync
+  test('everything: true shows generic nodes (sync)', () => {
     const bro = browser.launch({ headless: true });
     try {
       const vibe = bro.page();
       vibe.setContent('<div><span>hello</span></div>');
 
-      const fullTree = vibe.a11yTree({ interestingOnly: false });
+      const fullTree = vibe.a11yTree({ everything: true });
 
       function collectRoles(node) {
         const roles = [node.role];

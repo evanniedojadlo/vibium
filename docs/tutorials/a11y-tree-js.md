@@ -8,7 +8,7 @@ Learn how to inspect page structure with `a11yTree()` and use the results to fin
 
 - How to get a page's accessibility tree
 - How to use tree output to build selectors for `find()`
-- `interestingOnly` and `root` options
+- `everything` and `root` options
 - When to use semantic selectors vs CSS selectors
 
 ---
@@ -163,25 +163,25 @@ The `root` parameter accepts a CSS selector. The tree will only include that ele
 
 ---
 
-## Filtering with `interestingOnly`
+## Filtering with `everything`
 
-By default, `a11yTree()` sets `interestingOnly: true`, which hides generic container nodes (divs, spans with no semantic role). This keeps the output focused on meaningful elements.
+By default, `a11yTree()` hides generic container nodes (divs, spans with no semantic role). This keeps the output focused on meaningful elements.
 
-Set it to `false` to see everything:
+Set `everything: true` to see all nodes:
 
 ```javascript
 // Default: only semantic elements
 const tree = vibe.a11yTree()
 
 // Show all nodes including generic containers
-const fullTree = vibe.a11yTree({ interestingOnly: false })
+const fullTree = vibe.a11yTree({ everything: true })
 ```
 
-**When to use `interestingOnly: false`:**
+**When to use `everything: true`:**
 - Debugging layout issues where you need to see the full DOM structure
 - When elements you expect aren't appearing in the default tree
 
-**When to keep the default (`true`):**
+**When to keep the default:**
 - Most of the time — the filtered tree is much easier to read
 - When looking for interactive elements (buttons, links, inputs)
 

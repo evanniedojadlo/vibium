@@ -87,39 +87,39 @@ async def test_tree_roles(async_page, test_server):
     assert "heading" in tree_str.lower() or "link" in tree_str.lower()
 
 
-async def test_tree_interesting_only_false(async_page, test_server):
+async def test_tree_everything_true(async_page, test_server):
     await async_page.go(test_server + "/a11y")
-    tree = await async_page.a11y_tree(interesting_only=False)
+    tree = await async_page.a11y_tree(everything=True)
     assert isinstance(tree, dict)
-    # With interesting_only=False, should have more nodes
+    # With everything=True, should have more nodes
     tree_str = str(tree)
     assert len(tree_str) > 50
 
 
-async def test_tree_interesting_only_true(async_page, test_server):
+async def test_tree_everything_false(async_page, test_server):
     await async_page.go(test_server + "/a11y")
-    tree_all = await async_page.a11y_tree(interesting_only=False)
-    tree_interesting = await async_page.a11y_tree(interesting_only=True)
-    # Interesting-only tree should be equal or smaller
+    tree_all = await async_page.a11y_tree(everything=True)
+    tree_interesting = await async_page.a11y_tree(everything=False)
+    # Filtered tree should be equal or smaller
     assert len(str(tree_interesting)) <= len(str(tree_all))
 
 
 async def test_tree_checked(async_page, test_server):
     await async_page.go(test_server + "/a11y")
-    tree = await async_page.a11y_tree(interesting_only=False)
+    tree = await async_page.a11y_tree(everything=True)
     tree_str = str(tree)
     assert "checked" in tree_str.lower() or "checkbox" in tree_str.lower()
 
 
 async def test_tree_disabled(async_page, test_server):
     await async_page.go(test_server + "/a11y")
-    tree = await async_page.a11y_tree(interesting_only=False)
+    tree = await async_page.a11y_tree(everything=True)
     tree_str = str(tree)
     assert "disabled" in tree_str.lower() or "Disabled" in tree_str
 
 
 async def test_tree_heading_levels(async_page, test_server):
     await async_page.go(test_server + "/a11y")
-    tree = await async_page.a11y_tree(interesting_only=False)
+    tree = await async_page.a11y_tree(everything=True)
     tree_str = str(tree)
     assert "Heading Level 1" in tree_str or "heading" in tree_str.lower()

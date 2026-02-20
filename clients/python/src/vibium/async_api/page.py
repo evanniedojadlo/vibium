@@ -659,13 +659,13 @@ class Page:
 
     async def a11y_tree(
         self,
-        interesting_only: Optional[bool] = None,
+        everything: Optional[bool] = None,
         root: Optional[str] = None,
     ) -> A11yNode:
         """Get the accessibility tree for the page."""
         params: Dict[str, Any] = {"context": self._context_id}
-        if interesting_only is not None:
-            params["interestingOnly"] = interesting_only
+        if everything is not None:
+            params["everything"] = everything
         if root is not None:
             params["root"] = root
         result = await self._client.send("vibium:page.a11yTree", params)

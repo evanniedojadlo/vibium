@@ -526,8 +526,8 @@ func (h *Handlers) browserA11yTree(args map[string]interface{}) (*ToolsCallResul
 	}
 
 	interestingOnly := true
-	if val, ok := args["interestingOnly"].(bool); ok {
-		interestingOnly = val
+	if val, ok := args["everything"].(bool); ok {
+		interestingOnly = !val
 	}
 
 	script := a11yTreeMCPScript()
