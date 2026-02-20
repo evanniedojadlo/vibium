@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/vibium/clicker/internal/log"
@@ -330,6 +331,9 @@ func (r *LaunchResult) Close() error {
 		os.RemoveAll(r.UserDataDir)
 	}
 
+	// Clean up orphaned Chrome temp directories
+	cleanupChromeTempDirs()
+
 	return nil
 }
 
@@ -417,6 +421,28 @@ func killOrphanedChromeProcesses() {
 				}
 			}
 		}
+	}
+}
+
+// cleanupChromeTempDirs removes orphaned temp directories created by Chrome for Testing.
+// Chrome creates these in os.TempDir() and doesn't clean them up when force-killed.
+func cleanupChromeTempDirs() {
+	tmpDir := os.TempDir()
+	patterns := []string{
+		filepath.Join(tmpDir, "com.google.chrome.for.testing.*"),
+		filepath.Join(tmpDir, "org.chromium.Chromium.scoped_dir.*"),
+	}
+	var count int
+	for _, pattern := range patterns {
+		matches, _ := filepath.Glob(pattern)
+		for _, m := range matches {
+			if os.RemoveAll(m) == nil {
+				count++
+			}
+		}
+	}
+	if count > 0 {
+		log.Debug("cleaned up Chrome temp dirs", "count", count)
 	}
 }
 
