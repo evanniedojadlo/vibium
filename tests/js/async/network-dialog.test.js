@@ -1,7 +1,7 @@
 /**
  * JS Library Tests: Network Interception & Dialogs
  * Tests page.route, route.fulfill/continue/abort, page.onRequest/onResponse,
- * page.expect.request/response, page.onDialog, dialog.accept/dismiss.
+ * page.capture.request/response, page.onDialog, dialog.accept/dismiss.
  *
  * Uses a local HTTP server — no external network dependencies.
  */
@@ -262,7 +262,7 @@ describe('Network Events: onRequest/onResponse', () => {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.expect.response('**/json');
+      const responsePromise = vibe.capture.response('**/json');
       await vibe.eval(`fetch('${baseURL}/json')`);
       const resp = await responsePromise;
 
@@ -275,14 +275,14 @@ describe('Network Events: onRequest/onResponse', () => {
   });
 });
 
-describe('Network Waiters: expect.request/expect.response', () => {
-  test('expect.response() resolves on matching response', async () => {
+describe('Network Waiters: capture.request/capture.response', () => {
+  test('capture.response() resolves on matching response', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.expect.response('**/json');
+      const responsePromise = vibe.capture.response('**/json');
       await vibe.eval(`fetch('${baseURL}/json')`);
 
       const resp = await responsePromise;
@@ -293,13 +293,13 @@ describe('Network Waiters: expect.request/expect.response', () => {
     }
   });
 
-  test('expect.request() resolves on matching request', async () => {
+  test('capture.request() resolves on matching request', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const requestPromise = vibe.expect.request('**/text');
+      const requestPromise = vibe.capture.request('**/text');
       await vibe.eval(`fetch('${baseURL}/text')`);
 
       const req = await requestPromise;
@@ -362,13 +362,13 @@ describe('Response Body: response.body() and response.json()', () => {
     }
   });
 
-  test('response.body() works with expect.response', async () => {
+  test('response.body() works with capture.response', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.expect.response('**/text');
+      const responsePromise = vibe.capture.response('**/text');
       await vibe.eval(`fetch('${baseURL}/text')`);
       const resp = await responsePromise;
 
@@ -379,13 +379,13 @@ describe('Response Body: response.body() and response.json()', () => {
     }
   });
 
-  test('response.json() works with expect.response', async () => {
+  test('response.json() works with capture.response', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const responsePromise = vibe.expect.response('**/json');
+      const responsePromise = vibe.capture.response('**/json');
       await vibe.eval(`fetch('${baseURL}/json')`);
       const resp = await responsePromise;
 
@@ -490,17 +490,17 @@ describe('Dialogs: page.onDialog', () => {
   });
 });
 
-// --- Expect Navigation ---
+// --- Capture Navigation ---
 
-describe('Expect: navigation', () => {
-  test('expect.navigation() resolves with URL on link click', async () => {
+describe('Capture: navigation', () => {
+  test('capture.navigation() resolves with URL on link click', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(`${baseURL}/nav-test`);
 
       const link = await vibe.find('#link');
-      const url = await vibe.expect.navigation(async () => {
+      const url = await vibe.capture.navigation(async () => {
         await link.click();
       });
 
@@ -511,17 +511,17 @@ describe('Expect: navigation', () => {
   });
 });
 
-// --- Expect Download ---
+// --- Capture Download ---
 
-describe('Expect: download', () => {
-  test('expect.download() resolves with Download object', async () => {
+describe('Capture: download', () => {
+  test('capture.download() resolves with Download object', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(`${baseURL}/download`);
 
       const link = await vibe.find('#download-link');
-      const download = await vibe.expect.download(async () => {
+      const download = await vibe.capture.download(async () => {
         await link.click();
       });
 
@@ -534,19 +534,19 @@ describe('Expect: download', () => {
   });
 });
 
-// --- Expect Dialog ---
+// --- Capture Dialog ---
 
-describe('Expect: dialog', () => {
-  test('expect.dialog() resolves with Dialog object', async () => {
+describe('Capture: dialog', () => {
+  test('capture.dialog() resolves with Dialog object', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
       // Use setTimeout because alert() blocks eval — the dialog must fire
-      // asynchronously so expect.dialog can capture it.
+      // asynchronously so capture.dialog can capture it.
       await vibe.eval('setTimeout(() => alert("Hello from expect"), 50)');
-      const dialog = await vibe.expect.dialog();
+      const dialog = await vibe.capture.dialog();
 
       assert.ok(dialog, 'Should resolve with a Dialog object');
       assert.strictEqual(dialog.type(), 'alert');
@@ -558,16 +558,16 @@ describe('Expect: dialog', () => {
   });
 });
 
-// --- Expect Event ---
+// --- Capture Event ---
 
-describe('Expect: event', () => {
-  test('expect.event("response") resolves on fetch', async () => {
+describe('Capture: event', () => {
+  test('capture.event("response") resolves on fetch', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
 
-      const result = await vibe.expect.event('response', async () => {
+      const result = await vibe.capture.event('response', async () => {
         await vibe.eval(`fetch('${baseURL}/json')`);
       });
 

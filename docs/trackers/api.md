@@ -222,16 +222,16 @@
 
 ## Waiting (12 commands)
 
-### Expect — set up before the action
+### Capture — set up before the action
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.expect.response(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.expect.request(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.expect.navigation(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.expect.event(name, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.expect.download(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.expect.dialog(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.capture.response(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.capture.request(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.capture.navigation(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.capture.event(name, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.capture.download(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.capture.dialog(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
 
 ### Wait Until — poll after the cause
 
@@ -242,7 +242,6 @@
 | `page.waitUntil(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `el.waitUntil(state)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.pause()` | ⬜ | ⬜ | ⬜ | ⬜ | — | ⬜ |
 
 ## Downloads & Files (4 commands)
 
@@ -251,7 +250,6 @@
 | `page.onDownload(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `download.saveAs(path)` | ✅ | — | ✅ | — | ⬜ | ⬜ |
 | `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.onFileChooser(fn)` | ⬜ | ⬜ | ⬜ | ⬜ | — | — |
 
 ## Clock (8 commands)
 

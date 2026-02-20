@@ -177,11 +177,11 @@ describe('Sync API: onRequest/onResponse', () => {
     assert.strictEqual(parsed.count, 42);
   });
 
-  test('expect.request includes postData', () => {
+  test('capture.request includes postData', () => {
     const vibe = bro.newPage();
     vibe.go(`${baseURL}/fetch`);
 
-    const result = vibe.expect.request('**/api/echo', () => {
+    const result = vibe.capture.request('**/api/echo', () => {
       vibe.evaluate('return doPostFetch()');
     });
 
@@ -190,11 +190,11 @@ describe('Sync API: onRequest/onResponse', () => {
     assert.strictEqual(parsed.hello, 'world');
   });
 
-  test('expect.response includes body', () => {
+  test('capture.response includes body', () => {
     const vibe = bro.newPage();
     vibe.go(`${baseURL}/fetch`);
 
-    const result = vibe.expect.response('**/api/data', () => {
+    const result = vibe.capture.response('**/api/data', () => {
       vibe.evaluate('return doFetch()');
     });
 

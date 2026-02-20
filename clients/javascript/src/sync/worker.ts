@@ -585,7 +585,7 @@ const handlers: Record<string, Handler> = {
   'page.waitForRequest': async (args) => {
     const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    const request = await page.expect.request(pattern, undefined, options);
+    const request = await page.capture.request(pattern, undefined, options);
     return {
       url: request.url(),
       method: request.method(),
@@ -597,7 +597,7 @@ const handlers: Record<string, Handler> = {
   'page.waitForResponse': async (args) => {
     const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    const response = await page.expect.response(pattern, undefined, options);
+    const response = await page.capture.response(pattern, undefined, options);
     return {
       url: response.url(),
       status: response.status(),
@@ -606,18 +606,18 @@ const handlers: Record<string, Handler> = {
     };
   },
 
-  'page.expectResponseStart': async (args) => {
+  'page.captureResponseStart': async (args) => {
     const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    (page as any)._pendingExpectResponse = page.expect.response(pattern, undefined, options);
+    (page as any)._pendingCaptureResponse = page.capture.response(pattern, undefined, options);
     return { success: true };
   },
 
-  'page.expectResponseFinish': async (args) => {
+  'page.captureResponseFinish': async (args) => {
     const [pageId] = args as [number];
     const page = getPage(pageId);
-    const response = await (page as any)._pendingExpectResponse;
-    delete (page as any)._pendingExpectResponse;
+    const response = await (page as any)._pendingCaptureResponse;
+    delete (page as any)._pendingCaptureResponse;
     return {
       url: response.url(),
       status: response.status(),
@@ -626,18 +626,18 @@ const handlers: Record<string, Handler> = {
     };
   },
 
-  'page.expectRequestStart': async (args) => {
+  'page.captureRequestStart': async (args) => {
     const [pageId, pattern, options] = args as [number, string, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    (page as any)._pendingExpectRequest = page.expect.request(pattern, undefined, options);
+    (page as any)._pendingCaptureRequest = page.capture.request(pattern, undefined, options);
     return { success: true };
   },
 
-  'page.expectRequestFinish': async (args) => {
+  'page.captureRequestFinish': async (args) => {
     const [pageId] = args as [number];
     const page = getPage(pageId);
-    const request = await (page as any)._pendingExpectRequest;
-    delete (page as any)._pendingExpectRequest;
+    const request = await (page as any)._pendingCaptureRequest;
+    delete (page as any)._pendingCaptureRequest;
     return {
       url: request.url(),
       method: request.method(),
@@ -646,51 +646,51 @@ const handlers: Record<string, Handler> = {
     };
   },
 
-  'page.expectNavigationStart': async (args) => {
+  'page.captureNavigationStart': async (args) => {
     const [pageId, options] = args as [number, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    (page as any)._pendingExpectNavigation = page.expect.navigation(undefined, options);
+    (page as any)._pendingCaptureNavigation = page.capture.navigation(undefined, options);
     return { success: true };
   },
 
-  'page.expectNavigationFinish': async (args) => {
+  'page.captureNavigationFinish': async (args) => {
     const [pageId] = args as [number];
     const page = getPage(pageId);
-    const url = await (page as any)._pendingExpectNavigation;
-    delete (page as any)._pendingExpectNavigation;
+    const url = await (page as any)._pendingCaptureNavigation;
+    delete (page as any)._pendingCaptureNavigation;
     return { url };
   },
 
-  'page.expectDownloadStart': async (args) => {
+  'page.captureDownloadStart': async (args) => {
     const [pageId, options] = args as [number, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    (page as any)._pendingExpectDownload = page.expect.download(undefined, options);
+    (page as any)._pendingCaptureDownload = page.capture.download(undefined, options);
     return { success: true };
   },
 
-  'page.expectDownloadFinish': async (args) => {
+  'page.captureDownloadFinish': async (args) => {
     const [pageId] = args as [number];
     const page = getPage(pageId);
-    const download = await (page as any)._pendingExpectDownload;
-    delete (page as any)._pendingExpectDownload;
+    const download = await (page as any)._pendingCaptureDownload;
+    delete (page as any)._pendingCaptureDownload;
     return {
       url: download.url(),
       suggestedFilename: download.suggestedFilename(),
     };
   },
 
-  'page.expectDialogStart': async (args) => {
+  'page.captureDialogStart': async (args) => {
     const [pageId, options] = args as [number, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    (page as any)._pendingExpectDialog = page.expect.dialog(undefined, options);
+    (page as any)._pendingCaptureDialog = page.capture.dialog(undefined, options);
     return { success: true };
   },
 
-  'page.expectDialogFinish': async (args) => {
+  'page.captureDialogFinish': async (args) => {
     const [pageId] = args as [number];
     const page = getPage(pageId);
-    const dialog = await (page as any)._pendingExpectDialog;
-    delete (page as any)._pendingExpectDialog;
+    const dialog = await (page as any)._pendingCaptureDialog;
+    delete (page as any)._pendingCaptureDialog;
     return {
       type: dialog.type(),
       message: dialog.message(),
@@ -698,18 +698,18 @@ const handlers: Record<string, Handler> = {
     };
   },
 
-  'page.expectEventStart': async (args) => {
+  'page.captureEventStart': async (args) => {
     const [pageId, name, options] = args as [number, string, { timeout?: number } | undefined];
     const page = getPage(pageId);
-    (page as any)._pendingExpectEvent = page.expect.event(name, undefined, options);
+    (page as any)._pendingCaptureEvent = page.capture.event(name, undefined, options);
     return { success: true };
   },
 
-  'page.expectEventFinish': async (args) => {
+  'page.captureEventFinish': async (args) => {
     const [pageId] = args as [number];
     const page = getPage(pageId);
-    const data = await (page as any)._pendingExpectEvent;
-    delete (page as any)._pendingExpectEvent;
+    const data = await (page as any)._pendingCaptureEvent;
+    delete (page as any)._pendingCaptureEvent;
     // Return the event data — for typed events, serialize known shapes
     if (data && typeof data === 'object') {
       if ('url' in data && 'status' in data) {

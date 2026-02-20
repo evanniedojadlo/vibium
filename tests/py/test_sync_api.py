@@ -640,48 +640,48 @@ def test_on_error_collect(bro, test_server):
 
 
 # ===========================================================================
-# Expect request/response (2)
+# Capture request/response (2)
 # ===========================================================================
 
-def test_expect_request_returns_dict(bro, test_server):
+def test_capture_request_returns_dict(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
-    req = vibe.expect.request("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
+    req = vibe.capture.request("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
     assert isinstance(req, dict)
     assert "url" in req
     assert "api/data" in req["url"]
 
 
-def test_expect_response_returns_dict(bro, test_server):
+def test_capture_response_returns_dict(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
-    resp = vibe.expect.response("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
+    resp = vibe.capture.response("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
     assert isinstance(resp, dict)
     assert "url" in resp
     assert resp["status"] == 200
 
 
 # ===========================================================================
-# Expect navigation (1)
+# Capture navigation (1)
 # ===========================================================================
 
-def test_expect_navigation(bro, test_server):
+def test_capture_navigation(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/nav-test")
-    with vibe.expect.navigation() as info:
+    with vibe.capture.navigation() as info:
         vibe.find("#link").click()
     assert info.value is not None
     assert "/page2" in info.value
 
 
 # ===========================================================================
-# Expect download (1)
+# Capture download (1)
 # ===========================================================================
 
-def test_expect_download(bro, test_server):
+def test_capture_download(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/download")
-    with vibe.expect.download() as info:
+    with vibe.capture.download() as info:
         vibe.find("#download-link").click()
     assert info.value is not None
     assert "/download-file" in info.value["url"]
@@ -689,13 +689,13 @@ def test_expect_download(bro, test_server):
 
 
 # ===========================================================================
-# Expect dialog (1)
+# Capture dialog (1)
 # ===========================================================================
 
-def test_expect_dialog(bro, test_server):
+def test_capture_dialog(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server)
-    with vibe.expect.dialog() as info:
+    with vibe.capture.dialog() as info:
         vibe.eval('setTimeout(() => alert("Hello from expect"), 50)')
     assert info.value is not None
     assert info.value["type"] == "alert"
@@ -703,13 +703,13 @@ def test_expect_dialog(bro, test_server):
 
 
 # ===========================================================================
-# Expect event (1)
+# Capture event (1)
 # ===========================================================================
 
-def test_expect_event_navigation(bro, test_server):
+def test_capture_event_navigation(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/nav-test")
-    with vibe.expect.event("navigation") as info:
+    with vibe.capture.event("navigation") as info:
         vibe.find("#link").click()
     assert info.value is not None
 

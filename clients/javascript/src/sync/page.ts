@@ -162,8 +162,8 @@ export class PageSync {
 
   // --- Waiting ---
 
-  /** Expect namespace — set up a listener before performing an action. */
-  get expect(): {
+  /** Capture namespace — set up a listener before performing an action. */
+  get capture(): {
     response(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; status: number; headers: Record<string, string>; body: string | null };
     request(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; method: string; headers: Record<string, string>; postData: string | null };
     navigation(fn?: () => void, options?: { timeout?: number }): { url: string };
@@ -176,39 +176,39 @@ export class PageSync {
     return {
       response(pattern: string, fn?: () => void, options?: { timeout?: number }) {
         if (fn) {
-          bridge.call('page.expectResponseStart', [pageId, pattern, options]);
+          bridge.call('page.captureResponseStart', [pageId, pattern, options]);
           fn();
-          return bridge.call('page.expectResponseFinish', [pageId]);
+          return bridge.call('page.captureResponseFinish', [pageId]);
         }
         return bridge.call('page.waitForResponse', [pageId, pattern, options]);
       },
       request(pattern: string, fn?: () => void, options?: { timeout?: number }) {
         if (fn) {
-          bridge.call('page.expectRequestStart', [pageId, pattern, options]);
+          bridge.call('page.captureRequestStart', [pageId, pattern, options]);
           fn();
-          return bridge.call('page.expectRequestFinish', [pageId]);
+          return bridge.call('page.captureRequestFinish', [pageId]);
         }
         return bridge.call('page.waitForRequest', [pageId, pattern, options]);
       },
       navigation(fn?: () => void, options?: { timeout?: number }) {
-        bridge.call('page.expectNavigationStart', [pageId, options]);
+        bridge.call('page.captureNavigationStart', [pageId, options]);
         if (fn) fn();
-        return bridge.call('page.expectNavigationFinish', [pageId]);
+        return bridge.call('page.captureNavigationFinish', [pageId]);
       },
       download(fn?: () => void, options?: { timeout?: number }) {
-        bridge.call('page.expectDownloadStart', [pageId, options]);
+        bridge.call('page.captureDownloadStart', [pageId, options]);
         if (fn) fn();
-        return bridge.call('page.expectDownloadFinish', [pageId]);
+        return bridge.call('page.captureDownloadFinish', [pageId]);
       },
       dialog(fn?: () => void, options?: { timeout?: number }) {
-        bridge.call('page.expectDialogStart', [pageId, options]);
+        bridge.call('page.captureDialogStart', [pageId, options]);
         if (fn) fn();
-        return bridge.call('page.expectDialogFinish', [pageId]);
+        return bridge.call('page.captureDialogFinish', [pageId]);
       },
       event(name: string, fn?: () => void, options?: { timeout?: number }) {
-        bridge.call('page.expectEventStart', [pageId, name, options]);
+        bridge.call('page.captureEventStart', [pageId, name, options]);
         if (fn) fn();
-        return bridge.call('page.expectEventFinish', [pageId]);
+        return bridge.call('page.captureEventFinish', [pageId]);
       },
     };
   }

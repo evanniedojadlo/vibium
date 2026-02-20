@@ -780,30 +780,30 @@ describe('Sync API: onPage/onPopup', () => {
   });
 });
 
-describe('Sync API: Expect navigation', () => {
+describe('Sync API: Capture navigation', () => {
   let bro;
   before(() => { bro = browser.launch({ headless: true }); });
   after(() => { bro.close(); });
 
-  test('expect.navigation() returns URL on link click', () => {
+  test('capture.navigation() returns URL on link click', () => {
     const vibe = bro.newPage();
     vibe.go(`${baseURL}/nav-test`);
-    const result = vibe.expect.navigation(() => {
+    const result = vibe.capture.navigation(() => {
       vibe.find('#link').click();
     });
     assert.ok(result.url.includes('/page2'), `Should include /page2, got: ${result.url}`);
   });
 });
 
-describe('Sync API: Expect download', () => {
+describe('Sync API: Capture download', () => {
   let bro;
   before(() => { bro = browser.launch({ headless: true }); });
   after(() => { bro.close(); });
 
-  test('expect.download() returns download info', () => {
+  test('capture.download() returns download info', () => {
     const vibe = bro.newPage();
     vibe.go(`${baseURL}/download`);
-    const result = vibe.expect.download(() => {
+    const result = vibe.capture.download(() => {
       vibe.find('#download-link').click();
     });
     assert.ok(result.url.includes('/download-file'), `Should include /download-file, got: ${result.url}`);
@@ -811,32 +811,32 @@ describe('Sync API: Expect download', () => {
   });
 });
 
-describe('Sync API: Expect dialog', () => {
+describe('Sync API: Capture dialog', () => {
   let bro;
   before(() => { bro = browser.launch({ headless: true }); });
   after(() => { bro.close(); });
 
-  test('expect.dialog() returns dialog info', () => {
+  test('capture.dialog() returns dialog info', () => {
     const vibe = bro.newPage();
     vibe.go(`${baseURL}/prompt`);
     // Trigger alert asynchronously — alert() blocks the page, so we use
     // setTimeout to let expectDialogStart register before the dialog opens.
     vibe.eval('setTimeout(() => document.getElementById("alert-btn").click(), 50)');
-    const result = vibe.expect.dialog();
+    const result = vibe.capture.dialog();
     assert.strictEqual(result.type, 'alert');
     assert.strictEqual(result.message, 'hello');
   });
 });
 
-describe('Sync API: Expect event', () => {
+describe('Sync API: Capture event', () => {
   let bro;
   before(() => { bro = browser.launch({ headless: true }); });
   after(() => { bro.close(); });
 
-  test('expect.event("navigation") returns URL', () => {
+  test('capture.event("navigation") returns URL', () => {
     const vibe = bro.newPage();
     vibe.go(`${baseURL}/nav-test`);
-    const result = vibe.expect.event('navigation', () => {
+    const result = vibe.capture.event('navigation', () => {
       vibe.find('#link').click();
     });
     assert.ok(result.data, 'Should have event data');

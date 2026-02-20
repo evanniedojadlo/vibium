@@ -126,12 +126,12 @@ def test_on_response_body(sync_browser, test_server):
     assert parsed["count"] == 42
 
 
-def test_expect_request_post_data(sync_browser, test_server):
-    """expect.request includes post_data."""
+def test_capture_request_post_data(sync_browser, test_server):
+    """capture.request includes post_data."""
     vibe = sync_browser.new_page()
     vibe.go(test_server + "/fetch")
 
-    result = vibe.expect.request("**/api/echo", lambda: vibe.eval("doPostFetch()"))
+    result = vibe.capture.request("**/api/echo", lambda: vibe.eval("doPostFetch()"))
 
     import json
     assert result["post_data"] is not None, "Should have post_data"
@@ -139,12 +139,12 @@ def test_expect_request_post_data(sync_browser, test_server):
     assert parsed["hello"] == "world"
 
 
-def test_expect_response_body(sync_browser, test_server):
-    """expect.response includes body."""
+def test_capture_response_body(sync_browser, test_server):
+    """capture.response includes body."""
     vibe = sync_browser.new_page()
     vibe.go(test_server + "/fetch")
 
-    result = vibe.expect.response("**/api/data", lambda: vibe.eval("doFetch()"))
+    result = vibe.capture.response("**/api/data", lambda: vibe.eval("doFetch()"))
 
     import json
     assert result["body"] is not None, "Should have body"

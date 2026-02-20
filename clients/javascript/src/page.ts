@@ -216,36 +216,36 @@ export class Page {
     this.touch = new Touch(client, contextId);
     this.clock = new Clock(client, contextId);
 
-    // Initialize expect namespace
+    // Initialize capture namespace
     const self = this;
-    this.expect = {
+    this.capture = {
       response(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Response> {
-        const promise = self._expectResponse(pattern, options);
+        const promise = self._captureResponse(pattern, options);
         if (fn) return fn().then(() => promise);
         return promise;
       },
       request(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Request> {
-        const promise = self._expectRequest(pattern, options);
+        const promise = self._captureRequest(pattern, options);
         if (fn) return fn().then(() => promise);
         return promise;
       },
       navigation(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<string> {
-        const promise = self._expectNavigation(options);
+        const promise = self._captureNavigation(options);
         if (fn) return fn().then(() => promise);
         return promise;
       },
       download(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Download> {
-        const promise = self._expectDownload(options);
+        const promise = self._captureDownload(options);
         if (fn) return fn().then(() => promise);
         return promise;
       },
       dialog(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Dialog> {
-        const promise = self._expectDialog(options);
+        const promise = self._captureDialog(options);
         if (fn) return fn().then(() => promise);
         return promise;
       },
       event(name: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<unknown> {
-        const promise = self._expectEvent(name, options);
+        const promise = self._captureEvent(name, options);
         if (fn) return fn().then(() => promise);
         return promise;
       },
@@ -577,19 +577,19 @@ export class Page {
 
   // --- Page-level Waiting ---
 
-  /** Expect namespace — set up a listener before performing an action. */
-  readonly expect: {
-    /** Wait for a response matching a URL pattern. Optionally pass fn to trigger the action. */
+  /** Capture namespace — set up a listener before performing an action. */
+  readonly capture: {
+    /** Capture a response matching a URL pattern. Optionally pass fn to trigger the action. */
     response(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Response>;
-    /** Wait for a request matching a URL pattern. Optionally pass fn to trigger the action. */
+    /** Capture a request matching a URL pattern. Optionally pass fn to trigger the action. */
     request(pattern: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Request>;
-    /** Wait for a navigation event. Optionally pass fn to trigger the action. Resolves with URL. */
+    /** Capture a navigation event. Optionally pass fn to trigger the action. Resolves with URL. */
     navigation(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<string>;
-    /** Wait for a download. Optionally pass fn to trigger the action. */
+    /** Capture a download. Optionally pass fn to trigger the action. */
     download(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Download>;
-    /** Wait for a dialog. Optionally pass fn to trigger the action. */
+    /** Capture a dialog. Optionally pass fn to trigger the action. */
     dialog(fn?: () => Promise<void>, options?: { timeout?: number }): Promise<Dialog>;
-    /** Wait for a named event. Optionally pass fn to trigger the action. */
+    /** Capture a named event. Optionally pass fn to trigger the action. */
     event(name: string, fn?: () => Promise<void>, options?: { timeout?: number }): Promise<unknown>;
   };
 
@@ -760,8 +760,8 @@ export class Page {
     }
   }
 
-  /** @internal Wait for a request matching a URL pattern. */
-  _expectRequest(pattern: string, options?: { timeout?: number }): Promise<Request> {
+  /** @internal Capture a request matching a URL pattern. */
+  _captureRequest(pattern: string, options?: { timeout?: number }): Promise<Request> {
     const timeout = options?.timeout ?? 10000;
     return new Promise<Request>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -780,8 +780,8 @@ export class Page {
     });
   }
 
-  /** @internal Wait for a response matching a URL pattern. */
-  _expectResponse(pattern: string, options?: { timeout?: number }): Promise<Response> {
+  /** @internal Capture a response matching a URL pattern. */
+  _captureResponse(pattern: string, options?: { timeout?: number }): Promise<Response> {
     this.ensureDataCollector();
     const timeout = options?.timeout ?? 10000;
     return new Promise<Response>((resolve, reject) => {
@@ -801,8 +801,8 @@ export class Page {
     });
   }
 
-  /** @internal Wait for a navigation event. Resolves with the URL. */
-  _expectNavigation(options?: { timeout?: number }): Promise<string> {
+  /** @internal Capture a navigation event. Resolves with the URL. */
+  _captureNavigation(options?: { timeout?: number }): Promise<string> {
     const timeout = options?.timeout ?? 10000;
     return new Promise<string>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -819,8 +819,8 @@ export class Page {
     });
   }
 
-  /** @internal Wait for a download event. */
-  _expectDownload(options?: { timeout?: number }): Promise<Download> {
+  /** @internal Capture a download event. */
+  _captureDownload(options?: { timeout?: number }): Promise<Download> {
     const timeout = options?.timeout ?? 10000;
     return new Promise<Download>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -837,8 +837,8 @@ export class Page {
     });
   }
 
-  /** @internal Wait for a dialog event. The registered callback prevents auto-dismiss. */
-  _expectDialog(options?: { timeout?: number }): Promise<Dialog> {
+  /** @internal Capture a dialog event. The registered callback prevents auto-dismiss. */
+  _captureDialog(options?: { timeout?: number }): Promise<Dialog> {
     const timeout = options?.timeout ?? 10000;
     return new Promise<Dialog>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -855,8 +855,8 @@ export class Page {
     });
   }
 
-  /** @internal Wait for a named event. Maps event name to the appropriate callback array. */
-  _expectEvent(name: string, options?: { timeout?: number }): Promise<unknown> {
+  /** @internal Capture a named event. Maps event name to the appropriate callback array. */
+  _captureEvent(name: string, options?: { timeout?: number }): Promise<unknown> {
     const timeout = options?.timeout ?? 10000;
     return new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {

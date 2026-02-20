@@ -163,9 +163,9 @@ class Page:
     # --- Waiting ---
 
     @property
-    def expect(self) -> _SyncExpectNamespace:
-        """Expect namespace — set up a listener before performing an action."""
-        return _SyncExpectNamespace(self)
+    def capture(self) -> _SyncCaptureNamespace:
+        """Capture namespace — set up a listener before performing an action."""
+        return _SyncCaptureNamespace(self)
 
     @property
     def wait_until(self) -> _SyncWaitUntilNamespace:
@@ -504,8 +504,8 @@ class _SyncResponseData:
         return _json.loads(self._body)
 
 
-class _SyncExpectedResponse:
-    """Returned by expect.response(). Usable as context manager or direct call."""
+class _SyncCapturedResponse:
+    """Returned by capture.response(). Usable as context manager or direct call."""
 
     def __init__(self, page: Page, pattern: str, timeout: Optional[int] = None) -> None:
         self._page = page
@@ -514,9 +514,9 @@ class _SyncExpectedResponse:
         self._wait_coro: Any = None
         self.value: Optional[Dict[str, Any]] = None
 
-    def __enter__(self) -> _SyncExpectedResponse:
+    def __enter__(self) -> _SyncCapturedResponse:
         self._wait_coro = self._page._loop.run(
-            self._page._async._setup_expect_response(self._pattern, self._timeout)
+            self._page._async._setup_capture_response(self._pattern, self._timeout)
         )
         return self
 
@@ -527,8 +527,8 @@ class _SyncExpectedResponse:
             self.value = {"url": resp.url(), "status": resp.status(), "headers": resp.headers(), "body": body}
 
 
-class _SyncExpectedRequest:
-    """Returned by expect.request(). Usable as context manager or direct call."""
+class _SyncCapturedRequest:
+    """Returned by capture.request(). Usable as context manager or direct call."""
 
     def __init__(self, page: Page, pattern: str, timeout: Optional[int] = None) -> None:
         self._page = page
@@ -537,9 +537,9 @@ class _SyncExpectedRequest:
         self._wait_coro: Any = None
         self.value: Optional[Dict[str, Any]] = None
 
-    def __enter__(self) -> _SyncExpectedRequest:
+    def __enter__(self) -> _SyncCapturedRequest:
         self._wait_coro = self._page._loop.run(
-            self._page._async._setup_expect_request(self._pattern, self._timeout)
+            self._page._async._setup_capture_request(self._pattern, self._timeout)
         )
         return self
 
@@ -550,8 +550,8 @@ class _SyncExpectedRequest:
             self.value = {"url": req.url(), "method": req.method(), "headers": req.headers(), "post_data": post_data}
 
 
-class _SyncExpectedNavigation:
-    """Returned by expect.navigation(). Usable as context manager or direct call."""
+class _SyncCapturedNavigation:
+    """Returned by capture.navigation(). Usable as context manager or direct call."""
 
     def __init__(self, page: Page, timeout: Optional[int] = None) -> None:
         self._page = page
@@ -559,9 +559,9 @@ class _SyncExpectedNavigation:
         self._wait_coro: Any = None
         self.value: Optional[str] = None
 
-    def __enter__(self) -> _SyncExpectedNavigation:
+    def __enter__(self) -> _SyncCapturedNavigation:
         self._wait_coro = self._page._loop.run(
-            self._page._async._setup_expect_navigation(self._timeout)
+            self._page._async._setup_capture_navigation(self._timeout)
         )
         return self
 
@@ -570,8 +570,8 @@ class _SyncExpectedNavigation:
             self.value = self._page._loop.run(self._wait_coro)
 
 
-class _SyncExpectedDownload:
-    """Returned by expect.download(). Usable as context manager or direct call."""
+class _SyncCapturedDownload:
+    """Returned by capture.download(). Usable as context manager or direct call."""
 
     def __init__(self, page: Page, timeout: Optional[int] = None) -> None:
         self._page = page
@@ -579,9 +579,9 @@ class _SyncExpectedDownload:
         self._wait_coro: Any = None
         self.value: Optional[Dict[str, Any]] = None
 
-    def __enter__(self) -> _SyncExpectedDownload:
+    def __enter__(self) -> _SyncCapturedDownload:
         self._wait_coro = self._page._loop.run(
-            self._page._async._setup_expect_download(self._timeout)
+            self._page._async._setup_capture_download(self._timeout)
         )
         return self
 
@@ -591,8 +591,8 @@ class _SyncExpectedDownload:
             self.value = {"url": dl.url(), "suggested_filename": dl.suggested_filename()}
 
 
-class _SyncExpectedDialog:
-    """Returned by expect.dialog(). Usable as context manager or direct call."""
+class _SyncCapturedDialog:
+    """Returned by capture.dialog(). Usable as context manager or direct call."""
 
     def __init__(self, page: Page, timeout: Optional[int] = None) -> None:
         self._page = page
@@ -600,9 +600,9 @@ class _SyncExpectedDialog:
         self._wait_coro: Any = None
         self.value: Optional[Dict[str, Any]] = None
 
-    def __enter__(self) -> _SyncExpectedDialog:
+    def __enter__(self) -> _SyncCapturedDialog:
         self._wait_coro = self._page._loop.run(
-            self._page._async._setup_expect_dialog(self._timeout)
+            self._page._async._setup_capture_dialog(self._timeout)
         )
         return self
 
@@ -616,8 +616,8 @@ class _SyncExpectedDialog:
             }
 
 
-class _SyncExpectedEvent:
-    """Returned by expect.event(). Usable as context manager or direct call."""
+class _SyncCapturedEvent:
+    """Returned by capture.event(). Usable as context manager or direct call."""
 
     def __init__(self, page: Page, name: str, timeout: Optional[int] = None) -> None:
         self._page = page
@@ -626,9 +626,9 @@ class _SyncExpectedEvent:
         self._wait_coro: Any = None
         self.value: Any = None
 
-    def __enter__(self) -> _SyncExpectedEvent:
+    def __enter__(self) -> _SyncCapturedEvent:
         self._wait_coro = self._page._loop.run(
-            self._page._async._setup_expect_event(self._name, self._timeout)
+            self._page._async._setup_capture_event(self._name, self._timeout)
         )
         return self
 
@@ -637,13 +637,13 @@ class _SyncExpectedEvent:
             self.value = self._page._loop.run(self._wait_coro)
 
 
-class _SyncExpectNamespace:
-    """Namespace for expect methods on sync Page."""
+class _SyncCaptureNamespace:
+    """Namespace for capture methods on sync Page."""
 
     def __init__(self, page: Page) -> None:
         self._page = page
 
-    def response(self, pattern: str, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncExpectedResponse]:
+    def response(self, pattern: str, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncCapturedResponse]:
         """Wait for a response matching a URL pattern.
 
         With fn: sets up listener, runs fn, waits, returns dict.
@@ -651,15 +651,15 @@ class _SyncExpectNamespace:
         """
         if fn is not None:
             wait_coro = self._page._loop.run(
-                self._page._async._setup_expect_response(pattern, timeout)
+                self._page._async._setup_capture_response(pattern, timeout)
             )
             fn()
             resp = self._page._loop.run(wait_coro)
             body = self._page._loop.run(resp.body())
             return {"url": resp.url(), "status": resp.status(), "headers": resp.headers(), "body": body}
-        return _SyncExpectedResponse(self._page, pattern, timeout)
+        return _SyncCapturedResponse(self._page, pattern, timeout)
 
-    def request(self, pattern: str, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncExpectedRequest]:
+    def request(self, pattern: str, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncCapturedRequest]:
         """Wait for a request matching a URL pattern.
 
         With fn: sets up listener, runs fn, waits, returns dict.
@@ -667,40 +667,40 @@ class _SyncExpectNamespace:
         """
         if fn is not None:
             wait_coro = self._page._loop.run(
-                self._page._async._setup_expect_request(pattern, timeout)
+                self._page._async._setup_capture_request(pattern, timeout)
             )
             fn()
             req = self._page._loop.run(wait_coro)
             post_data = self._page._loop.run(req.post_data())
             return {"url": req.url(), "method": req.method(), "headers": req.headers(), "post_data": post_data}
-        return _SyncExpectedRequest(self._page, pattern, timeout)
+        return _SyncCapturedRequest(self._page, pattern, timeout)
 
-    def navigation(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[str, _SyncExpectedNavigation]:
+    def navigation(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[str, _SyncCapturedNavigation]:
         """Wait for a navigation event. Resolves with URL string."""
         if fn is not None:
             wait_coro = self._page._loop.run(
-                self._page._async._setup_expect_navigation(timeout)
+                self._page._async._setup_capture_navigation(timeout)
             )
             fn()
             return self._page._loop.run(wait_coro)
-        return _SyncExpectedNavigation(self._page, timeout)
+        return _SyncCapturedNavigation(self._page, timeout)
 
-    def download(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncExpectedDownload]:
+    def download(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncCapturedDownload]:
         """Wait for a download event."""
         if fn is not None:
             wait_coro = self._page._loop.run(
-                self._page._async._setup_expect_download(timeout)
+                self._page._async._setup_capture_download(timeout)
             )
             fn()
             dl = self._page._loop.run(wait_coro)
             return {"url": dl.url(), "suggested_filename": dl.suggested_filename()}
-        return _SyncExpectedDownload(self._page, timeout)
+        return _SyncCapturedDownload(self._page, timeout)
 
-    def dialog(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncExpectedDialog]:
+    def dialog(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncCapturedDialog]:
         """Wait for a dialog event."""
         if fn is not None:
             wait_coro = self._page._loop.run(
-                self._page._async._setup_expect_dialog(timeout)
+                self._page._async._setup_capture_dialog(timeout)
             )
             fn()
             dialog = self._page._loop.run(wait_coro)
@@ -709,17 +709,17 @@ class _SyncExpectNamespace:
                 "message": dialog.message(),
                 "default_value": dialog.default_value(),
             }
-        return _SyncExpectedDialog(self._page, timeout)
+        return _SyncCapturedDialog(self._page, timeout)
 
-    def event(self, name: str, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Any, _SyncExpectedEvent]:
+    def event(self, name: str, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Any, _SyncCapturedEvent]:
         """Wait for a named event."""
         if fn is not None:
             wait_coro = self._page._loop.run(
-                self._page._async._setup_expect_event(name, timeout)
+                self._page._async._setup_capture_event(name, timeout)
             )
             fn()
             return self._page._loop.run(wait_coro)
-        return _SyncExpectedEvent(self._page, name, timeout)
+        return _SyncCapturedEvent(self._page, name, timeout)
 
 
 class _SyncWaitUntilNamespace:
