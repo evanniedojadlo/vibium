@@ -8,7 +8,7 @@ description: Browser automation for AI agents. Use when the user needs to naviga
 The `vibium` CLI automates Chrome via the command line. The browser auto-launches on first use (daemon mode keeps it running between commands).
 
 ```
-vibium go <url> → vibium map → vibium click @e1 → vibium map
+vibium go <url> && vibium map && vibium click @e1 && vibium map
 ```
 
 ## Core Workflow
@@ -32,10 +32,23 @@ Run `vibium --help` (or the resolved path) to confirm. Use the resolved path for
 
 **Windows note:** Use forward slashes in paths (e.g. `./clicker/bin/vibium.exe`) and quote paths containing spaces.
 
+## Command Chaining
+
+Chain commands with `&&` to run them sequentially. The chain stops on first error:
+
+```sh
+vibium go https://example.com && vibium map && vibium click @e3 && vibium diff map
+```
+
+**When to chain:** Use `&&` for sequences that should happen back-to-back (navigate → interact → verify). Run commands separately when you need to inspect output between steps.
+
+**When NOT to chain:** Don't chain commands that depend on parsing the previous output (e.g. reading map output to decide what to click). Run those separately so you can analyze the result first.
+
 ## Commands
 
 ### Discovery
 - `vibium map` — map interactive elements with @refs (recommended before interacting)
+- `vibium map --selector "nav"` — scope map to elements within a CSS subtree
 - `vibium diff map` — compare current vs last map (see what changed)
 
 ### Navigation
@@ -51,6 +64,13 @@ Run `vibium --help` (or the resolved path) to confirm. Use the resolved path for
 - `vibium text "<selector>"` — get text of a specific element
 - `vibium html` — get page HTML (use `--outer` for outerHTML)
 - `vibium find "<selector>"` — element info (tag, text, bounding box)
+- `vibium find --text "Sign In"` — find element by text content
+- `vibium find --label "Email"` — find input by label
+- `vibium find --placeholder "Search"` — find by placeholder
+- `vibium find --testid "submit-btn"` — find by data-testid
+- `vibium find --xpath "//div[@class]"` — find by XPath
+- `vibium find --alt "Logo"` — find by alt attribute
+- `vibium find --title "Settings"` — find by title attribute
 - `vibium find-all "<selector>"` — all matching elements (`--limit N`)
 - `vibium find-by-role` — find element by ARIA role/name (`--role`, `--name`, `--selector`, `--timeout`)
 - `vibium eval "<js>"` — run JavaScript and print result (`--stdin` to read from stdin)
@@ -151,6 +171,157 @@ Run `vibium --help` (or the resolved path) to confirm. Use the resolved path for
 - `vibium daemon status` — check if running
 - `vibium daemon stop` — stop daemon
 
+## Common Patterns
+
+### Ref-based workflow (recommended for AI)
+```sh
+vibium go https://example.com
+vibium map
+vibium click @e1
+vibium map  # re-map after interaction
+```
+
+### Verify action worked
+```sh
+vibium map
+vibium click @e3
+vibium diff map  # see what changed
+```
+
+### Read a page
+```sh
+vibium go https://example.com && vibium text
+```
+
+### Fill a form (end-to-end)
+```sh
+vibium go https://example.com/login
+vibium map
+# Look at map output to identify form fields
+vibium fill @e1 "user@example.com"
+vibium fill @e2 "secret"
+vibium click @e3
+vibium wait-for-url "/dashboard"
+vibium screenshot -o after-login.png
+```
+
+### Scoped map (large pages)
+```sh
+vibium map --selector "nav"        # Only map elements in <nav>
+vibium map --selector "#sidebar"   # Only map elements in #sidebar
+vibium map --selector "form"       # Only map form controls
+```
+
+### Semantic find (no CSS selectors needed)
+```sh
+vibium find --text "Sign In"           # Find by visible text
+vibium find --label "Email"            # Find input by its label
+vibium find --placeholder "Search..."  # Find by placeholder
+vibium find --testid "submit-btn"      # Find by data-testid
+vibium find --alt "Company logo"       # Find by alt attribute
+vibium find --title "Close"            # Find by title attribute
+vibium find --xpath "//a[@href='/about']"  # Find by XPath
+```
+
+### Authentication with state persistence
+```sh
+# Log in once and save state
+vibium go https://app.example.com/login
+vibium fill "input[name=email]" "user@example.com"
+vibium fill "input[name=password]" "secret"
+vibium click "button[type=submit]"
+vibium wait-for-url "/dashboard"
+vibium storage-state -o auth.json
+
+# Restore in a later session (skips login)
+vibium restore-storage auth.json
+vibium go https://app.example.com/dashboard
+```
+
+### Extract structured data
+```sh
+vibium go https://example.com
+vibium eval "JSON.stringify([...document.querySelectorAll('a')].map(a => ({text: a.textContent.trim(), href: a.href})))"
+```
+
+### Check page structure without rendering
+```sh
+vibium go https://example.com && vibium a11y-tree
+```
+
+### Multi-tab workflow
+```sh
+vibium tab-new https://docs.example.com
+vibium text "h1"
+vibium tab-switch 0
+```
+
+### Annotated screenshot
+```sh
+vibium screenshot -o annotated.png --annotate
+```
+
+### Inspect an element
+```sh
+vibium attr "a" "href"
+vibium value "input[name=email]"
+vibium is-visible ".modal"
+```
+
+### Save as PDF
+```sh
+vibium go https://example.com && vibium pdf -o page.pdf
+```
+
+## Eval / JavaScript
+
+`vibium eval` is the escape hatch for any DOM query or mutation the CLI doesn't cover directly.
+
+**Simple expressions** — use single quotes:
+```sh
+vibium eval 'document.title'
+vibium eval 'document.querySelectorAll("li").length'
+```
+
+**Complex scripts** — use `--stdin` with a heredoc:
+```sh
+vibium eval --stdin <<'EOF'
+const rows = [...document.querySelectorAll('table tbody tr')];
+JSON.stringify(rows.map(r => {
+  const cells = r.querySelectorAll('td');
+  return { name: cells[0].textContent.trim(), price: cells[1].textContent.trim() };
+}));
+EOF
+```
+
+**JSON output** — use `--json` to get machine-readable output:
+```sh
+vibium eval --json 'JSON.stringify({url: location.href, title: document.title})'
+```
+
+**Important:** `eval` returns the expression result. If your script doesn't return a value, you'll get `null`. Always make sure the last expression evaluates to the data you want.
+
+## Timeouts and Waiting
+
+All interaction commands (`click`, `fill`, `type`, etc.) auto-wait for the target element to be actionable. You usually don't need explicit waits.
+
+Use explicit waits when:
+- **Waiting for navigation:** `vibium wait-for-url "/dashboard"` — after clicking a link that navigates
+- **Waiting for content:** `vibium wait-for-text "Success"` — after form submission, wait for confirmation
+- **Waiting for element:** `vibium wait ".modal"` — wait for a modal to appear
+- **Waiting for page load:** `vibium wait-for-load` — after navigation to a slow page
+- **Waiting for JS condition:** `vibium wait-for-fn "window.appReady === true"` — wait for app initialization
+- **Fixed delay (last resort):** `vibium sleep 2000` — only when no better signal exists (max 30s)
+
+All wait commands accept `--timeout <ms>` (default varies by command).
+
+## Ref Lifecycle
+
+Refs (`@e1`, `@e2`) are invalidated when the page changes. Always re-map after:
+- Clicking links or buttons that navigate
+- Form submissions
+- Dynamic content loading (dropdowns, modals)
+
 ## Global Flags
 
 | Flag | Description |
@@ -168,92 +339,19 @@ By default, commands connect to a **daemon** — a background process that keeps
 
 Use `--oneshot` (or `VIBIUM_ONESHOT=1`) to launch a fresh browser for each command, then tear it down. Useful for CI or one-off scripts.
 
-## Common Patterns
-
-**Ref-based workflow (recommended for AI):**
-```sh
-vibium go https://example.com
-vibium map
-vibium click @e1
-vibium map  # re-map after interaction
-```
-
-**Verify action worked:**
-```sh
-vibium map
-vibium click @e3
-vibium diff map  # see what changed
-```
-
-**Read a page:**
-```sh
-vibium go https://example.com
-vibium text
-```
-
-**Fill a form:**
-```sh
-vibium go https://example.com/login
-vibium fill "input[name=email]" "user@example.com"
-vibium fill "input[name=password]" "secret"
-vibium click "button[type=submit]"
-vibium wait-for-url "/dashboard"
-```
-
-**Check page structure without rendering:**
-```sh
-vibium go https://example.com
-vibium a11y-tree
-```
-
-**Extract structured data:**
-```sh
-vibium go https://example.com
-vibium eval "JSON.stringify([...document.querySelectorAll('a')].map(a => a.href))"
-```
-
-**Save as PDF:**
-```sh
-vibium go https://example.com
-vibium pdf -o page.pdf
-```
-
-**Annotated screenshot:**
-```sh
-vibium screenshot -o annotated.png --annotate
-```
-
-**Inspect an element:**
-```sh
-vibium attr "a" "href"
-vibium value "input[name=email]"
-vibium is-visible ".modal"
-```
-
-**Multi-tab workflow:**
-```sh
-vibium tab-new https://docs.example.com
-vibium text "h1"
-vibium tab-switch 0
-```
-
-## Ref Lifecycle
-
-Refs (`@e1`, `@e2`) are invalidated when the page changes. Always re-map after:
-- Clicking links or buttons that navigate
-- Form submissions
-- Dynamic content loading (dropdowns, modals)
-
 ## Tips
 
 - All click/type/hover/fill actions auto-wait for the element to be actionable
 - All selector arguments also accept `@ref` from `vibium map`
 - Use `vibium map` before interacting to discover interactive elements
+- Use `vibium map --selector` to reduce noise on large pages
 - Use `vibium fill` to replace a field's value, `vibium type` to append to it
-- Use `vibium find` to inspect an element before interacting
-- Use `vibium find-by-role` for semantic element lookup (more reliable than CSS selectors)
+- Use `vibium find --text` / `--label` / `--testid` for semantic element lookup (more reliable than CSS selectors)
+- Use `vibium find-by-role` for ARIA-role-based lookup
 - Use `vibium a11y-tree` to understand page structure without visual rendering
 - Use `vibium text "<selector>"` to read specific sections
+- Use `vibium diff map` after interactions to see what changed
 - `vibium eval` is the escape hatch for complex DOM queries
 - `vibium check`/`vibium uncheck` are idempotent — safe to call without checking state first
 - Screenshots save to the current directory by default (`-o` to change)
+- Use `vibium storage-state` / `vibium restore-storage` to persist auth across sessions
