@@ -22,6 +22,7 @@ type TracingStartOptions struct {
 	Snapshots   bool   `json:"snapshots"`
 	Sources     bool   `json:"sources"`
 	Title       string `json:"title"`
+	Bidi        bool   `json:"bidi"`
 }
 
 // traceEvent is a generic trace event stored as a JSON-friendly map.
@@ -31,15 +32,16 @@ type traceEvent = map[string]interface{}
 // It collects events, screenshots, and DOM snapshots, then packages
 // them into a Playwright-compatible trace zip.
 type TraceRecorder struct {
-	mu         sync.Mutex
-	recording  bool
-	options    TracingStartOptions
-	events     []traceEvent      // current chunk's trace events
-	network    []traceEvent      // current chunk's network events
-	resources  map[string][]byte // sha1 hex -> binary data (PNG/HTML)
-	groupStack []string          // nested group names
-	chunkIndex int
-	startTime  int64 // unix ms
+	mu            sync.Mutex
+	recording     bool
+	options       TracingStartOptions
+	events        []traceEvent      // current chunk's trace events
+	network       []traceEvent      // current chunk's network events
+	resources     map[string][]byte // sha1 hex -> binary data (PNG/HTML)
+	groupStack    []string          // nested group names
+	chunkIndex    int
+	startTime     int64 // unix ms
+	actionCounter int   // monotonic counter for action/bidi callIds
 
 	// Screenshot goroutine control
 	screenshotStop chan struct{}
@@ -173,6 +175,161 @@ func (t *TraceRecorder) StopGroup() {
 	t.events = append(t.events, traceEvent{
 		"type":    "after",
 		"callId":  fmt.Sprintf("group-end@%d", len(t.events)),
+		"endTime": float64(time.Now().UnixMilli()),
+	})
+}
+
+// Options returns the current tracing options.
+func (t *TraceRecorder) Options() TracingStartOptions {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.options
+}
+
+// apiNameFromMethod maps a vibium: method to (class, apiName) for trace display.
+func apiNameFromMethod(method string) (string, string) {
+	// Strip the "vibium:" prefix
+	if len(method) <= 7 || method[:7] != "vibium:" {
+		return "Vibium", method
+	}
+	name := method[7:] // e.g. "click", "page.navigate", "el.text"
+
+	switch {
+	// Element interaction: click, dblclick, fill, type, press, clear, check, uncheck, selectOption, hover, focus, dragTo, tap, scrollIntoView, dispatchEvent
+	case name == "click" || name == "dblclick" || name == "fill" || name == "type" ||
+		name == "press" || name == "clear" || name == "check" || name == "uncheck" ||
+		name == "selectOption" || name == "hover" || name == "focus" || name == "dragTo" ||
+		name == "tap" || name == "scrollIntoView" || name == "dispatchEvent":
+		return "Element", "Element." + name
+
+	// Element finding: find, findAll
+	case name == "find" || name == "findAll":
+		return "Page", "Page." + name
+
+	// Element state: el.*
+	case len(name) > 3 && name[:3] == "el.":
+		return "Element", "Element." + name[3:]
+
+	// Page commands: page.*
+	case len(name) > 5 && name[:5] == "page.":
+		return "Page", "Page." + name[5:]
+
+	// Browser commands: browser.*
+	case len(name) > 8 && name[:8] == "browser.":
+		return "Browser", "Browser." + name[8:]
+
+	// Context commands: context.*
+	case len(name) > 8 && name[:8] == "context.":
+		return "BrowserContext", "BrowserContext." + name[8:]
+
+	// Keyboard: keyboard.*
+	case len(name) > 9 && name[:9] == "keyboard.":
+		return "Page", "Page." + name
+
+	// Mouse: mouse.*
+	case len(name) > 6 && name[:6] == "mouse.":
+		return "Page", "Page." + name
+
+	// Touch: touch.*
+	case len(name) > 6 && name[:6] == "touch.":
+		return "Page", "Page." + name
+
+	// Network: network.*
+	case len(name) > 8 && name[:8] == "network.":
+		return "Network", "Network." + name[8:]
+
+	// Dialog: dialog.*
+	case len(name) > 7 && name[:7] == "dialog.":
+		return "Dialog", "Dialog." + name[7:]
+
+	// Clock: clock.*
+	case len(name) > 6 && name[:6] == "clock.":
+		return "Clock", "Clock." + name[6:]
+
+	// Download: download.*
+	case len(name) > 9 && name[:9] == "download.":
+		return "Download", "Download." + name[9:]
+
+	default:
+		return "Vibium", name
+	}
+}
+
+// RecordAction records a vibium command as an action marker in the trace.
+func (t *TraceRecorder) RecordAction(method string, params map[string]interface{}) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if !t.recording {
+		return
+	}
+
+	class, apiName := apiNameFromMethod(method)
+	t.actionCounter++
+	now := float64(time.Now().UnixMilli())
+	t.events = append(t.events, traceEvent{
+		"type":      "before",
+		"callId":    fmt.Sprintf("action@%d", t.actionCounter),
+		"apiName":   apiName,
+		"class":     class,
+		"method":    method,
+		"params":    params,
+		"wallTime":  now,
+		"startTime": now,
+	})
+}
+
+// RecordActionEnd records the end of a vibium command action in the trace.
+func (t *TraceRecorder) RecordActionEnd() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if !t.recording {
+		return
+	}
+
+	t.events = append(t.events, traceEvent{
+		"type":    "after",
+		"callId":  fmt.Sprintf("action-end@%d", t.actionCounter),
+		"endTime": float64(time.Now().UnixMilli()),
+	})
+}
+
+// RecordBidiCommand records a raw BiDi command sent to the browser (opt-in via bidi: true).
+func (t *TraceRecorder) RecordBidiCommand(method string, params map[string]interface{}) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if !t.recording {
+		return
+	}
+
+	t.actionCounter++
+	now := float64(time.Now().UnixMilli())
+	t.events = append(t.events, traceEvent{
+		"type":      "before",
+		"callId":    fmt.Sprintf("bidi@%d", t.actionCounter),
+		"apiName":   method,
+		"class":     "BiDi",
+		"method":    method,
+		"params":    params,
+		"wallTime":  now,
+		"startTime": now,
+	})
+}
+
+// RecordBidiCommandEnd records the end of a BiDi command in the trace.
+func (t *TraceRecorder) RecordBidiCommandEnd() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if !t.recording {
+		return
+	}
+
+	t.events = append(t.events, traceEvent{
+		"type":    "after",
+		"callId":  fmt.Sprintf("bidi-end@%d", t.actionCounter),
 		"endTime": float64(time.Now().UnixMilli()),
 	})
 }

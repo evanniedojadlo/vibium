@@ -26,6 +26,9 @@ func (r *Router) handleTracingStart(session *BrowserSession, cmd bidiCommand) {
 	if src, ok := cmd.Params["sources"].(bool); ok {
 		opts.Sources = src
 	}
+	if b, ok := cmd.Params["bidi"].(bool); ok {
+		opts.Bidi = b
+	}
 
 	// Create and start the trace recorder
 	recorder := NewTraceRecorder()

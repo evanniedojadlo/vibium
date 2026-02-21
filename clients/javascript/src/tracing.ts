@@ -6,6 +6,7 @@ export interface TracingStartOptions {
   snapshots?: boolean;
   sources?: boolean;
   title?: string;
+  bidi?: boolean;
 }
 
 export interface TracingStopOptions {

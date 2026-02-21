@@ -29,6 +29,7 @@ func newTraceCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			screenshots, _ := cmd.Flags().GetBool("screenshots")
 			snapshots, _ := cmd.Flags().GetBool("snapshots")
+			bidi, _ := cmd.Flags().GetBool("bidi")
 			name, _ := cmd.Flags().GetString("name")
 
 			if !oneshot {
@@ -41,6 +42,9 @@ func newTraceCmd() *cobra.Command {
 				}
 				if snapshots {
 					callArgs["snapshots"] = true
+				}
+				if bidi {
+					callArgs["bidi"] = true
 				}
 				result, err := daemonCall("browser_trace_start", callArgs)
 				if err != nil {
@@ -57,6 +61,7 @@ func newTraceCmd() *cobra.Command {
 	}
 	startCmd.Flags().Bool("screenshots", false, "Capture screenshots periodically")
 	startCmd.Flags().Bool("snapshots", false, "Capture HTML snapshots")
+	startCmd.Flags().Bool("bidi", false, "Record raw BiDi commands in the trace")
 	startCmd.Flags().String("name", "", "Name for the trace")
 
 	stopCmd := &cobra.Command{

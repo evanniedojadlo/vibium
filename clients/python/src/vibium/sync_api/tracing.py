@@ -23,9 +23,11 @@ class Tracing:
         snapshots: Optional[bool] = None,
         sources: Optional[bool] = None,
         title: Optional[str] = None,
+        bidi: Optional[bool] = None,
     ) -> None:
         self._loop.run(self._async.start(name=name, screenshots=screenshots,
-                                          snapshots=snapshots, sources=sources, title=title))
+                                          snapshots=snapshots, sources=sources,
+                                          title=title, bidi=bidi))
 
     def stop(self, path: Optional[str] = None) -> bytes:
         return self._loop.run(self._async.stop(path=path))

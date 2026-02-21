@@ -23,6 +23,7 @@ class Tracing:
         snapshots: Optional[bool] = None,
         sources: Optional[bool] = None,
         title: Optional[str] = None,
+        bidi: Optional[bool] = None,
     ) -> None:
         """Start trace recording."""
         params: Dict[str, Any] = {"userContext": self._user_context_id}
@@ -36,6 +37,8 @@ class Tracing:
             params["sources"] = sources
         if title is not None:
             params["title"] = title
+        if bidi is not None:
+            params["bidi"] = bidi
         await self._client.send("vibium:tracing.start", params)
 
     async def stop(self, path: Optional[str] = None) -> bytes:

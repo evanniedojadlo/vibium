@@ -2,7 +2,7 @@
 
 ## What Tracing Does
 
-Tracing captures a timeline of everything that happens during a browser session — screenshots, network requests, DOM snapshots, and action groups — and packages it into a single zip file. The output is compatible with Playwright's trace viewer (`npx playwright show-trace trace.zip`).
+Tracing captures a timeline of everything that happens during a browser session — screenshots, network requests, DOM snapshots, and action groups — and packages it into a single zip file.
 
 ## Zip Structure
 
@@ -64,14 +64,58 @@ When `screenshots: true` is set, a background goroutine captures a screenshot ev
 
 Captured once when `stop()` or `stopChunk()` is called (if `snapshots: true`).
 
-**`before`** / **`after`** — Action group boundaries from `startGroup()` / `stopGroup()`.
+**`before`** / **`after`** — Paired markers that bracket an operation. There are three kinds: actions, action groups, and BiDi commands.
+
+#### Actions (auto-recorded)
+
+Every vibium command emits a `before`/`after` pair automatically — both mutations (`click`, `fill`, `navigate`) and read-only queries (`text`, `isVisible`, `getAttribute`). This matches Playwright's behavior of recording all SDK calls.
+
+```json
+{"type":"before","callId":"action@1","apiName":"Page.navigate","class":"Page","method":"vibium:page.navigate","params":{"url":"https://example.com"},"wallTime":1708000000300,"startTime":1708000000300}
+{"type":"after","callId":"action-end@1","endTime":1708000000400}
+{"type":"before","callId":"action@2","apiName":"Element.click","class":"Element","method":"vibium:click","params":{"selector":"#login"},"wallTime":1708000000500,"startTime":1708000000500}
+{"type":"after","callId":"action-end@2","endTime":1708000000600}
+{"type":"before","callId":"action@3","apiName":"Element.text","class":"Element","method":"vibium:el.text","params":{"selector":".result"},"wallTime":1708000000700,"startTime":1708000000700}
+{"type":"after","callId":"action-end@3","endTime":1708000000750}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `callId` | string | `action@<N>` for the start, `action-end@<N>` for the end. `N` is a monotonic counter shared across actions and BiDi commands. |
+| `apiName` | string | Human-readable name like `Element.click`, `Page.navigate`, `Element.text`. Derived from the vibium method by `apiNameFromMethod()`. |
+| `class` | string | `Element`, `Page`, `Browser`, `BrowserContext`, `Network`, `Dialog`, etc. |
+| `method` | string | The raw vibium method (e.g., `vibium:click`, `vibium:el.text`). |
+| `params` | object | The command parameters as sent by the client. |
+
+The `dispatch()` wrapper in the router records these markers — every vibium command that goes through `dispatch()` gets traced. Tracing commands themselves (`tracing.start`, `tracing.stop`, etc.) are excluded since they control tracing.
+
+#### Action groups (user-defined)
+
+Groups are named spans from `startGroup()` / `stopGroup()`. They wrap multiple actions under a single label in the timeline.
 
 ```json
 {"type":"before","callId":"group@3","apiName":"login flow","class":"Tracing","method":"group","params":{"name":"login flow"},"wallTime":1708000000300,"startTime":1708000000300}
 {"type":"after","callId":"group-end@7","endTime":1708000000500}
 ```
 
-Groups are nestable. The `callId` is a synthetic identifier (`group@<index>` / `group-end@<index>`) based on the event's position in the trace.
+Groups are nestable. The `callId` is `group@<index>` / `group-end@<index>` where `<index>` is the event's position in the trace array.
+
+#### BiDi commands (opt-in)
+
+When tracing is started with `bidi: true`, every raw BiDi command sent to the browser via `sendInternalCommand` is also recorded. This is useful for debugging low-level protocol issues.
+
+```json
+{"type":"before","callId":"bidi@4","apiName":"browsingContext.navigate","class":"BiDi","method":"browsingContext.navigate","params":{"context":"ABC123","url":"https://example.com"},"wallTime":1708000000350,"startTime":1708000000350}
+{"type":"after","callId":"bidi-end@4","endTime":1708000000390}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `callId` | string | `bidi@<N>` / `bidi-end@<N>`. Shares the same monotonic counter as actions. |
+| `apiName` | string | The BiDi method name (e.g., `browsingContext.navigate`). |
+| `class` | string | Always `"BiDi"`. |
+
+BiDi markers nest inside action markers — a single vibium command (like `Page.navigate`) may produce several BiDi commands internally.
 
 **`event`** — A BiDi browser event (context creation, dialog, log entry, etc.) recorded as-is.
 
@@ -108,36 +152,53 @@ The file name is the full lowercase hex SHA1 hash of the content (e.g., `a1b2c3d
 
 ## How Recording Works
 
+### Session lifecycle
+
 ```
-JS Client                    Go Engine (proxy)                   Browser
-    │                              │                                │
-    │  vibium:tracing.start        │                                │
-    ├─────────────────────────────>│  Create TraceRecorder           │
-    │                              │  Start screenshot goroutine     │
-    │                              │        │                        │
-    │  vibium:page.navigate        │        │  captureScreenshot     │
-    ├─────────────────────────────>│        ├───────────────────────>│
-    │                              │        │<──── PNG base64 ──────│
-    │                              │        │  SHA1 → store in      │
-    │                              │        │  resources map         │
-    │                              │        │                        │
-    │                       routeBrowserToClient                     │
-    │                              │<──── BiDi events ──────────────│
-    │                              │  RecordBidiEvent()              │
-    │                              │  (network → .network,           │
-    │                              │   other → .trace)               │
-    │                              │                                 │
-    │  vibium:tracing.stop         │                                 │
-    ├─────────────────────────────>│  Stop screenshot goroutine      │
-    │                              │  Capture final DOM snapshot     │
-    │                              │  Build zip from:                │
-    │                              │    events → <n>-trace.trace     │
-    │                              │    network → <n>-trace.network  │
-    │                              │    resources → resources/       │
-    │<──── zip (base64 or file) ──│                                 │
+Client                       Proxy                            Browser
+  │                            │                                 │
+  │  tracing.start             │                                 │
+  ├───────────────────────────>│  Create TraceRecorder           │
+  │                            │  Start screenshot goroutine     │
+  │                            │                                 │
+  │  page.navigate, click, …   │                                 │
+  ├───────────────────────────>│  dispatch() (see below)         │
+  │                            │                                 │
+  │                            │<─── BiDi events ────────────────│
+  │                            │  RecordBidiEvent()              │
+  │                            │  (network → .network,           │
+  │                            │   other → .trace)               │
+  │                            │                                 │
+  │  tracing.stop              │                                 │
+  ├───────────────────────────>│  Stop screenshot goroutine      │
+  │                            │  Capture final DOM snapshot     │
+  │                            │  Build zip                      │
+  │<──── zip (base64 or file) ─│                                 │
 ```
 
-The trace recorder hooks into the existing `routeBrowserToClient` message loop. Every BiDi event from the browser passes through this function — the recorder gets a copy before the event is forwarded to the JS client. This means tracing adds no extra browser round-trips for event collection; only the periodic screenshot captures generate additional traffic.
+### Inside `dispatch()` for a single command
+
+```
+dispatch(session, cmd, handler)
+  │
+  ├── RecordAction(method, params)       // before marker
+  │
+  │   handler(session, cmd)
+  │     │
+  │     ├── sendInternalCommand ────────────────> Browser
+  │     │   ├── [if bidi: true] RecordBidiCommand()
+  │     │   │   ···wait for response···
+  │     │   └── [if bidi: true] RecordBidiCommandEnd()
+  │     │
+  │     ├── sendInternalCommand ────────────────> Browser
+  │     │   └── (same pattern, one per BiDi call)
+  │     │
+  │     └── sendSuccess / sendError
+  │
+  └── RecordActionEnd()                  // after marker
+```
+
+The `dispatch()` wrapper records action markers around every vibium command handler. Inside the handler, `sendInternalCommand` optionally records BiDi command markers when `bidi: true` was passed to `tracing.start`. The `routeBrowserToClient` loop independently records BiDi *events* (browser-initiated messages like context creation, network activity, log entries) — these are passive observations that require no extra round-trips. Only the periodic screenshot captures generate additional traffic.
 
 ## Chunks vs. Single Trace
 
@@ -160,8 +221,9 @@ Each chunk gets its own `context-options` header and chunk index. Resources (scr
 
 ## Viewing Traces
 
-```bash
-npx playwright show-trace trace.zip
-```
+Open a trace in [Vibium Trace](https://trace.vibium.dev):
 
-The Playwright trace viewer reads the zip and renders a timeline with screenshots, actions, network waterfall, and DOM snapshots. Vibium traces include screenshots and network data; the action timeline shows group markers from `startGroup()`/`stopGroup()`.
+1. Go to [trace.vibium.dev](https://trace.vibium.dev)
+2. Drop your `trace.zip` file onto the page
+
+The viewer renders a timeline with screenshots, actions, network waterfall, and DOM snapshots. Every vibium command appears as an individual action in the timeline (e.g., `Page.navigate`, `Element.click`, `Element.text`). Action groups from `startGroup()`/`stopGroup()` appear as labeled spans that wrap multiple actions. With `bidi: true`, raw BiDi commands are also visible as nested entries within their parent actions.

@@ -140,6 +140,25 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 	}()
 }
 
+// vibiumHandler is the signature for vibium: extension command handlers.
+type vibiumHandler func(*BrowserSession, bidiCommand)
+
+// dispatch wraps a vibium handler with automatic action tracing.
+func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibiumHandler) {
+	go func() {
+		session.mu.Lock()
+		recorder := session.traceRecorder
+		session.mu.Unlock()
+
+		if recorder != nil && recorder.IsRecording() {
+			recorder.RecordAction(cmd.Method, cmd.Params)
+			defer recorder.RecordActionEnd()
+		}
+
+		handler(session, cmd)
+	}()
+}
+
 // OnClientMessage is called when a message is received from a client.
 // It handles custom vibium: extension commands or forwards to the browser.
 func (r *Router) OnClientMessage(client *ClientConn, msg string) {
@@ -172,331 +191,331 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	switch cmd.Method {
 	// Element interaction commands
 	case "vibium:click":
-		go r.handleVibiumClick(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumClick)
 		return
 	case "vibium:dblclick":
-		go r.handleVibiumDblclick(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumDblclick)
 		return
 	case "vibium:fill":
-		go r.handleVibiumFill(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumFill)
 		return
 	case "vibium:type":
-		go r.handleVibiumType(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumType)
 		return
 	case "vibium:press":
-		go r.handleVibiumPress(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumPress)
 		return
 	case "vibium:clear":
-		go r.handleVibiumClear(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumClear)
 		return
 	case "vibium:check":
-		go r.handleVibiumCheck(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumCheck)
 		return
 	case "vibium:uncheck":
-		go r.handleVibiumUncheck(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumUncheck)
 		return
 	case "vibium:selectOption":
-		go r.handleVibiumSelectOption(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumSelectOption)
 		return
 	case "vibium:hover":
-		go r.handleVibiumHover(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumHover)
 		return
 	case "vibium:focus":
-		go r.handleVibiumFocus(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumFocus)
 		return
 	case "vibium:dragTo":
-		go r.handleVibiumDragTo(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumDragTo)
 		return
 	case "vibium:tap":
-		go r.handleVibiumTap(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumTap)
 		return
 	case "vibium:scrollIntoView":
-		go r.handleVibiumScrollIntoView(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumScrollIntoView)
 		return
 	case "vibium:dispatchEvent":
-		go r.handleVibiumDispatchEvent(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumDispatchEvent)
 		return
 
 	// Element finding commands
 	case "vibium:find":
-		go r.handleVibiumFind(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumFind)
 		return
 	case "vibium:findAll":
-		go r.handleVibiumFindAll(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumFindAll)
 		return
 
 	// Element state commands
 	case "vibium:el.text":
-		go r.handleVibiumElText(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElText)
 		return
 	case "vibium:el.innerText":
-		go r.handleVibiumElInnerText(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElInnerText)
 		return
 	case "vibium:el.html":
-		go r.handleVibiumElHTML(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElHTML)
 		return
 	case "vibium:el.value":
-		go r.handleVibiumElValue(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElValue)
 		return
 	case "vibium:el.attr":
-		go r.handleVibiumElAttr(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElAttr)
 		return
 	case "vibium:el.bounds":
-		go r.handleVibiumElBounds(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElBounds)
 		return
 	case "vibium:el.isVisible":
-		go r.handleVibiumElIsVisible(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElIsVisible)
 		return
 	case "vibium:el.isHidden":
-		go r.handleVibiumElIsHidden(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElIsHidden)
 		return
 	case "vibium:el.isEnabled":
-		go r.handleVibiumElIsEnabled(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElIsEnabled)
 		return
 	case "vibium:el.isChecked":
-		go r.handleVibiumElIsChecked(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElIsChecked)
 		return
 	case "vibium:el.isEditable":
-		go r.handleVibiumElIsEditable(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElIsEditable)
 		return
 	case "vibium:el.eval":
-		go r.handleVibiumElEval(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElEval)
 		return
 	case "vibium:el.screenshot":
-		go r.handleVibiumElScreenshot(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElScreenshot)
 		return
 	case "vibium:el.waitFor":
-		go r.handleVibiumElWaitFor(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElWaitFor)
 		return
 
 	// Page-level input commands
 	case "vibium:keyboard.press":
-		go r.handleKeyboardPress(session, cmd)
+		r.dispatch(session, cmd, r.handleKeyboardPress)
 		return
 	case "vibium:keyboard.down":
-		go r.handleKeyboardDown(session, cmd)
+		r.dispatch(session, cmd, r.handleKeyboardDown)
 		return
 	case "vibium:keyboard.up":
-		go r.handleKeyboardUp(session, cmd)
+		r.dispatch(session, cmd, r.handleKeyboardUp)
 		return
 	case "vibium:keyboard.type":
-		go r.handleKeyboardType(session, cmd)
+		r.dispatch(session, cmd, r.handleKeyboardType)
 		return
 	case "vibium:mouse.click":
-		go r.handleMouseClick(session, cmd)
+		r.dispatch(session, cmd, r.handleMouseClick)
 		return
 	case "vibium:mouse.move":
-		go r.handleMouseMove(session, cmd)
+		r.dispatch(session, cmd, r.handleMouseMove)
 		return
 	case "vibium:mouse.down":
-		go r.handleMouseDown(session, cmd)
+		r.dispatch(session, cmd, r.handleMouseDown)
 		return
 	case "vibium:mouse.up":
-		go r.handleMouseUp(session, cmd)
+		r.dispatch(session, cmd, r.handleMouseUp)
 		return
 	case "vibium:mouse.wheel":
-		go r.handleMouseWheel(session, cmd)
+		r.dispatch(session, cmd, r.handleMouseWheel)
 		return
 	case "vibium:touch.tap":
-		go r.handleTouchTap(session, cmd)
+		r.dispatch(session, cmd, r.handleTouchTap)
 		return
 
 	// Page-level capture commands
 	case "vibium:page.screenshot":
-		go r.handlePageScreenshot(session, cmd)
+		r.dispatch(session, cmd, r.handlePageScreenshot)
 		return
 	case "vibium:page.pdf":
-		go r.handlePagePDF(session, cmd)
+		r.dispatch(session, cmd, r.handlePagePDF)
 		return
 
 	// Page-level evaluation commands
 	case "vibium:page.eval":
-		go r.handlePageEval(session, cmd)
+		r.dispatch(session, cmd, r.handlePageEval)
 		return
 	case "vibium:page.evalHandle":
-		go r.handlePageEvalHandle(session, cmd)
+		r.dispatch(session, cmd, r.handlePageEvalHandle)
 		return
 	case "vibium:page.addScript":
-		go r.handlePageAddScript(session, cmd)
+		r.dispatch(session, cmd, r.handlePageAddScript)
 		return
 	case "vibium:page.addStyle":
-		go r.handlePageAddStyle(session, cmd)
+		r.dispatch(session, cmd, r.handlePageAddStyle)
 		return
 	case "vibium:page.expose":
-		go r.handlePageExpose(session, cmd)
+		r.dispatch(session, cmd, r.handlePageExpose)
 		return
 
 	// Page-level waiting commands
 	case "vibium:page.waitFor":
-		go r.handlePageWaitFor(session, cmd)
+		r.dispatch(session, cmd, r.handlePageWaitFor)
 		return
 	case "vibium:page.wait":
-		go r.handlePageWait(session, cmd)
+		r.dispatch(session, cmd, r.handlePageWait)
 		return
 	case "vibium:page.waitForFunction":
-		go r.handlePageWaitForFunction(session, cmd)
+		r.dispatch(session, cmd, r.handlePageWaitForFunction)
 		return
 
 	// Navigation commands
 	case "vibium:page.navigate":
-		go r.handlePageNavigate(session, cmd)
+		r.dispatch(session, cmd, r.handlePageNavigate)
 		return
 	case "vibium:page.back":
-		go r.handlePageBack(session, cmd)
+		r.dispatch(session, cmd, r.handlePageBack)
 		return
 	case "vibium:page.forward":
-		go r.handlePageForward(session, cmd)
+		r.dispatch(session, cmd, r.handlePageForward)
 		return
 	case "vibium:page.reload":
-		go r.handlePageReload(session, cmd)
+		r.dispatch(session, cmd, r.handlePageReload)
 		return
 	case "vibium:page.url":
-		go r.handlePageURL(session, cmd)
+		r.dispatch(session, cmd, r.handlePageURL)
 		return
 	case "vibium:page.title":
-		go r.handlePageTitle(session, cmd)
+		r.dispatch(session, cmd, r.handlePageTitle)
 		return
 	case "vibium:page.content":
-		go r.handlePageContent(session, cmd)
+		r.dispatch(session, cmd, r.handlePageContent)
 		return
 	case "vibium:page.waitForURL":
-		go r.handlePageWaitForURL(session, cmd)
+		r.dispatch(session, cmd, r.handlePageWaitForURL)
 		return
 	case "vibium:page.waitForLoad":
-		go r.handlePageWaitForLoad(session, cmd)
+		r.dispatch(session, cmd, r.handlePageWaitForLoad)
 		return
 
 	// Page & context lifecycle commands
 	case "vibium:browser.page":
-		go r.handleBrowserPage(session, cmd)
+		r.dispatch(session, cmd, r.handleBrowserPage)
 		return
 	case "vibium:browser.newPage":
-		go r.handleBrowserNewPage(session, cmd)
+		r.dispatch(session, cmd, r.handleBrowserNewPage)
 		return
 	case "vibium:browser.newContext":
-		go r.handleBrowserNewContext(session, cmd)
+		r.dispatch(session, cmd, r.handleBrowserNewContext)
 		return
 	case "vibium:context.newPage":
-		go r.handleContextNewPage(session, cmd)
+		r.dispatch(session, cmd, r.handleContextNewPage)
 		return
 	case "vibium:browser.pages":
-		go r.handleBrowserPages(session, cmd)
+		r.dispatch(session, cmd, r.handleBrowserPages)
 		return
 	case "vibium:context.close":
-		go r.handleContextClose(session, cmd)
+		r.dispatch(session, cmd, r.handleContextClose)
 		return
 
 	// Cookie & storage commands
 	case "vibium:context.cookies":
-		go r.handleContextCookies(session, cmd)
+		r.dispatch(session, cmd, r.handleContextCookies)
 		return
 	case "vibium:context.setCookies":
-		go r.handleContextSetCookies(session, cmd)
+		r.dispatch(session, cmd, r.handleContextSetCookies)
 		return
 	case "vibium:context.clearCookies":
-		go r.handleContextClearCookies(session, cmd)
+		r.dispatch(session, cmd, r.handleContextClearCookies)
 		return
 	case "vibium:context.storageState":
-		go r.handleContextStorageState(session, cmd)
+		r.dispatch(session, cmd, r.handleContextStorageState)
 		return
 	case "vibium:context.addInitScript":
-		go r.handleContextAddInitScript(session, cmd)
+		r.dispatch(session, cmd, r.handleContextAddInitScript)
 		return
 
 	// Frame commands
 	case "vibium:page.frames":
-		go r.handlePageFrames(session, cmd)
+		r.dispatch(session, cmd, r.handlePageFrames)
 		return
 	case "vibium:page.frame":
-		go r.handlePageFrame(session, cmd)
+		r.dispatch(session, cmd, r.handlePageFrame)
 		return
 
 	// Emulation commands
 	case "vibium:page.setViewport":
-		go r.handlePageSetViewport(session, cmd)
+		r.dispatch(session, cmd, r.handlePageSetViewport)
 		return
 	case "vibium:page.viewport":
-		go r.handlePageViewport(session, cmd)
+		r.dispatch(session, cmd, r.handlePageViewport)
 		return
 	case "vibium:page.emulateMedia":
-		go r.handlePageEmulateMedia(session, cmd)
+		r.dispatch(session, cmd, r.handlePageEmulateMedia)
 		return
 	case "vibium:page.setContent":
-		go r.handlePageSetContent(session, cmd)
+		r.dispatch(session, cmd, r.handlePageSetContent)
 		return
 	case "vibium:page.setGeolocation":
-		go r.handlePageSetGeolocation(session, cmd)
+		r.dispatch(session, cmd, r.handlePageSetGeolocation)
 		return
 	case "vibium:page.setWindow":
-		go r.handlePageSetWindow(session, cmd)
+		r.dispatch(session, cmd, r.handlePageSetWindow)
 		return
 	case "vibium:page.window":
-		go r.handlePageWindow(session, cmd)
+		r.dispatch(session, cmd, r.handlePageWindow)
 		return
 
 	// Accessibility commands
 	case "vibium:page.a11yTree":
-		go r.handleVibiumPageA11yTree(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumPageA11yTree)
 		return
 	case "vibium:el.role":
-		go r.handleVibiumElRole(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElRole)
 		return
 	case "vibium:el.label":
-		go r.handleVibiumElLabel(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElLabel)
 		return
 
 	case "vibium:browser.close":
-		go r.handleBrowserClose(session, cmd)
+		r.dispatch(session, cmd, r.handleBrowserClose)
 		return
 	case "vibium:page.activate":
-		go r.handlePageActivate(session, cmd)
+		r.dispatch(session, cmd, r.handlePageActivate)
 		return
 	case "vibium:page.close":
-		go r.handlePageClose(session, cmd)
+		r.dispatch(session, cmd, r.handlePageClose)
 		return
 
 	// Network interception commands
 	case "vibium:page.route":
-		go r.handlePageRoute(session, cmd)
+		r.dispatch(session, cmd, r.handlePageRoute)
 		return
 	case "vibium:page.unroute":
-		go r.handlePageUnroute(session, cmd)
+		r.dispatch(session, cmd, r.handlePageUnroute)
 		return
 	case "vibium:network.continue":
-		go r.handleNetworkContinue(session, cmd)
+		r.dispatch(session, cmd, r.handleNetworkContinue)
 		return
 	case "vibium:network.fulfill":
-		go r.handleNetworkFulfill(session, cmd)
+		r.dispatch(session, cmd, r.handleNetworkFulfill)
 		return
 	case "vibium:network.abort":
-		go r.handleNetworkAbort(session, cmd)
+		r.dispatch(session, cmd, r.handleNetworkAbort)
 		return
 	case "vibium:page.setHeaders":
-		go r.handlePageSetHeaders(session, cmd)
+		r.dispatch(session, cmd, r.handlePageSetHeaders)
 		return
 
 	// Dialog commands
 	case "vibium:dialog.accept":
-		go r.handleDialogAccept(session, cmd)
+		r.dispatch(session, cmd, r.handleDialogAccept)
 		return
 	case "vibium:dialog.dismiss":
-		go r.handleDialogDismiss(session, cmd)
+		r.dispatch(session, cmd, r.handleDialogDismiss)
 		return
 
 	// WebSocket monitoring
 	case "vibium:page.onWebSocket":
-		go r.handlePageOnWebSocket(session, cmd)
+		r.dispatch(session, cmd, r.handlePageOnWebSocket)
 		return
 
 	// Download & file commands
 	case "vibium:download.saveAs":
-		go r.handleDownloadSaveAs(session, cmd)
+		r.dispatch(session, cmd, r.handleDownloadSaveAs)
 		return
 	case "vibium:el.setFiles":
-		go r.handleVibiumElSetFiles(session, cmd)
+		r.dispatch(session, cmd, r.handleVibiumElSetFiles)
 		return
 
-	// Tracing commands
+	// Tracing commands (not traced — they control tracing itself)
 	case "vibium:tracing.start":
 		go r.handleTracingStart(session, cmd)
 		return
@@ -518,28 +537,28 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 
 	// Clock commands
 	case "vibium:clock.install":
-		go r.handleClockInstall(session, cmd)
+		r.dispatch(session, cmd, r.handleClockInstall)
 		return
 	case "vibium:clock.fastForward":
-		go r.handleClockFastForward(session, cmd)
+		r.dispatch(session, cmd, r.handleClockFastForward)
 		return
 	case "vibium:clock.runFor":
-		go r.handleClockRunFor(session, cmd)
+		r.dispatch(session, cmd, r.handleClockRunFor)
 		return
 	case "vibium:clock.pauseAt":
-		go r.handleClockPauseAt(session, cmd)
+		r.dispatch(session, cmd, r.handleClockPauseAt)
 		return
 	case "vibium:clock.resume":
-		go r.handleClockResume(session, cmd)
+		r.dispatch(session, cmd, r.handleClockResume)
 		return
 	case "vibium:clock.setFixedTime":
-		go r.handleClockSetFixedTime(session, cmd)
+		r.dispatch(session, cmd, r.handleClockSetFixedTime)
 		return
 	case "vibium:clock.setSystemTime":
-		go r.handleClockSetSystemTime(session, cmd)
+		r.dispatch(session, cmd, r.handleClockSetSystemTime)
 		return
 	case "vibium:clock.setTimezone":
-		go r.handleClockSetTimezone(session, cmd)
+		r.dispatch(session, cmd, r.handleClockSetTimezone)
 		return
 	}
 
@@ -665,6 +684,15 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 
 // sendInternalCommand sends a BiDi command and waits for the response.
 func (r *Router) sendInternalCommand(session *BrowserSession, method string, params map[string]interface{}) (json.RawMessage, error) {
+	// Record BiDi command in trace (opt-in via bidi: true)
+	session.mu.Lock()
+	recorder := session.traceRecorder
+	session.mu.Unlock()
+	if recorder != nil && recorder.IsRecording() && recorder.Options().Bidi {
+		recorder.RecordBidiCommand(method, params)
+		defer recorder.RecordBidiCommandEnd()
+	}
+
 	session.internalCmdsMu.Lock()
 	id := session.nextInternalID
 	session.nextInternalID++

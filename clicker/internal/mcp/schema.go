@@ -1301,6 +1301,11 @@ func GetToolSchemas() []Tool {
 						"description": "Capture HTML snapshots (default: false)",
 						"default":     false,
 					},
+					"bidi": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Record raw BiDi commands in the trace (default: false)",
+						"default":     false,
+					},
 				},
 				"additionalProperties": false,
 			},
