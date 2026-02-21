@@ -2486,8 +2486,9 @@ func (h *Handlers) resolveSelector(selector string) string {
 }
 
 // mapScript returns the JS function that maps interactive elements with refs.
+// When a selector is provided, only elements within the matching subtree are returned.
 func mapScript() string {
-	return `() => {
+	return `(scopeSelector) => {
 		function getSelector(el) {
 			if (el.id) return '#' + CSS.escape(el.id);
 			const parts = [];
@@ -2544,7 +2545,9 @@ func mapScript() string {
 
 		const interactive = 'a[href], button, input, textarea, select, [role="button"], [role="link"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="switch"], [onclick], [tabindex]:not([tabindex="-1"]), summary, details';
 
-		const els = document.querySelectorAll(interactive);
+		const root = scopeSelector ? document.querySelector(scopeSelector) : document;
+		if (!root) return JSON.stringify([]);
+		const els = root.querySelectorAll(interactive);
 		const results = [];
 		const seen = new Set();
 
@@ -2569,7 +2572,11 @@ func (h *Handlers) browserMap(args map[string]interface{}) (*ToolsCallResult, er
 		return nil, err
 	}
 
-	result, err := h.client.CallFunction("", mapScript(), nil)
+	var scopeSelector interface{}
+	if sel, ok := args["selector"].(string); ok && sel != "" {
+		scopeSelector = sel
+	}
+	result, err := h.client.CallFunction("", mapScript(), []interface{}{scopeSelector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map elements: %w", err)
 	}

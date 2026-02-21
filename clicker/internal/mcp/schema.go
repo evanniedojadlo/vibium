@@ -757,8 +757,13 @@ func GetToolSchemas() []Tool {
 			Name:        "browser_map",
 			Description: "Map interactive page elements with @refs for targeting. Returns a list of interactive elements (buttons, links, inputs, etc.) each with a short @ref like @e1, @e2. Use these refs as selectors in other commands (click, fill, etc.).",
 			InputSchema: map[string]interface{}{
-				"type":                 "object",
-				"properties":           map[string]interface{}{},
+				"type": "object",
+				"properties": map[string]interface{}{
+					"selector": map[string]interface{}{
+						"type":        "string",
+						"description": "CSS selector to scope element discovery to a subtree (e.g. \"nav\", \"#sidebar\")",
+					},
+				},
 				"additionalProperties": false,
 			},
 		},
