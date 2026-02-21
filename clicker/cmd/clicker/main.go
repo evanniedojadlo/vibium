@@ -124,6 +124,8 @@ func main() {
 	rootCmd.AddCommand(newDragCmd())
 	rootCmd.AddCommand(newSetViewportCmd())
 	rootCmd.AddCommand(newViewportCmd())
+	rootCmd.AddCommand(newWindowCmd())
+	rootCmd.AddCommand(newSetWindowCmd())
 	rootCmd.AddCommand(newEmulateMediaCmd())
 	rootCmd.AddCommand(newSetGeolocationCmd())
 	rootCmd.AddCommand(newSetContentCmd())

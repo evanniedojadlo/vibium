@@ -2,9 +2,12 @@ package mcp
 
 import (
 	"archive/zip"
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -262,6 +265,10 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserSetViewport(args)
 	case "browser_get_viewport":
 		return h.browserGetViewport(args)
+	case "browser_get_window":
+		return h.browserGetWindow(args)
+	case "browser_set_window":
+		return h.browserSetWindow(args)
 	case "browser_emulate_media":
 		return h.browserEmulateMedia(args)
 	case "browser_set_geolocation":
@@ -3215,6 +3222,146 @@ func (h *Handlers) browserGetViewport(args map[string]interface{}) (*ToolsCallRe
 			Text: fmt.Sprintf("%v", result),
 		}},
 	}, nil
+}
+
+// browserGetWindow returns the OS browser window state and dimensions.
+// Uses BiDi browser.getClientWindows.
+func (h *Handlers) browserGetWindow(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	resp, err := h.client.SendCommand("browser.getClientWindows", map[string]interface{}{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get window: %w", err)
+	}
+
+	var getResult struct {
+		ClientWindows []struct {
+			State  string `json:"state"`
+			X      int    `json:"x"`
+			Y      int    `json:"y"`
+			Width  int    `json:"width"`
+			Height int    `json:"height"`
+		} `json:"clientWindows"`
+	}
+	if err := json.Unmarshal(resp.Result, &getResult); err != nil {
+		return nil, fmt.Errorf("failed to parse window info: %w", err)
+	}
+	if len(getResult.ClientWindows) == 0 {
+		return nil, fmt.Errorf("no client windows available")
+	}
+
+	win := getResult.ClientWindows[0]
+	result := map[string]interface{}{
+		"state":  win.State,
+		"x":      win.X,
+		"y":      win.Y,
+		"width":  win.Width,
+		"height": win.Height,
+	}
+
+	jsonBytes, _ := json.Marshal(result)
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: string(jsonBytes),
+		}},
+	}, nil
+}
+
+// browserSetWindow sets the OS browser window size, position, or state.
+// Uses chromedriver's classic WebDriver HTTP API.
+func (h *Handlers) browserSetWindow(args map[string]interface{}) (*ToolsCallResult, error) {
+	if err := h.ensureBrowser(); err != nil {
+		return nil, err
+	}
+
+	state, hasState := args["state"].(string)
+	width, hasWidth := args["width"].(float64)
+	height, hasHeight := args["height"].(float64)
+	x, hasX := args["x"].(float64)
+	y, hasY := args["y"].(float64)
+
+	baseURL := fmt.Sprintf("http://localhost:%d/session/%s/window", h.launchResult.Port, h.launchResult.SessionID)
+
+	// Handle named states (maximize, minimize, fullscreen) via dedicated endpoints
+	if hasState && state != "normal" {
+		endpoint := ""
+		switch state {
+		case "maximized":
+			endpoint = baseURL + "/maximize"
+		case "minimized":
+			endpoint = baseURL + "/minimize"
+		case "fullscreen":
+			endpoint = baseURL + "/fullscreen"
+		default:
+			return nil, fmt.Errorf("unsupported window state: %s", state)
+		}
+
+		if err := h.chromedriverPost(endpoint, map[string]interface{}{}); err != nil {
+			return nil, err
+		}
+		return &ToolsCallResult{
+			Content: []Content{{
+				Type: "text",
+				Text: fmt.Sprintf("Window state set to %s", state),
+			}},
+		}, nil
+	}
+
+	// For "normal" state or dimension changes, use /window/rect
+	rect := map[string]interface{}{}
+	if hasWidth {
+		rect["width"] = int(width)
+	}
+	if hasHeight {
+		rect["height"] = int(height)
+	}
+	if hasX {
+		rect["x"] = int(x)
+	}
+	if hasY {
+		rect["y"] = int(y)
+	}
+
+	if err := h.chromedriverPost(baseURL+"/rect", rect); err != nil {
+		return nil, err
+	}
+
+	msg := fmt.Sprintf("Window set to %dx%d", int(width), int(height))
+	if hasX && hasY {
+		msg += fmt.Sprintf(" at (%d, %d)", int(x), int(y))
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: msg,
+		}},
+	}, nil
+}
+
+// chromedriverPost sends a POST request to a chromedriver classic WebDriver endpoint.
+func (h *Handlers) chromedriverPost(url string, body map[string]interface{}) error {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("chromedriver request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("chromedriver error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
 }
 
 // browserEmulateMedia overrides CSS media features.

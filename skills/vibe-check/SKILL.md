@@ -106,6 +106,8 @@ Run `vibium --help` (or the resolved path) to confirm. Use the resolved path for
 ### Emulation
 - `vibium set-viewport <width> <height>` — set viewport size (`--dpr` for device pixel ratio)
 - `vibium viewport` — get current viewport dimensions
+- `vibium window` — get OS browser window dimensions and state
+- `vibium set-window <width> <height> [x] [y]` — set window size and position (`--state`)
 - `vibium emulate-media` — override CSS media features (`--color-scheme`, `--reduced-motion`, `--forced-colors`, `--contrast`, `--media`)
 - `vibium set-geolocation <lat> <lng>` — override geolocation (`--accuracy`)
 - `vibium set-content "<html>"` — replace page HTML (`--stdin` to read from stdin)

@@ -1087,6 +1087,46 @@ func GetToolSchemas() []Tool {
 			},
 		},
 		{
+			Name:        "browser_get_window",
+			Description: "Get the OS browser window dimensions and state",
+			InputSchema: map[string]interface{}{
+				"type":                 "object",
+				"properties":           map[string]interface{}{},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_set_window",
+			Description: "Set the OS browser window size, position, or state",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"width": map[string]interface{}{
+						"type":        "number",
+						"description": "Window width in pixels",
+					},
+					"height": map[string]interface{}{
+						"type":        "number",
+						"description": "Window height in pixels",
+					},
+					"x": map[string]interface{}{
+						"type":        "number",
+						"description": "Window x position in pixels",
+					},
+					"y": map[string]interface{}{
+						"type":        "number",
+						"description": "Window y position in pixels",
+					},
+					"state": map[string]interface{}{
+						"type":        "string",
+						"description": "Window state: normal, maximized, minimized, or fullscreen",
+						"enum":        []string{"normal", "maximized", "minimized", "fullscreen"},
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
 			Name:        "browser_emulate_media",
 			Description: "Override CSS media features (color scheme, reduced motion, etc.)",
 			InputSchema: map[string]interface{}{

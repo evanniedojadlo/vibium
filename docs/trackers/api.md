@@ -192,8 +192,8 @@
 | `page.emulateMedia(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.setContent(html)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.setGeolocation()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.window()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.setWindow(opts)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `page.window()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.setWindow(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Frames (4 commands)
 

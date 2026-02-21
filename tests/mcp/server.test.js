@@ -135,12 +135,12 @@ describe('MCP Server: Protocol', () => {
     assert.ok(response.result.capabilities.tools, 'Should have tools capability');
   });
 
-  test('tools/list returns all 80 browser tools', async () => {
+  test('tools/list returns all 82 browser tools', async () => {
     const response = await client.call('tools/list', {});
 
     assert.ok(response.result, 'Should have result');
     assert.ok(response.result.tools, 'Should have tools array');
-    assert.strictEqual(response.result.tools.length, 80, 'Should have 80 tools');
+    assert.strictEqual(response.result.tools.length, 82, 'Should have 82 tools');
 
     const toolNames = response.result.tools.map(t => t.name);
     const expectedTools = [
@@ -166,7 +166,9 @@ describe('MCP Server: Protocol', () => {
       'browser_dialog_accept', 'browser_dialog_dismiss',
       'browser_get_cookies', 'browser_set_cookie', 'browser_delete_cookies',
       'browser_mouse_move', 'browser_mouse_down', 'browser_mouse_up', 'browser_mouse_click', 'browser_drag',
-      'browser_set_viewport', 'browser_get_viewport', 'browser_emulate_media',
+      'browser_set_viewport', 'browser_get_viewport',
+      'browser_get_window', 'browser_set_window',
+      'browser_emulate_media',
       'browser_set_geolocation', 'browser_set_content',
       'browser_frames', 'browser_frame',
       'browser_upload',
