@@ -264,7 +264,11 @@ describe('MCP Server: Browser Tools', () => {
     assert.ok(response.result, 'Should have result');
     assert.ok(!response.result.isError, 'Should not be an error');
     assert.ok(
-      response.result.content[0].text.includes('tag=h1'),
+      response.result.content[0].text.includes('@e1'),
+      'Should return @e1 ref'
+    );
+    assert.ok(
+      response.result.content[0].text.includes('[h1]'),
       'Should find h1 element'
     );
   });
@@ -435,12 +439,12 @@ describe('MCP Server: New Tools', () => {
     assert.ok(response.result, 'Should have result');
     assert.ok(!response.result.isError, 'Should not be an error');
     assert.ok(
-      response.result.content[0].text.includes('[0]'),
-      'Should contain indexed results'
+      response.result.content[0].text.includes('@e1'),
+      'Should contain @e1 ref'
     );
     assert.ok(
-      response.result.content[0].text.includes('tag=p'),
-      'Should contain tag info'
+      response.result.content[0].text.includes('[p]'),
+      'Should contain [p] tag label'
     );
   });
 

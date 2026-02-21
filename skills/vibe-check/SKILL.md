@@ -63,16 +63,16 @@ vibium go https://example.com && vibium map && vibium click @e3 && vibium diff m
 - `vibium text` — get all page text
 - `vibium text "<selector>"` — get text of a specific element
 - `vibium html` — get page HTML (use `--outer` for outerHTML)
-- `vibium find "<selector>"` — element info (tag, text, bounding box)
-- `vibium find --text "Sign In"` — find element by text content
-- `vibium find --label "Email"` — find input by label
-- `vibium find --placeholder "Search"` — find by placeholder
-- `vibium find --testid "submit-btn"` — find by data-testid
-- `vibium find --xpath "//div[@class]"` — find by XPath
-- `vibium find --alt "Logo"` — find by alt attribute
-- `vibium find --title "Settings"` — find by title attribute
-- `vibium find-all "<selector>"` — all matching elements (`--limit N`)
-- `vibium find-by-role` — find element by ARIA role/name (`--role`, `--name`, `--selector`, `--timeout`)
+- `vibium find "<selector>"` — find element, return `@e1` ref (clickable with `vibium click @e1`)
+- `vibium find --text "Sign In"` — find element by text content → `@e1`
+- `vibium find --label "Email"` — find input by label → `@e1`
+- `vibium find --placeholder "Search"` — find by placeholder → `@e1`
+- `vibium find --testid "submit-btn"` — find by data-testid → `@e1`
+- `vibium find --xpath "//div[@class]"` — find by XPath → `@e1`
+- `vibium find --alt "Logo"` — find by alt attribute → `@e1`
+- `vibium find --title "Settings"` — find by title attribute → `@e1`
+- `vibium find-all "<selector>"` — find all matching elements → `@e1`, `@e2`, ... (`--limit N`)
+- `vibium find-by-role` — find element by ARIA role/name → `@e1` (`--role`, `--name`, `--selector`, `--timeout`)
 - `vibium eval "<js>"` — run JavaScript and print result (`--stdin` to read from stdin)
 - `vibium count "<selector>"` — count matching elements
 - `vibium screenshot -o file.png` — capture screenshot (`--full-page`, `--annotate`)
@@ -214,13 +214,14 @@ vibium map --selector "form"       # Only map form controls
 
 ### Semantic find (no CSS selectors needed)
 ```sh
-vibium find --text "Sign In"           # Find by visible text
-vibium find --label "Email"            # Find input by its label
-vibium find --placeholder "Search..."  # Find by placeholder
-vibium find --testid "submit-btn"      # Find by data-testid
-vibium find --alt "Company logo"       # Find by alt attribute
-vibium find --title "Close"            # Find by title attribute
-vibium find --xpath "//a[@href='/about']"  # Find by XPath
+vibium find --text "Sign In"           # → @e1 [button] "Sign In"
+vibium find --label "Email"            # → @e1 [input] placeholder="Email"
+vibium click @e1                       # Click the found element
+vibium find --placeholder "Search..."  # → @e1 [input] placeholder="Search..."
+vibium find --testid "submit-btn"      # → @e1 [button] "Submit"
+vibium find --alt "Company logo"       # → @e1 [img] alt="Company logo"
+vibium find --title "Close"            # → @e1 [button] title="Close"
+vibium find --xpath "//a[@href='/about']"  # → @e1 [a] "About"
 ```
 
 ### Authentication with state persistence

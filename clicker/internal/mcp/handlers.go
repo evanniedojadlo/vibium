@@ -589,10 +589,23 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 			return nil, fmt.Errorf("element not found: %s (timeout %s)", desc, timeout)
 		}
 
+		// Parse JSON result
+		var found struct {
+			Selector string `json:"selector"`
+			Label    string `json:"label"`
+		}
+		if err := json.Unmarshal([]byte(fmt.Sprintf("%v", result)), &found); err != nil {
+			return nil, fmt.Errorf("failed to parse find result: %w", err)
+		}
+
+		// Store ref in refMap
+		h.refMap = make(map[string]string)
+		h.refMap["@e1"] = found.Selector
+
 		return &ToolsCallResult{
 			Content: []Content{{
 				Type: "text",
-				Text: fmt.Sprintf("%v", result),
+				Text: fmt.Sprintf("@e1 %s", found.Label),
 			}},
 		}, nil
 	}
@@ -604,23 +617,38 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 	}
 	selector = h.resolveSelector(selector)
 
-	info, err := h.client.FindElement("", selector)
+	// Run getLabel in browser to get consistent label format
+	labelScript := `(selector) => {
+		` + GetLabelJS() + `
+		const el = document.querySelector(selector);
+		if (!el) return null;
+		return getLabel(el);
+	}`
+	labelResult, err := h.client.CallFunction("", labelScript, []interface{}{selector})
 	if err != nil {
 		return nil, err
 	}
 
+	// Store ref in refMap
+	h.refMap = make(map[string]string)
+	h.refMap["@e1"] = selector
+
+	labelStr := fmt.Sprintf("%v", labelResult)
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("tag=%s, text=\"%s\", box={x:%.0f, y:%.0f, w:%.0f, h:%.0f}",
-				info.Tag, info.Text, info.Box.X, info.Box.Y, info.Box.Width, info.Box.Height),
+			Text: fmt.Sprintf("@e1 %s", labelStr),
 		}},
 	}, nil
 }
 
 // findBySemanticScript returns the JS function for finding elements by semantic criteria.
+// Returns JSON: {"selector":"...","label":"...","tag":"...","text":"...","box":{...}}
 func findBySemanticScript() string {
 	return `(text, label, placeholder, testid, xpath, alt, title) => {
+		` + GetSelectorJS() + `
+		` + GetLabelJS() + `
+
 		let el = null;
 
 		if (xpath) {
@@ -690,9 +718,13 @@ func findBySemanticScript() string {
 		if (!el) return null;
 
 		const rect = el.getBoundingClientRect();
-		const tag = el.tagName;
-		const elText = (el.textContent || '').trim().substring(0, 100);
-		return 'tag=' + tag + ', text="' + elText + '", box={x:' + Math.round(rect.x) + ', y:' + Math.round(rect.y) + ', w:' + Math.round(rect.width) + ', h:' + Math.round(rect.height) + '}';
+		return JSON.stringify({
+			selector: getSelector(el),
+			label: getLabel(el),
+			tag: el.tagName.toLowerCase(),
+			text: (el.textContent || '').trim().substring(0, 100),
+			box: { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) }
+		});
 	}`
 }
 
@@ -1279,16 +1311,42 @@ func (h *Handlers) browserFindAll(args map[string]interface{}) (*ToolsCallResult
 		limit = int(l)
 	}
 
-	elements, err := h.client.FindAllElements("", selector, limit)
+	// Use JS to find elements and generate selectors + labels
+	findAllScript := `(selector, limit) => {
+		` + GetSelectorJS() + `
+		` + GetLabelJS() + `
+		const els = document.querySelectorAll(selector);
+		const results = [];
+		const n = Math.min(els.length, limit);
+		for (let i = 0; i < n; i++) {
+			const el = els[i];
+			results.push({ selector: getSelector(el), label: getLabel(el) });
+		}
+		return JSON.stringify(results);
+	}`
+	result, err := h.client.CallFunction("", findAllScript, []interface{}{selector, limit})
 	if err != nil {
 		return nil, fmt.Errorf("failed to find elements: %w", err)
 	}
 
-	var text string
-	for i, el := range elements {
-		text += fmt.Sprintf("[%d] tag=%s, text=\"%s\", box={x:%.0f, y:%.0f, w:%.0f, h:%.0f}\n",
-			i, el.Tag, el.Text, el.Box.X, el.Box.Y, el.Box.Width, el.Box.Height)
+	var elements []struct {
+		Selector string `json:"selector"`
+		Label    string `json:"label"`
 	}
+	if err := json.Unmarshal([]byte(fmt.Sprintf("%v", result)), &elements); err != nil {
+		return nil, fmt.Errorf("failed to parse find-all results: %w", err)
+	}
+
+	// Build ref map and output
+	h.refMap = make(map[string]string)
+	var lines []string
+	for i, el := range elements {
+		ref := fmt.Sprintf("@e%d", i+1)
+		h.refMap[ref] = el.Selector
+		lines = append(lines, fmt.Sprintf("%s %s", ref, el.Label))
+	}
+
+	text := strings.Join(lines, "\n")
 	if text == "" {
 		text = "No elements found"
 	}
@@ -1841,10 +1899,23 @@ func (h *Handlers) browserFindByRole(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("element not found: %s (timeout %s)", desc, timeout)
 	}
 
+	// Parse JSON result
+	var found struct {
+		Selector string `json:"selector"`
+		Label    string `json:"label"`
+	}
+	if err := json.Unmarshal([]byte(fmt.Sprintf("%v", result)), &found); err != nil {
+		return nil, fmt.Errorf("failed to parse find-by-role result: %w", err)
+	}
+
+	// Store ref in refMap
+	h.refMap = make(map[string]string)
+	h.refMap["@e1"] = found.Selector
+
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("%v", result),
+			Text: fmt.Sprintf("@e1 %s", found.Label),
 		}},
 	}, nil
 }
@@ -1977,8 +2048,13 @@ func findByRoleScript() string {
 			}
 		}
 
+		` + GetSelectorJS() + `
+		` + GetLabelJS() + `
+
 		const rect = best.getBoundingClientRect();
 		return JSON.stringify({
+			selector: getSelector(best),
+			label: getLabel(best),
 			tag: best.tagName.toLowerCase(),
 			text: (best.textContent || '').trim().substring(0, 100),
 			box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
@@ -2485,11 +2561,9 @@ func (h *Handlers) resolveSelector(selector string) string {
 	return selector
 }
 
-// mapScript returns the JS function that maps interactive elements with refs.
-// When a selector is provided, only elements within the matching subtree are returned.
-func mapScript() string {
-	return `(scopeSelector) => {
-		function getSelector(el) {
+// GetSelectorJS returns the JS getSelector(el) function body that generates unique CSS selectors.
+func GetSelectorJS() string {
+	return `function getSelector(el) {
 			if (el.id) return '#' + CSS.escape(el.id);
 			const parts = [];
 			let cur = el;
@@ -2513,9 +2587,12 @@ func mapScript() string {
 			if (parts.length === 0) return el.tagName.toLowerCase();
 			if (!parts[0].startsWith('#')) parts.unshift('body');
 			return parts.join(' > ');
-		}
+		}`
+}
 
-		function getLabel(el) {
+// GetLabelJS returns the JS getLabel(el) function body that generates descriptive labels.
+func GetLabelJS() string {
+	return `function getLabel(el) {
 			const tag = el.tagName.toLowerCase();
 			const type = el.getAttribute('type');
 			let desc = '[' + tag;
@@ -2541,7 +2618,15 @@ func mapScript() string {
 			if (src) return desc + ' src="' + src.substring(0, 60) + '"';
 
 			return desc;
-		}
+		}`
+}
+
+// mapScript returns the JS function that maps interactive elements with refs.
+// When a selector is provided, only elements within the matching subtree are returned.
+func mapScript() string {
+	return `(scopeSelector) => {
+		` + GetSelectorJS() + `
+		` + GetLabelJS() + `
 
 		const interactive = 'a[href], button, input, textarea, select, [role="button"], [role="link"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="switch"], [onclick], [tabindex]:not([tabindex="-1"]), summary, details';
 

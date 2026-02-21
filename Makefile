@@ -117,7 +117,7 @@ test: build install-browser test-cli test-js test-mcp test-python
 # VIBIUM_ONESHOT=1 ensures tests use one-shot mode (no daemon)
 test-cli: build-go
 	@echo "━━━ CLI Tests ━━━"
-	VIBIUM_ONESHOT=1 node --test tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js tests/cli/page-reading.test.js tests/cli/input-tools.test.js tests/cli/tabs.test.js
+	VIBIUM_ONESHOT=1 node --test tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js tests/cli/page-reading.test.js tests/cli/input-tools.test.js tests/cli/tabs.test.js tests/cli/find-refs.test.js
 	@echo "━━━ CLI Process Tests (sequential) ━━━"
 	VIBIUM_ONESHOT=1 node --test --test-concurrency=1 tests/cli/process.test.js
 
@@ -168,7 +168,7 @@ test-mcp: build-go
 # Run daemon tests (sequential - daemon lifecycle)
 test-daemon: build-go
 	@echo "━━━ Daemon Tests ━━━"
-	node --test --test-concurrency=1 tests/daemon/lifecycle.test.js tests/daemon/concurrency.test.js tests/daemon/cli-commands.test.js
+	node --test --test-concurrency=1 tests/daemon/lifecycle.test.js tests/daemon/concurrency.test.js tests/daemon/cli-commands.test.js tests/daemon/find-refs.test.js
 
 # Run Python client tests
 test-python: build install-browser

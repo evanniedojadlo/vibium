@@ -9,15 +9,15 @@ const { execSync } = require('node:child_process');
 const { VIBIUM } = require('../helpers');
 
 describe('CLI: Elements', () => {
-  test('find command locates element', () => {
+  test('find command locates element and returns @ref', () => {
     const result = execSync(`${VIBIUM} find https://example.com "a"`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
-    assert.match(result, /tag=a/i, 'Should find anchor tag');
+    assert.match(result, /@e1/, 'Should return @e1 ref');
+    assert.match(result, /\[a\]/, 'Should show [a] tag label');
     // Link text may be "More information..." or "Learn more" depending on page version
     assert.match(result, /(More information|Learn more)/i, 'Should show link text');
-    assert.match(result, /box=/i, 'Should show bounding box');
   });
 
   test('click command navigates via link', () => {

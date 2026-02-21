@@ -42,13 +42,13 @@ describe('CLI: Page Reading', () => {
     assert.match(result, /Example Domain/, 'Should contain text');
   });
 
-  test('find-all command returns multiple elements', () => {
+  test('find-all command returns multiple @refs', () => {
     const result = execSync(`${VIBIUM} find-all https://example.com "p"`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
-    assert.match(result, /\[0\]/, 'Should contain indexed results');
-    assert.match(result, /tag=p/, 'Should contain tag info');
+    assert.match(result, /@e1/, 'Should contain @e1 ref');
+    assert.match(result, /\[p\]/, 'Should contain [p] tag label');
   });
 
   test('find-all command with --limit', () => {
@@ -56,7 +56,7 @@ describe('CLI: Page Reading', () => {
       encoding: 'utf-8',
       timeout: 30000,
     });
-    assert.match(result, /\[0\]/, 'Should contain first result');
-    assert.ok(!result.includes('[1]'), 'Should not contain second result');
+    assert.match(result, /@e1/, 'Should contain @e1 ref');
+    assert.ok(!result.includes('@e2'), 'Should not contain @e2 ref');
   });
 });

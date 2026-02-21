@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
+	"github.com/vibium/clicker/internal/mcp"
 	"github.com/vibium/clicker/internal/process"
 )
 
@@ -15,25 +16,23 @@ func newFindCmd() *cobra.Command {
 		Use:   "find [url] [selector]",
 		Short: "Find an element by CSS selector or semantic locator",
 		Example: `  vibium find "a"
-  # Find by CSS selector on current page
+  # → @e1 [a] "More information..."
 
   vibium find https://example.com "a"
   # Navigate to URL first, then find
 
   vibium find --text "Sign In"
-  # Find element containing text "Sign In"
+  # → @e1 [button] "Sign In"
 
   vibium find --label "Email"
-  # Find input associated with label "Email"
+  # → @e1 [input type="email"] placeholder="Email"
+
+  vibium click @e1
+  # Use the returned @ref to interact with the found element
 
   vibium find --placeholder "Search..."
-  # Find element with placeholder
-
   vibium find --testid "submit-btn"
-  # Find element by data-testid attribute
-
-  vibium find --xpath "//div[@class='main']"
-  # Find element by XPath expression`,
+  vibium find --xpath "//div[@class='main']"`,
 		Args: cobra.RangeArgs(0, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			// Collect semantic flags
@@ -140,14 +139,22 @@ func newFindCmd() *cobra.Command {
 				doWaitOpen()
 
 				fmt.Printf("Finding element: %s\n", selector)
-				info, err := client.FindElement("", selector)
+				labelScript := `(selector) => {
+					` + mcp.GetLabelJS() + `
+					const el = document.querySelector(selector);
+					if (!el) return null;
+					return getLabel(el);
+				}`
+				labelResult, err := client.CallFunction("", labelScript, []interface{}{selector})
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error finding element: %v\n", err)
 					os.Exit(1)
 				}
-
-				fmt.Printf("Found: tag=%s, text=\"%s\", box={x:%.0f, y:%.0f, w:%.0f, h:%.0f}\n",
-					info.Tag, info.Text, info.Box.X, info.Box.Y, info.Box.Width, info.Box.Height)
+				if labelResult == nil {
+					fmt.Fprintf(os.Stderr, "Error: element not found: %s\n", selector)
+					os.Exit(1)
+				}
+				fmt.Printf("@e1 %v\n", labelResult)
 			})
 		},
 	}
