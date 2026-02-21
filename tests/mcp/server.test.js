@@ -135,12 +135,12 @@ describe('MCP Server: Protocol', () => {
     assert.ok(response.result.capabilities.tools, 'Should have tools capability');
   });
 
-  test('tools/list returns all 31 browser tools', async () => {
+  test('tools/list returns all 80 browser tools', async () => {
     const response = await client.call('tools/list', {});
 
     assert.ok(response.result, 'Should have result');
     assert.ok(response.result.tools, 'Should have tools array');
-    assert.strictEqual(response.result.tools.length, 31, 'Should have 31 tools');
+    assert.strictEqual(response.result.tools.length, 80, 'Should have 80 tools');
 
     const toolNames = response.result.tools.map(t => t.name);
     const expectedTools = [
@@ -154,6 +154,25 @@ describe('MCP Server: Protocol', () => {
       'page_clock_install', 'page_clock_fast_forward', 'page_clock_run_for',
       'page_clock_pause_at', 'page_clock_resume', 'page_clock_set_fixed_time',
       'page_clock_set_system_time', 'page_clock_set_timezone',
+      'browser_find_by_role', 'browser_fill', 'browser_press',
+      'browser_back', 'browser_forward', 'browser_reload',
+      'browser_get_value', 'browser_get_attribute', 'browser_is_visible',
+      'browser_check', 'browser_uncheck', 'browser_scroll_into_view',
+      'browser_wait_for_url', 'browser_wait_for_load', 'browser_sleep',
+      'browser_map', 'browser_diff_map', 'browser_pdf', 'browser_highlight',
+      'browser_dblclick', 'browser_focus', 'browser_count',
+      'browser_is_enabled', 'browser_is_checked',
+      'browser_wait_for_text', 'browser_wait_for_fn',
+      'browser_dialog_accept', 'browser_dialog_dismiss',
+      'browser_get_cookies', 'browser_set_cookie', 'browser_delete_cookies',
+      'browser_mouse_move', 'browser_mouse_down', 'browser_mouse_up', 'browser_mouse_click', 'browser_drag',
+      'browser_set_viewport', 'browser_get_viewport', 'browser_emulate_media',
+      'browser_set_geolocation', 'browser_set_content',
+      'browser_frames', 'browser_frame',
+      'browser_upload',
+      'browser_trace_start', 'browser_trace_stop',
+      'browser_storage_state', 'browser_restore_storage',
+      'browser_download_set_dir',
     ];
     for (const tool of expectedTools) {
       assert.ok(toolNames.includes(tool), `Should have ${tool}`);

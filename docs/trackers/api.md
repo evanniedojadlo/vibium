@@ -1,6 +1,6 @@
 # Vibium API
 
-174 commands across 23 categories, tracked across 6 implementation targets.
+175 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -11,9 +11,9 @@
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.go(url)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.back()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
-| `page.forward()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
-| `page.reload()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `page.back()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.forward()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.reload()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.url()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.title()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.content()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -28,7 +28,7 @@
 | `context.newPage()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `browser.pages()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.close()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `browser.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `browser.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `browser.onPage(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `browser.onPopup(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `browser.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
@@ -40,7 +40,7 @@
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.find('css')` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.find({role, text, …})` | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ |
+| `page.find({role, text, …})` | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ |
 | `page.findAll('css')` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.findAll({…})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.find('css')` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
@@ -50,7 +50,7 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `find({role: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `find({role: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `find({text: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `find({label: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `find({placeholder: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
@@ -67,29 +67,30 @@
 | `el.first()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.last()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.nth(index)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.count()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `el.count()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.filter({hasText})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.filter({has})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Element Interaction (16 commands)
+## Element Interaction (17 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `el.click()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.dblclick()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.fill(value)` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `el.dblclick()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `el.fill(value)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.type(text)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.press(key)` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `el.press(key)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.clear()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.check()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
-| `el.uncheck()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `el.check()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `el.uncheck()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.selectOption(val)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.hover()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.focus()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.dragTo(target)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `el.focus()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `el.highlight()` | ⬜ | ⬜ | ⬜ | ⬜ | ✅ | ✅ |
+| `el.dragTo(target)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.tap()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.scrollIntoView()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `el.scrollIntoView()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.dispatchEvent(type)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
 ## Element State (13 commands)
@@ -99,13 +100,13 @@
 | `el.text()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.innerText()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.html()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.value()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
-| `el.attr(name)` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `el.value()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `el.attr(name)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.bounds()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.isVisible()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `el.isVisible()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.isHidden()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.isEnabled()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.isChecked()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `el.isEnabled()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `el.isChecked()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.isEditable()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.eval(fn)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.screenshot()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
@@ -118,10 +119,10 @@
 | `page.keyboard.down(key)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.keyboard.up(key)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.keyboard.type(text)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `page.mouse.click(x,y)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `page.mouse.move(x,y)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.mouse.down()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.mouse.up()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.mouse.click(x,y)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.mouse.move(x,y)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.mouse.down()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.mouse.up()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.mouse.wheel(dx,dy)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.touch.tap(x,y)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
@@ -158,8 +159,8 @@
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.onDialog(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `dialog.accept(text?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `dialog.dismiss()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `dialog.accept(text?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `dialog.dismiss()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `dialog.message()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `dialog.type()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
@@ -168,29 +169,29 @@
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.screenshot()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.screenshot({fullPage})` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `page.screenshot({fullPage})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.screenshot({clip})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.pdf()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `page.pdf()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Cookies & Storage (5 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `context.cookies(urls?)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `context.setCookies()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `context.clearCookies()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `context.storageState()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `context.cookies(urls?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.setCookies()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.clearCookies()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.storageState()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.addInitScript()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
 ## Emulation (8 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.setViewport(size)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.viewport()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.emulateMedia(opts)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.setContent(html)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.setGeolocation()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `page.setViewport(size)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.viewport()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.emulateMedia(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.setContent(html)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.setGeolocation()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.window()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.setWindow(opts)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
@@ -198,8 +199,8 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.frame(nameOrUrl)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.frames()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `page.frame(nameOrUrl)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.frames()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.mainFrame()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | Frames have full Page API | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
@@ -207,7 +208,7 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.a11yTree()` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `page.a11yTree()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.role()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `el.label()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
@@ -237,11 +238,11 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.waitUntil.url(pat)` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
-| `page.waitUntil.loaded(state?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `page.waitUntil.url(pat)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.waitUntil.loaded(state?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.waitUntil(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `el.waitUntil(state)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ |
+| `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Downloads & Files (4 commands)
 
@@ -249,7 +250,7 @@
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.onDownload(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `download.saveAs(path)` | ✅ | — | ✅ | — | ⬜ | ⬜ |
-| `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Clock (8 commands)
 
@@ -268,8 +269,8 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `context.tracing.start(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.tracing.stop(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `context.tracing.start(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.tracing.stop(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.tracing.startChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `context.tracing.stopChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `context.tracing.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
