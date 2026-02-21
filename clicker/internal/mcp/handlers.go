@@ -548,14 +548,59 @@ func (h *Handlers) browserScreenshot(args map[string]interface{}) (*ToolsCallRes
 }
 
 // browserFind finds an element and returns its info.
+// Supports CSS selector or semantic locators (text, label, placeholder, testid, xpath, alt, title).
 func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
+	// Check for semantic locators
+	text, _ := args["text"].(string)
+	label, _ := args["label"].(string)
+	placeholder, _ := args["placeholder"].(string)
+	testid, _ := args["testid"].(string)
+	xpath, _ := args["xpath"].(string)
+	alt, _ := args["alt"].(string)
+	title, _ := args["title"].(string)
+
+	hasSemantic := text != "" || label != "" || placeholder != "" || testid != "" || xpath != "" || alt != "" || title != ""
+
+	if hasSemantic {
+		timeout := features.DefaultTimeout
+		if t, ok := args["timeout"].(float64); ok {
+			timeout = time.Duration(t) * time.Millisecond
+		}
+
+		script := findBySemanticScript()
+		result, err := pollCallFunction(h, script, []interface{}{text, label, placeholder, testid, xpath, alt, title}, timeout)
+		if err != nil {
+			desc := ""
+			for _, pair := range []struct{ k, v string }{
+				{"text", text}, {"label", label}, {"placeholder", placeholder},
+				{"testid", testid}, {"xpath", xpath}, {"alt", alt}, {"title", title},
+			} {
+				if pair.v != "" {
+					if desc != "" {
+						desc += ", "
+					}
+					desc += pair.k + "=" + pair.v
+				}
+			}
+			return nil, fmt.Errorf("element not found: %s (timeout %s)", desc, timeout)
+		}
+
+		return &ToolsCallResult{
+			Content: []Content{{
+				Type: "text",
+				Text: fmt.Sprintf("%v", result),
+			}},
+		}, nil
+	}
+
+	// CSS selector mode
 	selector, ok := args["selector"].(string)
 	if !ok || selector == "" {
-		return nil, fmt.Errorf("selector is required")
+		return nil, fmt.Errorf("selector or semantic locator (text, label, placeholder, testid, xpath, alt, title) is required")
 	}
 	selector = h.resolveSelector(selector)
 
@@ -571,6 +616,84 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 				info.Tag, info.Text, info.Box.X, info.Box.Y, info.Box.Width, info.Box.Height),
 		}},
 	}, nil
+}
+
+// findBySemanticScript returns the JS function for finding elements by semantic criteria.
+func findBySemanticScript() string {
+	return `(text, label, placeholder, testid, xpath, alt, title) => {
+		let el = null;
+
+		if (xpath) {
+			const xresult = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+			el = xresult.singleNodeValue;
+		} else if (testid) {
+			el = document.querySelector('[data-testid="' + testid.replace(/"/g, '\\"') + '"]');
+		} else if (placeholder) {
+			el = document.querySelector('[placeholder="' + placeholder.replace(/"/g, '\\"') + '"]');
+		} else if (alt) {
+			el = document.querySelector('[alt="' + alt.replace(/"/g, '\\"') + '"]');
+		} else if (title) {
+			el = document.querySelector('[title="' + title.replace(/"/g, '\\"') + '"]');
+		} else if (label) {
+			// Try <label> with for= attribute pointing to an input
+			const labels = document.querySelectorAll('label');
+			for (const lbl of labels) {
+				if (lbl.textContent.trim().includes(label)) {
+					if (lbl.htmlFor) {
+						el = document.getElementById(lbl.htmlFor);
+					} else {
+						el = lbl.querySelector('input, textarea, select');
+					}
+					if (el) break;
+				}
+			}
+			// Fallback: aria-label
+			if (!el) {
+				el = document.querySelector('[aria-label="' + label.replace(/"/g, '\\"') + '"]');
+			}
+			// Fallback: aria-labelledby
+			if (!el) {
+				const all = document.querySelectorAll('[aria-labelledby]');
+				for (const candidate of all) {
+					const labelId = candidate.getAttribute('aria-labelledby');
+					const labelEl = document.getElementById(labelId);
+					if (labelEl && labelEl.textContent.trim().includes(label)) {
+						el = candidate;
+						break;
+					}
+				}
+			}
+		} else if (text) {
+			// Find leaf elements containing the text
+			const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
+				acceptNode: (node) => {
+					if (node.offsetWidth === 0 && node.offsetHeight === 0) return NodeFilter.FILTER_REJECT;
+					const style = window.getComputedStyle(node);
+					if (style.display === 'none' || style.visibility === 'hidden') return NodeFilter.FILTER_REJECT;
+					return NodeFilter.FILTER_ACCEPT;
+				}
+			});
+			let best = null;
+			let bestLen = Infinity;
+			let node;
+			while (node = walker.nextNode()) {
+				const content = node.textContent.trim();
+				if (content.includes(text) && content.length < bestLen) {
+					// Prefer the most specific (smallest text) match
+					best = node;
+					bestLen = content.length;
+				}
+			}
+			el = best;
+		}
+
+		if (!el) return null;
+
+		const rect = el.getBoundingClientRect();
+		const tag = el.tagName;
+		const elText = (el.textContent || '').trim().substring(0, 100);
+		return 'tag=' + tag + ', text="' + elText + '", box={x:' + Math.round(rect.x) + ', y:' + Math.round(rect.y) + ', w:' + Math.round(rect.width) + ', h:' + Math.round(rect.height) + '}';
+	}`
 }
 
 // browserEvaluate executes JavaScript code in the browser.

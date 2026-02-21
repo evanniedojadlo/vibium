@@ -11,35 +11,91 @@ import (
 )
 
 func newFindCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "find [url] [selector]",
-		Short: "Find an element by CSS selector (optionally navigate to URL first)",
-		Example: `  clicker find "a"
-  # Finds on current page (daemon mode)
+		Short: "Find an element by CSS selector or semantic locator",
+		Example: `  vibium find "a"
+  # Find by CSS selector on current page
 
-  clicker find https://example.com "a"
-  # Navigates to URL first, then finds
-  # Prints: tag=A, text="Learn more", box={x,y,w,h}`,
-		Args: cobra.RangeArgs(1, 2),
+  vibium find https://example.com "a"
+  # Navigate to URL first, then find
+
+  vibium find --text "Sign In"
+  # Find element containing text "Sign In"
+
+  vibium find --label "Email"
+  # Find input associated with label "Email"
+
+  vibium find --placeholder "Search..."
+  # Find element with placeholder
+
+  vibium find --testid "submit-btn"
+  # Find element by data-testid attribute
+
+  vibium find --xpath "//div[@class='main']"
+  # Find element by XPath expression`,
+		Args: cobra.RangeArgs(0, 2),
 		Run: func(cmd *cobra.Command, args []string) {
+			// Collect semantic flags
+			semanticFlags := map[string]string{
+				"text":        "",
+				"label":       "",
+				"placeholder": "",
+				"testid":      "",
+				"xpath":       "",
+				"alt":         "",
+				"title":       "",
+			}
+			hasSemantic := false
+			for key := range semanticFlags {
+				val, _ := cmd.Flags().GetString(key)
+				if val != "" {
+					semanticFlags[key] = val
+					hasSemantic = true
+				}
+			}
+
 			// Daemon mode
 			if !oneshot {
-				var selector string
-				if len(args) == 2 {
-					// find <url> <selector> — navigate first
-					_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
-					if err != nil {
-						printError(err)
-						return
+				toolArgs := map[string]interface{}{}
+
+				if hasSemantic {
+					// Semantic find — no positional selector required
+					// But allow optional URL as first positional arg
+					if len(args) >= 1 {
+						// Check if first arg looks like a URL
+						if isURL(args[0]) {
+							_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
+							if err != nil {
+								printError(err)
+								return
+							}
+						}
 					}
-					selector = args[1]
+					for key, val := range semanticFlags {
+						if val != "" {
+							toolArgs[key] = val
+						}
+					}
 				} else {
-					// find <selector> — current page
-					selector = args[0]
+					// CSS selector find (original behavior)
+					if len(args) == 0 {
+						fmt.Fprintf(os.Stderr, "Error: requires a CSS selector or semantic flag (--text, --label, etc.)\n")
+						os.Exit(1)
+					}
+					if len(args) == 2 {
+						_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
+						if err != nil {
+							printError(err)
+							return
+						}
+						toolArgs["selector"] = args[1]
+					} else {
+						toolArgs["selector"] = args[0]
+					}
 				}
 
-				// Find element
-				result, err := daemonCall("browser_find", map[string]interface{}{"selector": selector})
+				result, err := daemonCall("browser_find", toolArgs)
 				if err != nil {
 					printError(err)
 					return
@@ -95,4 +151,19 @@ func newFindCmd() *cobra.Command {
 			})
 		},
 	}
+
+	cmd.Flags().String("text", "", "Find element containing this text")
+	cmd.Flags().String("label", "", "Find input by associated label text")
+	cmd.Flags().String("placeholder", "", "Find element by placeholder attribute")
+	cmd.Flags().String("testid", "", "Find element by data-testid attribute")
+	cmd.Flags().String("xpath", "", "Find element by XPath expression")
+	cmd.Flags().String("alt", "", "Find element by alt attribute")
+	cmd.Flags().String("title", "", "Find element by title attribute")
+
+	return cmd
+}
+
+// isURL returns true if the string looks like a URL (starts with http:// or https://).
+func isURL(s string) bool {
+	return len(s) > 8 && (s[:7] == "http://" || s[:8] == "https://")
 }

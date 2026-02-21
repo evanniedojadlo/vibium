@@ -93,7 +93,7 @@ func GetToolSchemas() []Tool {
 		},
 		{
 			Name:        "browser_find",
-			Description: "Find an element by CSS selector and return its info (tag, text, bounding box)",
+			Description: "Find an element and return its info (tag, text, bounding box). Use a CSS selector or a semantic locator (text, label, placeholder, testid, xpath, alt, title).",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -101,8 +101,35 @@ func GetToolSchemas() []Tool {
 						"type":        "string",
 						"description": "CSS selector for the element to find",
 					},
+					"text": map[string]interface{}{
+						"type":        "string",
+						"description": "Find element containing this text",
+					},
+					"label": map[string]interface{}{
+						"type":        "string",
+						"description": "Find input by associated label text or aria-label",
+					},
+					"placeholder": map[string]interface{}{
+						"type":        "string",
+						"description": "Find element by placeholder attribute",
+					},
+					"testid": map[string]interface{}{
+						"type":        "string",
+						"description": "Find element by data-testid attribute",
+					},
+					"xpath": map[string]interface{}{
+						"type":        "string",
+						"description": "Find element by XPath expression",
+					},
+					"alt": map[string]interface{}{
+						"type":        "string",
+						"description": "Find element by alt attribute",
+					},
+					"title": map[string]interface{}{
+						"type":        "string",
+						"description": "Find element by title attribute",
+					},
 				},
-				"required":             []string{"selector"},
 				"additionalProperties": false,
 			},
 		},

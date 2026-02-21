@@ -51,13 +51,13 @@
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `find({role: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({text: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `find({label: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `find({placeholder: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `find({alt: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `find({title: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `find({testid: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `find({xpath: '…'})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| `find({text: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `find({label: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `find({placeholder: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `find({alt: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `find({title: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `find({testid: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `find({xpath: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `find({role, text}) combo` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
 ## Locator Chaining & Filtering (8 commands)
