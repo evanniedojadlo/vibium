@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/vibium/clicker/internal/bidi"
@@ -40,7 +41,10 @@ type BrowserSession struct {
 	clockPreloadScriptID string // "" if not installed
 
 	// Tracing support
-	traceRecorder *TraceRecorder
+	traceRecorder      *TraceRecorder
+	lastContext        string // last browsing context resolved by a command
+	lastURL            string // last known page URL, updated from load/navigation events
+	screenshotInFlight int32  // atomic; 1 = screenshot capture in progress
 }
 
 // BiDi command structure for parsing incoming messages
@@ -143,6 +147,22 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 // vibiumHandler is the signature for vibium: extension command handlers.
 type vibiumHandler func(*BrowserSession, bidiCommand)
 
+// isClickLikeAction returns true for actions where the before-state is most
+// meaningful (e.g. seeing the element about to be clicked). Only a before-
+// snapshot is captured for these. All other actions capture an after-snapshot
+// to show the result (e.g. filled text, navigated page).
+func isClickLikeAction(method string) bool {
+	switch method {
+	case "vibium:click", "vibium:dblclick", "vibium:hover", "vibium:tap",
+		"vibium:check", "vibium:uncheck", "vibium:focus",
+		"vibium:scrollIntoView", "vibium:dragTo", "vibium:dispatchEvent",
+		"vibium:mouse.click", "vibium:mouse.move", "vibium:mouse.down", "vibium:mouse.up",
+		"vibium:touch.tap":
+		return true
+	}
+	return false
+}
+
 // dispatch wraps a vibium handler with automatic action tracing.
 func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibiumHandler) {
 	go func() {
@@ -150,12 +170,50 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 		recorder := session.traceRecorder
 		session.mu.Unlock()
 
+		var callId string
+		clickLike := isClickLikeAction(cmd.Method)
+
 		if recorder != nil && recorder.IsRecording() {
-			recorder.RecordAction(cmd.Method, cmd.Params)
-			defer recorder.RecordActionEnd()
+			callId = recorder.NextCallId()
+			opts := recorder.Options()
+
+			// Click-like actions capture a before-snapshot (what's about to be clicked).
+			// Fill-like actions skip the before-snapshot and capture after instead.
+			var beforeSnapshot string
+			if opts.Snapshots && clickLike {
+				beforeSnapshot = r.captureActionSnapshot(session, recorder, cmd.Params, callId, "before")
+			}
+
+			session.mu.Lock()
+			pageId := session.lastContext
+			session.mu.Unlock()
+
+			recorder.RecordAction(callId, cmd.Method, cmd.Params, beforeSnapshot, pageId)
 		}
 
 		handler(session, cmd)
+
+		// Capture endTime immediately after handler returns, before screenshot captures
+		endTime := time.Now()
+
+		if recorder != nil && recorder.IsRecording() {
+			opts := recorder.Options()
+
+			// Fill-like actions capture an after-snapshot (the result of the action).
+			// Click-like actions already captured their snapshot before the handler.
+			var afterSnapshot string
+			if opts.Snapshots && !clickLike {
+				afterSnapshot = r.captureActionSnapshot(session, recorder, cmd.Params, callId, "after")
+			}
+
+			// Filmstrip screenshot (CAS-guarded to avoid flooding Chrome)
+			if opts.Screenshots && atomic.CompareAndSwapInt32(&session.screenshotInFlight, 0, 1) {
+				r.capturePostActionScreenshot(session, recorder, cmd.Params)
+				atomic.StoreInt32(&session.screenshotInFlight, 0)
+			}
+
+			recorder.RecordActionEnd(callId, afterSnapshot, endTime)
+		}
 	}()
 }
 
@@ -659,6 +717,27 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 				ch <- json.RawMessage(msg)
 				continue
 			}
+
+			// Drop late responses from timed-out internal commands —
+			// never forward these to the client (they'd be unrecognized).
+			if resp.ID >= 1000000 {
+				continue
+			}
+		}
+
+		// Track page URL from load/navigation events (zero extra BiDi round-trips)
+		var bidiEvent struct {
+			Method string `json:"method"`
+			Params struct {
+				URL string `json:"url"`
+			} `json:"params"`
+		}
+		if json.Unmarshal([]byte(msg), &bidiEvent) == nil {
+			if bidiEvent.Params.URL != "" && (bidiEvent.Method == "browsingContext.load" || bidiEvent.Method == "browsingContext.fragmentNavigated") {
+				session.mu.Lock()
+				session.lastURL = bidiEvent.Params.URL
+				session.mu.Unlock()
+			}
 		}
 
 		// Record event for tracing (non-blocking)
@@ -682,15 +761,20 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 	}
 }
 
-// sendInternalCommand sends a BiDi command and waits for the response.
+// sendInternalCommand sends a BiDi command and waits for the response (60s timeout).
 func (r *Router) sendInternalCommand(session *BrowserSession, method string, params map[string]interface{}) (json.RawMessage, error) {
+	return r.sendInternalCommandWithTimeout(session, method, params, 60*time.Second)
+}
+
+// sendInternalCommandWithTimeout sends a BiDi command and waits for the response with a custom timeout.
+func (r *Router) sendInternalCommandWithTimeout(session *BrowserSession, method string, params map[string]interface{}, timeout time.Duration) (json.RawMessage, error) {
 	// Record BiDi command in trace (opt-in via bidi: true)
 	session.mu.Lock()
 	recorder := session.traceRecorder
 	session.mu.Unlock()
 	if recorder != nil && recorder.IsRecording() && recorder.Options().Bidi {
-		recorder.RecordBidiCommand(method, params)
-		defer recorder.RecordBidiCommandEnd()
+		callId := recorder.RecordBidiCommand(method, params)
+		defer recorder.RecordBidiCommandEnd(callId)
 	}
 
 	session.internalCmdsMu.Lock()
@@ -721,7 +805,7 @@ func (r *Router) sendInternalCommand(session *BrowserSession, method string, par
 	select {
 	case resp := <-ch:
 		return resp, nil
-	case <-time.After(60 * time.Second):
+	case <-time.After(timeout):
 		return nil, fmt.Errorf("timeout waiting for response to %s", method)
 	case <-session.stopChan:
 		return nil, fmt.Errorf("session closed")

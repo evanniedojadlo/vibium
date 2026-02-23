@@ -7,13 +7,34 @@ import (
 
 // handleBrowserPage handles vibium:browser.page — returns the first (default) browsing context.
 func (r *Router) handleBrowserPage(session *BrowserSession, cmd bidiCommand) {
-	context, err := r.getContext(session)
+	resp, err := r.sendInternalCommand(session, "browsingContext.getTree", map[string]interface{}{})
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
 	}
 
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{"context": context})
+	var result struct {
+		Result struct {
+			Contexts []struct {
+				Context     string `json:"context"`
+				UserContext string `json:"userContext"`
+			} `json:"contexts"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		r.sendError(session, cmd.ID, fmt.Errorf("failed to parse getTree response: %w", err))
+		return
+	}
+	if len(result.Result.Contexts) == 0 {
+		r.sendError(session, cmd.ID, fmt.Errorf("no browsing contexts available"))
+		return
+	}
+
+	ctx := result.Result.Contexts[0]
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{
+		"context":     ctx.Context,
+		"userContext": ctx.UserContext,
+	})
 }
 
 // handleBrowserNewPage handles vibium:browser.newPage — creates a new tab.
@@ -22,9 +43,11 @@ func (r *Router) handleBrowserNewPage(session *BrowserSession, cmd bidiCommand) 
 		"type": "tab",
 	}
 
+	userContext := "default"
 	// Optionally create in a specific user context
 	if uc, ok := cmd.Params["userContext"].(string); ok && uc != "" {
 		params["userContext"] = uc
+		userContext = uc
 	}
 
 	resp, err := r.sendInternalCommand(session, "browsingContext.create", params)
@@ -39,7 +62,10 @@ func (r *Router) handleBrowserNewPage(session *BrowserSession, cmd bidiCommand) 
 		return
 	}
 
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{"context": context})
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{
+		"context":     context,
+		"userContext": userContext,
+	})
 }
 
 // handleBrowserNewContext handles vibium:browser.newContext — creates a new user context (incognito-like).
@@ -88,7 +114,10 @@ func (r *Router) handleContextNewPage(session *BrowserSession, cmd bidiCommand) 
 		return
 	}
 
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{"context": context})
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{
+		"context":     context,
+		"userContext": userContext,
+	})
 }
 
 // handleBrowserPages handles vibium:browser.pages — returns all browsing contexts.
@@ -116,8 +145,9 @@ func (r *Router) handleBrowserPages(session *BrowserSession, cmd bidiCommand) {
 	pages := make([]map[string]interface{}, 0, len(result.Result.Contexts))
 	for _, ctx := range result.Result.Contexts {
 		pages = append(pages, map[string]interface{}{
-			"context": ctx.Context,
-			"url":     ctx.URL,
+			"context":     ctx.Context,
+			"url":         ctx.URL,
+			"userContext": ctx.UserContext,
 		})
 	}
 

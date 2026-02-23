@@ -7,11 +7,22 @@ import (
 )
 
 // resolveContext extracts the "context" param or returns the first context from getTree.
+// It also stores the resolved context on the session for use by trace screenshots.
 func (r *Router) resolveContext(session *BrowserSession, params map[string]interface{}) (string, error) {
 	if ctx, ok := params["context"].(string); ok && ctx != "" {
+		session.mu.Lock()
+		session.lastContext = ctx
+		session.mu.Unlock()
 		return ctx, nil
 	}
-	return r.getContext(session)
+	ctx, err := r.getContext(session)
+	if err != nil {
+		return "", err
+	}
+	session.mu.Lock()
+	session.lastContext = ctx
+	session.mu.Unlock()
+	return ctx, nil
 }
 
 // evalSimpleScript runs a no-argument script.callFunction and returns the string result.
