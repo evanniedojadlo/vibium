@@ -10,9 +10,36 @@ How to capture a trace of a browser session and view it as an interactive timeli
 
 ---
 
+## Quick Start
+
+The fastest way to trace a session — use `page.context` to access tracing without creating an explicit context:
+
+```javascript
+const { browser } = require('vibium')
+
+async function main() {
+  const bro = await browser.launch()
+  const vibe = await bro.page()
+
+  await vibe.context.tracing.start({ screenshots: true })
+
+  await vibe.go('https://example.com')
+  await vibe.find('a').click()
+
+  await vibe.context.tracing.stop({ path: 'trace.zip' })
+  await bro.close()
+}
+
+main()
+```
+
+Open `trace.zip` in [Vibium Trace](https://trace.vibium.dev) to see a timeline of screenshots and actions.
+
+---
+
 ## Basic Tracing
 
-Tracing lives on `BrowserContext`, not `Page`. Start a trace, do some work, then stop to get a zip file.
+Tracing lives on `BrowserContext`, not `Page`. The Quick Start above uses `page.context` as a shortcut — under the hood, every page belongs to a context, and `page.context` gives you direct access to it. This is equivalent to creating an explicit context:
 
 ```javascript
 const { browser } = require('vibium')
@@ -35,6 +62,8 @@ async function main() {
 
 main()
 ```
+
+Use an explicit context when you need multiple pages in the same trace, or when you want to configure context options (viewport, locale, etc.). Use `page.context` when you just want to trace a single page quickly.
 
 `stop()` returns a `Buffer` containing the trace zip. You can also pass a `path` to write the file directly:
 

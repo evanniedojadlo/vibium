@@ -147,6 +147,37 @@ describe('Tracing: basic start/stop', () => {
     }
   });
 
+  test('page.context.tracing shortcut produces valid trace', async () => {
+    const bro = await browser.launch({ headless: true });
+    let tmpDir;
+    try {
+      // Use bro.page() instead of explicit newContext() → newPage()
+      const vibe = await bro.page();
+
+      await vibe.context.tracing.start({ name: 'context-shortcut' });
+      await vibe.go(baseURL);
+      await vibe.find('#btn').click();
+      await vibe.wait(200);
+      const zipBuffer = await vibe.context.tracing.stop();
+
+      assert.ok(Buffer.isBuffer(zipBuffer), 'stop() should return a Buffer');
+      assert.ok(zipBuffer.length > 0, 'zip should not be empty');
+
+      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      tmpDir = td;
+
+      const files = fs.readdirSync(extractedDir);
+      assert.ok(files.some(f => f.endsWith('.trace')), 'zip should contain a .trace file');
+
+      const events = readTraceEvents(extractedDir);
+      assert.ok(events.length > 0, 'should have trace events');
+      assert.strictEqual(events[0].type, 'context-options');
+    } finally {
+      await bro.close();
+      if (tmpDir) cleanupDir(tmpDir);
+    }
+  });
+
   test('stop with path writes trace to file', async () => {
     const bro = await browser.launch({ headless: true });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-trace-path-'));
@@ -195,8 +226,7 @@ describe('Tracing: screenshots', () => {
       assert.ok(fs.existsSync(resourcesDir), 'resources directory should exist');
 
       const resources = fs.readdirSync(resourcesDir);
-      const pngs = resources.filter(f => f.endsWith('.png'));
-      assert.ok(pngs.length > 0, `Should have PNG screenshots, got: ${resources.join(', ')}`);
+      assert.ok(resources.length > 0, `Should have screenshot resources, got: ${resources.join(', ')}`);
 
       // Check for screencast-frame events in trace
       const events = readTraceEvents(extractedDir);
@@ -215,7 +245,7 @@ describe('Tracing: screenshots', () => {
 });
 
 describe('Tracing: snapshots', () => {
-  test('snapshots option captures HTML resources', async () => {
+  test('snapshots option produces frame-snapshot events with DOM arrays', async () => {
     const bro = await browser.launch({ headless: true });
     let tmpDir;
     try {
@@ -224,24 +254,63 @@ describe('Tracing: snapshots', () => {
 
       await ctx.tracing.start({ snapshots: true });
       await vibe.go(baseURL);
+      await vibe.find('#btn').click();
       await vibe.wait(200);
       const zipBuffer = await ctx.tracing.stop();
 
       const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
       tmpDir = td;
 
-      // Check for HTML resources
-      const resourcesDir = path.join(extractedDir, 'resources');
-      if (fs.existsSync(resourcesDir)) {
-        const resources = fs.readdirSync(resourcesDir);
-        const htmlFiles = resources.filter(f => f.endsWith('.html'));
-        assert.ok(htmlFiles.length > 0, `Should have HTML snapshots, got: ${resources.join(', ')}`);
+      const events = readTraceEvents(extractedDir);
+
+      // Should have frame-snapshot events
+      const snapshots = events.filter(e => e.type === 'frame-snapshot');
+      assert.ok(snapshots.length > 0, `should have frame-snapshot events, got types: ${[...new Set(events.map(e => e.type))].join(', ')}`);
+
+      // Each frame-snapshot should have snapshot.html as an array with screenshot IMG
+      for (const snap of snapshots) {
+        assert.ok(snap.snapshot, 'frame-snapshot should have snapshot field');
+        assert.ok(Array.isArray(snap.snapshot.html), `snapshot.html should be an array, got ${typeof snap.snapshot.html}`);
+        assert.strictEqual(snap.snapshot.html[0], 'HTML', 'root element should be HTML');
+        // BODY child should contain an IMG with a screenshot:// resource reference
+        const body = snap.snapshot.html[3]; // ["BODY", {style}, ["IMG", {src, style}]]
+        assert.ok(Array.isArray(body), 'should have BODY element');
+        assert.strictEqual(body[0], 'BODY', 'fourth element should be BODY');
+        const img = body[2];
+        assert.ok(Array.isArray(img), 'BODY should contain IMG element');
+        assert.strictEqual(img[0], 'IMG', 'child should be IMG');
+        assert.ok(
+          img[1].src.startsWith('data:image/jpeg;base64,') || img[1].src.startsWith('data:image/png;base64,'),
+          `IMG src should be a data URI, got: ${img[1].src.substring(0, 30)}`
+        );
+        assert.ok(snap.snapshot.snapshotName, 'snapshot should have snapshotName');
+        assert.ok(snap.snapshot.pageId, 'snapshot should have pageId');
+        // Resource overrides should map the screenshot URL to a sha1 in resources/
+        assert.ok(Array.isArray(snap.snapshot.resourceOverrides), 'snapshot should have resourceOverrides array');
+        assert.ok(snap.snapshot.resourceOverrides.length > 0, 'resourceOverrides should not be empty');
+        const override = snap.snapshot.resourceOverrides[0];
+        assert.strictEqual(override.url, img[1].src, 'resourceOverrides url should match IMG src');
+        assert.ok(override.sha1, 'resourceOverride should have sha1');
       }
 
-      // Check for frame-snapshot events
-      const events = readTraceEvents(extractedDir);
-      const snapshots = events.filter(e => e.type === 'frame-snapshot');
-      assert.ok(snapshots.length > 0, 'should have frame-snapshot events');
+      // Click-like actions get a before-snapshot; fill-like get an after-snapshot.
+      // The test does go() (fill-like → after) then click() (click-like → before).
+      const beforeEvents = events.filter(e => e.type === 'before' && e.class !== 'Tracing');
+      assert.ok(beforeEvents.length > 0, 'should have before events');
+      const withBefore = beforeEvents.filter(e => e.beforeSnapshot);
+      assert.ok(withBefore.length > 0, 'click-like action should have beforeSnapshot');
+      for (const ev of withBefore) {
+        assert.ok(ev.beforeSnapshot.startsWith('before@'), `beforeSnapshot should start with "before@", got: ${ev.beforeSnapshot}`);
+      }
+
+      // Fill-like actions (navigate, find, wait) should have afterSnapshot
+      const afterEvents = events.filter(e => e.type === 'after');
+      assert.ok(afterEvents.length > 0, 'should have after events');
+      const withAfter = afterEvents.filter(e => e.afterSnapshot);
+      assert.ok(withAfter.length > 0, 'fill-like action should have afterSnapshot');
+      for (const ev of withAfter) {
+        assert.ok(ev.afterSnapshot.startsWith('after@'), `afterSnapshot should start with "after@", got: ${ev.afterSnapshot}`);
+      }
 
       await ctx.close();
     } finally {
@@ -322,7 +391,7 @@ describe('Tracing: groups', () => {
       const events = readTraceEvents(extractedDir);
 
       // Look for before/after events from groups
-      const beforeEvents = events.filter(e => e.type === 'before' && e.apiName === 'login flow');
+      const beforeEvents = events.filter(e => e.type === 'before' && e.title === 'login flow');
       assert.ok(beforeEvents.length > 0, 'should have a before event for the group');
 
       const afterEvents = events.filter(e => e.type === 'after');
@@ -337,7 +406,7 @@ describe('Tracing: groups', () => {
 });
 
 describe('Tracing: network events', () => {
-  test('trace captures network events from navigation', async () => {
+  test('trace records network events as HAR resource-snapshots', async () => {
     const bro = await browser.launch({ headless: true });
     let tmpDir;
     try {
@@ -353,7 +422,49 @@ describe('Tracing: network events', () => {
       tmpDir = td;
 
       const networkEvents = readNetworkEvents(extractedDir);
-      assert.ok(networkEvents.length > 0, `should have network events, got ${networkEvents.length}`);
+      assert.ok(networkEvents.length > 0, 'should have network events recorded');
+
+      // All events must be resource-snapshot type
+      for (const ev of networkEvents) {
+        assert.strictEqual(ev.type, 'resource-snapshot', `event type should be resource-snapshot, got: ${ev.type}`);
+        assert.ok(ev.snapshot, 'event should have snapshot field');
+      }
+
+      // Verify HAR entry structure on the first event
+      const snapshot = networkEvents[0].snapshot;
+      assert.ok(snapshot.request, 'snapshot should have request');
+      assert.ok(snapshot.response, 'snapshot should have response');
+      assert.ok(snapshot.cache, 'snapshot should have cache');
+      assert.ok(snapshot.timings, 'snapshot should have timings');
+
+      // startedDateTime should be an ISO date string
+      assert.ok(typeof snapshot.startedDateTime === 'string', 'startedDateTime should be a string');
+      assert.ok(!isNaN(Date.parse(snapshot.startedDateTime)), `startedDateTime should be a valid ISO date, got: ${snapshot.startedDateTime}`);
+
+      // time should be a number
+      assert.ok(typeof snapshot.time === 'number', 'time should be a number');
+
+      // _monotonicTime should be in seconds (not ms)
+      assert.ok(typeof snapshot._monotonicTime === 'number', '_monotonicTime should be a number');
+      // If wallTime is > 1e12 ms (reasonable epoch ms), _monotonicTime should be ~1e9 (seconds)
+      assert.ok(snapshot._monotonicTime > 1e6 && snapshot._monotonicTime < 1e13, `_monotonicTime should be in seconds, got: ${snapshot._monotonicTime}`);
+
+      // Verify request URL contains test server
+      const urls = networkEvents.map(e => e.snapshot.request.url);
+      assert.ok(urls.some(u => u.includes('127.0.0.1')), `should have request to test server, got: ${urls.join(', ')}`);
+
+      // Verify response status
+      const mainPageEvent = networkEvents.find(e => e.snapshot.request.url.includes('127.0.0.1'));
+      assert.strictEqual(mainPageEvent.snapshot.response.status, 200, 'response status should be 200');
+
+      // Verify headers are flat HAR format: [{name, value}] not [{name, value: {type, value}}]
+      const reqHeaders = mainPageEvent.snapshot.request.headers;
+      assert.ok(Array.isArray(reqHeaders), 'request headers should be an array');
+      if (reqHeaders.length > 0) {
+        const h = reqHeaders[0];
+        assert.ok(typeof h.name === 'string', 'header name should be a string');
+        assert.ok(typeof h.value === 'string', `header value should be a flat string, got: ${typeof h.value}`);
+      }
 
       await ctx.close();
     } finally {
