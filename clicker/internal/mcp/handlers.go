@@ -189,8 +189,6 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.pageClockSetSystemTime(args)
 	case "page_clock_set_timezone":
 		return h.pageClockSetTimezone(args)
-	case "browser_find_by_role":
-		return h.browserFindByRole(args)
 	case "browser_fill":
 		return h.browserFill(args)
 	case "browser_press":
@@ -555,6 +553,7 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 	}
 
 	// Check for semantic locators
+	role, _ := args["role"].(string)
 	text, _ := args["text"].(string)
 	label, _ := args["label"].(string)
 	placeholder, _ := args["placeholder"].(string)
@@ -563,7 +562,7 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 	alt, _ := args["alt"].(string)
 	title, _ := args["title"].(string)
 
-	hasSemantic := text != "" || label != "" || placeholder != "" || testid != "" || xpath != "" || alt != "" || title != ""
+	hasSemantic := role != "" || text != "" || label != "" || placeholder != "" || testid != "" || xpath != "" || alt != "" || title != ""
 
 	if hasSemantic {
 		timeout := features.DefaultTimeout
@@ -572,11 +571,11 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 		}
 
 		script := findBySemanticScript()
-		result, err := pollCallFunction(h, script, []interface{}{text, label, placeholder, testid, xpath, alt, title}, timeout)
+		result, err := pollCallFunction(h, script, []interface{}{role, text, label, placeholder, testid, xpath, alt, title}, timeout)
 		if err != nil {
 			desc := ""
 			for _, pair := range []struct{ k, v string }{
-				{"text", text}, {"label", label}, {"placeholder", placeholder},
+				{"role", role}, {"text", text}, {"label", label}, {"placeholder", placeholder},
 				{"testid", testid}, {"xpath", xpath}, {"alt", alt}, {"title", title},
 			} {
 				if pair.v != "" {
@@ -613,7 +612,7 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 	// CSS selector mode
 	selector, ok := args["selector"].(string)
 	if !ok || selector == "" {
-		return nil, fmt.Errorf("selector or semantic locator (text, label, placeholder, testid, xpath, alt, title) is required")
+		return nil, fmt.Errorf("selector or semantic locator (role, text, label, placeholder, testid, xpath, alt, title) is required")
 	}
 	selector = h.resolveSelector(selector)
 
@@ -645,13 +644,129 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 // findBySemanticScript returns the JS function for finding elements by semantic criteria.
 // Returns JSON: {"selector":"...","label":"...","tag":"...","text":"...","box":{...}}
 func findBySemanticScript() string {
-	return `(text, label, placeholder, testid, xpath, alt, title) => {
+	return `(role, text, label, placeholder, testid, xpath, alt, title) => {
 		` + GetSelectorJS() + `
 		` + GetLabelJS() + `
 
+		const IMPLICIT_ROLES = {
+			A: (el) => el.hasAttribute('href') ? 'link' : '',
+			AREA: (el) => el.hasAttribute('href') ? 'link' : '',
+			ARTICLE: () => 'article',
+			ASIDE: () => 'complementary',
+			BUTTON: () => 'button',
+			DETAILS: () => 'group',
+			DIALOG: () => 'dialog',
+			FOOTER: () => 'contentinfo',
+			FORM: () => 'form',
+			H1: () => 'heading', H2: () => 'heading', H3: () => 'heading',
+			H4: () => 'heading', H5: () => 'heading', H6: () => 'heading',
+			HEADER: () => 'banner',
+			HR: () => 'separator',
+			IMG: (el) => el.getAttribute('alt') ? 'img' : 'presentation',
+			INPUT: (el) => {
+				const t = (el.getAttribute('type') || 'text').toLowerCase();
+				const map = {button:'button',checkbox:'checkbox',image:'button',
+					number:'spinbutton',radio:'radio',range:'slider',
+					reset:'button',search:'searchbox',submit:'button',text:'textbox',
+					email:'textbox',tel:'textbox',url:'textbox',password:'textbox'};
+				return map[t] || 'textbox';
+			},
+			LI: () => 'listitem',
+			MAIN: () => 'main',
+			MENU: () => 'list',
+			NAV: () => 'navigation',
+			OL: () => 'list',
+			OPTION: () => 'option',
+			OUTPUT: () => 'status',
+			PROGRESS: () => 'progressbar',
+			SECTION: () => 'region',
+			SELECT: (el) => el.hasAttribute('multiple') ? 'listbox' : 'combobox',
+			SUMMARY: () => 'button',
+			TABLE: () => 'table',
+			TBODY: () => 'rowgroup', THEAD: () => 'rowgroup', TFOOT: () => 'rowgroup',
+			TD: () => 'cell',
+			TEXTAREA: () => 'textbox',
+			TH: () => 'columnheader',
+			TR: () => 'row',
+			UL: () => 'list',
+		};
+
+		function getImplicitRole(el) {
+			const explicit = el.getAttribute('role');
+			if (explicit) return explicit.toLowerCase();
+			const fn = IMPLICIT_ROLES[el.tagName];
+			return fn ? fn(el).toLowerCase() : '';
+		}
+
+		function getName(el) {
+			const ariaLabel = el.getAttribute('aria-label');
+			if (ariaLabel) return ariaLabel;
+			const labelledBy = el.getAttribute('aria-labelledby');
+			if (labelledBy) {
+				const parts = labelledBy.split(/\s+/).map(id => {
+					const ref = document.getElementById(id);
+					return ref ? (ref.textContent || '').trim() : '';
+				}).filter(Boolean);
+				if (parts.length) return parts.join(' ');
+			}
+			if (el.id) {
+				const assocLabel = document.querySelector('label[for="' + el.id + '"]');
+				if (assocLabel) return (assocLabel.textContent || '').trim();
+			}
+			const ph = el.getAttribute('placeholder');
+			if (ph) return ph;
+			const altAttr = el.getAttribute('alt');
+			if (altAttr) return altAttr;
+			const titleAttr = el.getAttribute('title');
+			if (titleAttr) return titleAttr;
+			return (el.textContent || '').trim();
+		}
+
 		let el = null;
 
-		if (xpath) {
+		if (role) {
+			// Role-based matching: walk all elements, filter by role + other criteria
+			const roleLower = role.toLowerCase();
+			const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
+			const found = [];
+			let node;
+			while (node = walker.nextNode()) {
+				if (getImplicitRole(node) !== roleLower) continue;
+				// Apply additional filters
+				if (text && !(node.textContent || '').trim().includes(text)) continue;
+				if (label) {
+					const elName = getName(node);
+					if (!elName.includes(label)) continue;
+				}
+				if (placeholder) {
+					const ph = node.getAttribute('placeholder');
+					if (!ph || !ph.includes(placeholder)) continue;
+				}
+				if (testid) {
+					const tid = node.getAttribute('data-testid');
+					if (tid !== testid) continue;
+				}
+				if (alt) {
+					const a = node.getAttribute('alt');
+					if (!a || !a.includes(alt)) continue;
+				}
+				if (title) {
+					const t = node.getAttribute('title');
+					if (!t || !t.includes(title)) continue;
+				}
+				found.push(node);
+			}
+			if (found.length === 0) return null;
+			// Pick best: prefer shortest text match if text filter is used
+			el = found[0];
+			if (text && found.length > 1) {
+				let bestLen = (el.textContent || '').length;
+				for (let i = 1; i < found.length; i++) {
+					const len = (found[i].textContent || '').length;
+					if (len < bestLen) { el = found[i]; bestLen = len; }
+				}
+			}
+		} else if (xpath) {
 			const xresult = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
 			el = xresult.singleNodeValue;
 		} else if (testid) {
@@ -1864,62 +1979,6 @@ func clockInstallScript() string {
 }`
 }
 
-// browserFindByRole finds an element by ARIA role and accessible name.
-func (h *Handlers) browserFindByRole(args map[string]interface{}) (*ToolsCallResult, error) {
-	if err := h.ensureBrowser(); err != nil {
-		return nil, err
-	}
-
-	role, _ := args["role"].(string)
-	name, _ := args["name"].(string)
-	selector, _ := args["selector"].(string)
-
-	if role == "" && name == "" {
-		return nil, fmt.Errorf("at least one of role or name is required")
-	}
-
-	timeout := features.DefaultTimeout
-	if t, ok := args["timeout"].(float64); ok {
-		timeout = time.Duration(t) * time.Millisecond
-	}
-
-	script := findByRoleScript()
-	result, err := pollCallFunction(h, script, []interface{}{role, name, selector}, timeout)
-	if err != nil {
-		desc := ""
-		if role != "" {
-			desc += "role=" + role
-		}
-		if name != "" {
-			if desc != "" {
-				desc += ", "
-			}
-			desc += "name=" + name
-		}
-		return nil, fmt.Errorf("element not found: %s (timeout %s)", desc, timeout)
-	}
-
-	// Parse JSON result
-	var found struct {
-		Selector string `json:"selector"`
-		Label    string `json:"label"`
-	}
-	if err := json.Unmarshal([]byte(fmt.Sprintf("%v", result)), &found); err != nil {
-		return nil, fmt.Errorf("failed to parse find-by-role result: %w", err)
-	}
-
-	// Store ref in refMap
-	h.refMap = make(map[string]string)
-	h.refMap["@e1"] = found.Selector
-
-	return &ToolsCallResult{
-		Content: []Content{{
-			Type: "text",
-			Text: fmt.Sprintf("@e1 %s", found.Label),
-		}},
-	}, nil
-}
-
 // pollCallFunction polls a JS function until it returns a non-null/non-empty result.
 func pollCallFunction(h *Handlers, script string, args []interface{}, timeout time.Duration) (interface{}, error) {
 	deadline := time.Now().Add(timeout)
@@ -1940,126 +1999,6 @@ func pollCallFunction(h *Handlers, script string, args []interface{}, timeout ti
 
 		time.Sleep(interval)
 	}
-}
-
-// findByRoleScript returns the JS function for finding elements by ARIA role.
-func findByRoleScript() string {
-	return `(role, name, selector) => {
-		const IMPLICIT_ROLES = {
-			A: (el) => el.hasAttribute('href') ? 'link' : '',
-			AREA: (el) => el.hasAttribute('href') ? 'link' : '',
-			ARTICLE: () => 'article',
-			ASIDE: () => 'complementary',
-			BUTTON: () => 'button',
-			DETAILS: () => 'group',
-			DIALOG: () => 'dialog',
-			FOOTER: () => 'contentinfo',
-			FORM: () => 'form',
-			H1: () => 'heading', H2: () => 'heading', H3: () => 'heading',
-			H4: () => 'heading', H5: () => 'heading', H6: () => 'heading',
-			HEADER: () => 'banner',
-			HR: () => 'separator',
-			IMG: (el) => el.getAttribute('alt') ? 'img' : 'presentation',
-			INPUT: (el) => {
-				const t = (el.getAttribute('type') || 'text').toLowerCase();
-				const map = {button:'button',checkbox:'checkbox',image:'button',
-					number:'spinbutton',radio:'radio',range:'slider',
-					reset:'button',search:'searchbox',submit:'button',text:'textbox',
-					email:'textbox',tel:'textbox',url:'textbox',password:'textbox'};
-				return map[t] || 'textbox';
-			},
-			LI: () => 'listitem',
-			MAIN: () => 'main',
-			MENU: () => 'list',
-			NAV: () => 'navigation',
-			OL: () => 'list',
-			OPTION: () => 'option',
-			OUTPUT: () => 'status',
-			PROGRESS: () => 'progressbar',
-			SECTION: () => 'region',
-			SELECT: (el) => el.hasAttribute('multiple') ? 'listbox' : 'combobox',
-			SUMMARY: () => 'button',
-			TABLE: () => 'table',
-			TBODY: () => 'rowgroup', THEAD: () => 'rowgroup', TFOOT: () => 'rowgroup',
-			TD: () => 'cell',
-			TEXTAREA: () => 'textbox',
-			TH: () => 'columnheader',
-			TR: () => 'row',
-			UL: () => 'list',
-		};
-
-		function getImplicitRole(el) {
-			const explicit = el.getAttribute('role');
-			if (explicit) return explicit.toLowerCase();
-			const fn = IMPLICIT_ROLES[el.tagName];
-			return fn ? fn(el).toLowerCase() : '';
-		}
-
-		function getName(el) {
-			const ariaLabel = el.getAttribute('aria-label');
-			if (ariaLabel) return ariaLabel;
-			const labelledBy = el.getAttribute('aria-labelledby');
-			if (labelledBy) {
-				const parts = labelledBy.split(/\s+/).map(id => {
-					const ref = document.getElementById(id);
-					return ref ? (ref.textContent || '').trim() : '';
-				}).filter(Boolean);
-				if (parts.length) return parts.join(' ');
-			}
-			if (el.id) {
-				const assocLabel = document.querySelector('label[for="' + el.id + '"]');
-				if (assocLabel) return (assocLabel.textContent || '').trim();
-			}
-			const placeholder = el.getAttribute('placeholder');
-			if (placeholder) return placeholder;
-			const alt = el.getAttribute('alt');
-			if (alt) return alt;
-			const title = el.getAttribute('title');
-			if (title) return title;
-			return (el.textContent || '').trim();
-		}
-
-		function matches(el) {
-			if (selector && !el.matches(selector)) return false;
-			if (role && getImplicitRole(el) !== role.toLowerCase()) return false;
-			if (name) {
-				const elName = getName(el);
-				if (!elName.includes(name)) return false;
-			}
-			return true;
-		}
-
-		const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
-		const found = [];
-		let node;
-		while (node = walker.nextNode()) {
-			if (matches(node)) found.push(node);
-		}
-
-		if (found.length === 0) return null;
-
-		// Pick best: prefer shortest text match if name filter is used
-		let best = found[0];
-		if (name && found.length > 1) {
-			let bestLen = (best.textContent || '').length;
-			for (let i = 1; i < found.length; i++) {
-				const len = (found[i].textContent || '').length;
-				if (len < bestLen) { best = found[i]; bestLen = len; }
-			}
-		}
-
-		` + GetSelectorJS() + `
-		` + GetLabelJS() + `
-
-		const rect = best.getBoundingClientRect();
-		return JSON.stringify({
-			selector: getSelector(best),
-			label: getLabel(best),
-			tag: best.tagName.toLowerCase(),
-			text: (best.textContent || '').trim().substring(0, 100),
-			box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
-		});
-	}`
 }
 
 // browserFill clears an input field and types new text.

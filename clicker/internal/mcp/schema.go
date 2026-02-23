@@ -93,13 +93,17 @@ func GetToolSchemas() []Tool {
 		},
 		{
 			Name:        "browser_find",
-			Description: "Find an element and return its info (tag, text, bounding box). Use a CSS selector or a semantic locator (text, label, placeholder, testid, xpath, alt, title).",
+			Description: "Find an element and return its info (tag, text, bounding box). Use a CSS selector or a semantic locator (role, text, label, placeholder, testid, xpath, alt, title). Combine role with text or other locators to narrow results.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"selector": map[string]interface{}{
 						"type":        "string",
 						"description": "CSS selector for the element to find",
+					},
+					"role": map[string]interface{}{
+						"type":        "string",
+						"description": "ARIA role to match (e.g., \"button\", \"link\", \"textbox\", \"heading\", \"checkbox\")",
 					},
 					"text": map[string]interface{}{
 						"type":        "string",
@@ -513,34 +517,6 @@ func GetToolSchemas() []Tool {
 					},
 				},
 				"required":             []string{"timezone"},
-				"additionalProperties": false,
-			},
-		},
-		// --- New tools ---
-		{
-			Name:        "browser_find_by_role",
-			Description: "Find an element by ARIA role, accessible name, or other semantic attributes. Returns element info (tag, text, bounding box). More reliable than CSS selectors for interactive elements.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"role": map[string]interface{}{
-						"type":        "string",
-						"description": "ARIA role to match (e.g., \"button\", \"link\", \"textbox\", \"heading\", \"checkbox\")",
-					},
-					"name": map[string]interface{}{
-						"type":        "string",
-						"description": "Accessible name to match (text content, aria-label, or associated label). Substring match.",
-					},
-					"selector": map[string]interface{}{
-						"type":        "string",
-						"description": "Additional CSS selector to narrow results (optional)",
-					},
-					"timeout": map[string]interface{}{
-						"type":        "number",
-						"description": "Timeout in milliseconds (default: 30000)",
-						"default":     30000,
-					},
-				},
 				"additionalProperties": false,
 			},
 		},

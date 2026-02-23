@@ -62,11 +62,11 @@ describe('Daemon: Find @refs workflow', () => {
     assert.ok(urlResult.result.includes('iana.org'), 'Should navigate to IANA after clicking');
   });
 
-  test('find-by-role returns @ref and click @e1 navigates', () => {
+  test('find --role returns @ref and click @e1 navigates', () => {
     clicker('go https://example.com');
-    const findResult = clickerJSON('find-by-role --role link');
+    const findResult = clickerJSON('find --role link');
     assert.strictEqual(findResult.ok, true);
-    assert.ok(findResult.result.includes('@e1'), 'find-by-role should return @e1');
+    assert.ok(findResult.result.includes('@e1'), 'find --role should return @e1');
     assert.ok(findResult.result.includes('[a]'), 'Should show [a] tag label');
 
     clickerJSON('click @e1');

@@ -102,7 +102,6 @@ func main() {
 	rootCmd.AddCommand(newWaitForURLCmd())
 	rootCmd.AddCommand(newWaitForLoadCmd())
 	rootCmd.AddCommand(newSleepCmd())
-	rootCmd.AddCommand(newFindByRoleCmd())
 	rootCmd.AddCommand(newSkillCmd())
 	rootCmd.AddCommand(newMapCmd())
 	rootCmd.AddCommand(newDiffCmd())

@@ -140,7 +140,7 @@ describe('MCP Server: Protocol', () => {
 
     assert.ok(response.result, 'Should have result');
     assert.ok(response.result.tools, 'Should have tools array');
-    assert.strictEqual(response.result.tools.length, 82, 'Should have 82 tools');
+    assert.strictEqual(response.result.tools.length, 81, 'Should have 81 tools');
 
     const toolNames = response.result.tools.map(t => t.name);
     const expectedTools = [
@@ -154,7 +154,7 @@ describe('MCP Server: Protocol', () => {
       'page_clock_install', 'page_clock_fast_forward', 'page_clock_run_for',
       'page_clock_pause_at', 'page_clock_resume', 'page_clock_set_fixed_time',
       'page_clock_set_system_time', 'page_clock_set_timezone',
-      'browser_find_by_role', 'browser_fill', 'browser_press',
+      'browser_fill', 'browser_press',
       'browser_back', 'browser_forward', 'browser_reload',
       'browser_get_value', 'browser_get_attribute', 'browser_is_visible',
       'browser_check', 'browser_uncheck', 'browser_scroll_into_view',

@@ -30,6 +30,12 @@ func newFindCmd() *cobra.Command {
   vibium click @e1
   # Use the returned @ref to interact with the found element
 
+  vibium find --role link
+  # → @e1 [a] "More information..."
+
+  vibium find --role heading --text "Example"
+  # Find heading containing "Example"
+
   vibium find --placeholder "Search..."
   vibium find --testid "submit-btn"
   vibium find --xpath "//div[@class='main']"`,
@@ -37,6 +43,7 @@ func newFindCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			// Collect semantic flags
 			semanticFlags := map[string]string{
+				"role":        "",
 				"text":        "",
 				"label":       "",
 				"placeholder": "",
@@ -159,6 +166,7 @@ func newFindCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().String("role", "", "Find element by ARIA role (e.g. button, link, textbox)")
 	cmd.Flags().String("text", "", "Find element containing this text")
 	cmd.Flags().String("label", "", "Find input by associated label text")
 	cmd.Flags().String("placeholder", "", "Find element by placeholder attribute")

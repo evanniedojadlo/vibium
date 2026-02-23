@@ -117,15 +117,15 @@ describe('Daemon CLI: Accessibility and search commands', () => {
     assert.ok(result.result.includes('WebArea'), 'Should contain WebArea root');
   });
 
-  test('find-by-role finds element by role and returns @ref', () => {
-    const result = clickerJSON('find-by-role --role heading');
+  test('find --role finds element by role and returns @ref', () => {
+    const result = clickerJSON('find --role heading');
     assert.strictEqual(result.ok, true);
     assert.ok(result.result.includes('@e1'), 'Should return @e1 ref');
     assert.ok(result.result.includes('[h1]'), 'Should find heading element');
   });
 
-  test('find-by-role finds element by role and name', () => {
-    const result = clickerJSON('find-by-role --role link --name "Learn more"');
+  test('find --role finds element by role and text', () => {
+    const result = clickerJSON('find --role link --text "Learn more"');
     assert.strictEqual(result.ok, true);
     assert.ok(result.result.includes('@e1'), 'Should return @e1 ref');
     assert.ok(result.result.includes('[a]'), 'Should find link element');

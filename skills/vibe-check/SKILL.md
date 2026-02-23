@@ -72,7 +72,7 @@ vibium go https://example.com && vibium map && vibium click @e3 && vibium diff m
 - `vibium find --alt "Logo"` — find by alt attribute → `@e1`
 - `vibium find --title "Settings"` — find by title attribute → `@e1`
 - `vibium find-all "<selector>"` — find all matching elements → `@e1`, `@e2`, ... (`--limit N`)
-- `vibium find-by-role` — find element by ARIA role/name → `@e1` (`--role`, `--name`, `--selector`, `--timeout`)
+- `vibium find --role <role>` — find element by ARIA role → `@e1` (combine with `--text`, `--label`, etc.)
 - `vibium eval "<js>"` — run JavaScript and print result (`--stdin` to read from stdin)
 - `vibium count "<selector>"` — count matching elements
 - `vibium screenshot -o file.png` — capture screenshot (`--full-page`, `--annotate`)
@@ -348,7 +348,7 @@ Use `--oneshot` (or `VIBIUM_ONESHOT=1`) to launch a fresh browser for each comma
 - Use `vibium map --selector` to reduce noise on large pages
 - Use `vibium fill` to replace a field's value, `vibium type` to append to it
 - Use `vibium find --text` / `--label` / `--testid` for semantic element lookup (more reliable than CSS selectors)
-- Use `vibium find-by-role` for ARIA-role-based lookup
+- Use `vibium find --role` for ARIA-role-based lookup
 - Use `vibium a11y-tree` to understand page structure without visual rendering
 - Use `vibium text "<selector>"` to read specific sections
 - Use `vibium diff map` after interactions to see what changed
