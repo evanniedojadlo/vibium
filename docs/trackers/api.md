@@ -1,6 +1,6 @@
 # Vibium API
 
-175 commands across 23 categories, tracked across 6 implementation targets.
+167 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -46,7 +46,7 @@
 | `el.find('css')` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.find({…})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Selector Strategies (10 commands)
+## Selector Strategies (9 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -60,7 +60,7 @@
 | `find({xpath: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `find({role, text}) combo` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
-## Locator Chaining & Filtering (8 commands)
+## Locator Chaining & Filtering (6 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -183,7 +183,7 @@
 | `context.storageState()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.addInitScript()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Emulation (8 commands)
+## Emulation (7 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -221,7 +221,7 @@
 | `page.consoleMessages()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.errors()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Waiting (12 commands)
+## Waiting (11 commands)
 
 ### Capture — set up before the action
 
@@ -244,7 +244,7 @@
 | `el.waitUntil(state)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Downloads & Files (4 commands)
+## Downloads & Files (3 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -287,7 +287,7 @@
 | `page.addStyle(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.expose(name, fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## AI-Native Methods (4 commands)
+## AI-Native Methods (3 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|

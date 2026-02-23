@@ -1,6 +1,6 @@
 {
   "name": "vibium",
-  "version": "0.1.8",
+  "version": "26.2.0",
   "description": "Browser automation for AI agents and humans",
   "keywords": [
     "browser",
@@ -54,11 +54,11 @@
     "NOTICE"
   ],
   "optionalDependencies": {
-    "@vibium/linux-x64": "0.1.8",
-    "@vibium/linux-arm64": "0.1.8",
-    "@vibium/darwin-x64": "0.1.8",
-    "@vibium/darwin-arm64": "0.1.8",
-    "@vibium/win32-x64": "0.1.8"
+    "@vibium/linux-x64": "26.2.0",
+    "@vibium/linux-arm64": "26.2.0",
+    "@vibium/darwin-x64": "26.2.0",
+    "@vibium/darwin-arm64": "26.2.0",
+    "@vibium/win32-x64": "26.2.0"
   },
   "dependencies": {
     "ws": "^8.18.3"

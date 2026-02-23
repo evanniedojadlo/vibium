@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vibium-win32-x64"
-version = "0.1.8"
+version = "26.2.0"
 description = "Vibium binary for Windows x64"
 readme = "README.md"
 license = "Apache-2.0"

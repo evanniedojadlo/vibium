@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-__version__ = "0.1.8"
+__version__ = "26.2.0"
 
 def get_binary_path() -> str:
     """Get the path to the vibium binary."""
