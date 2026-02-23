@@ -1,9 +1,8 @@
 export { browser, Browser, LaunchOptions } from './browser';
-export { Page, Keyboard, Mouse, Touch, ScreenshotOptions, A11yNode } from './page';
+export { Page, Keyboard, Mouse, Touch, ScreenshotOptions, A11yNode, FindOptions } from './page';
 export { Clock, ClockInstallOptions } from './clock';
 export { BrowserContext, Cookie, SetCookieParam, StorageState, OriginState } from './context';
 export { Tracing, TracingStartOptions, TracingStopOptions } from './tracing';
-export { Vibe, FindOptions } from './vibe';
 export { Element, BoundingBox, ElementInfo, ActionOptions, SelectorOptions, FluentElement, fluent } from './element';
 export { ElementList, FilterOptions } from './element-list';
 export { Route } from './route';
