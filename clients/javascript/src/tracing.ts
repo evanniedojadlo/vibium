@@ -7,6 +7,10 @@ export interface TracingStartOptions {
   sources?: boolean;
   title?: string;
   bidi?: boolean;
+  /** Screenshot format: 'jpeg' (default, faster/smaller) or 'png' (lossless). */
+  format?: 'jpeg' | 'png';
+  /** JPEG quality 0.0-1.0 (default 0.8). Ignored for PNG. */
+  quality?: number;
 }
 
 export interface TracingStopOptions {

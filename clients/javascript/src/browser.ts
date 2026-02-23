@@ -26,6 +26,7 @@ export class Browser {
         const params = event.params as {
           context: string;
           url: string;
+          userContext?: string;
           originalOpener?: string;
         };
 
@@ -34,7 +35,7 @@ export class Browser {
         // would otherwise leak and interfere with the real Page's handlers.
         const callbacks = params.originalOpener ? this.popupCallbacks : this.pageCallbacks;
         if (callbacks.length > 0) {
-          const page = new Page(this.client, params.context);
+          const page = new Page(this.client, params.context, params.userContext || 'default');
           for (const cb of callbacks) {
             cb(page);
           }
@@ -45,14 +46,14 @@ export class Browser {
 
   /** Get the default page (first browsing context). */
   async page(): Promise<Page> {
-    const result = await this.client.send<{ context: string }>('vibium:browser.page', {});
-    return new Page(this.client, result.context);
+    const result = await this.client.send<{ context: string; userContext: string }>('vibium:browser.page', {});
+    return new Page(this.client, result.context, result.userContext);
   }
 
   /** Create a new page (tab) in the default context. */
   async newPage(): Promise<Page> {
-    const result = await this.client.send<{ context: string }>('vibium:browser.newPage', {});
-    return new Page(this.client, result.context);
+    const result = await this.client.send<{ context: string; userContext: string }>('vibium:browser.newPage', {});
+    return new Page(this.client, result.context, result.userContext);
   }
 
   /** Create a new browser context (isolated, incognito-like). */
@@ -63,8 +64,8 @@ export class Browser {
 
   /** Get all open pages. */
   async pages(): Promise<Page[]> {
-    const result = await this.client.send<{ pages: { context: string; url: string }[] }>('vibium:browser.pages', {});
-    return result.pages.map(p => new Page(this.client, p.context));
+    const result = await this.client.send<{ pages: { context: string; url: string; userContext: string }[] }>('vibium:browser.pages', {});
+    return result.pages.map(p => new Page(this.client, p.context, p.userContext));
   }
 
   /** Register a callback for when a new page is created (e.g. new tab). */

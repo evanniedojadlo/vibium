@@ -58,7 +58,7 @@ export class BrowserContext {
     const result = await this.client.send<{ context: string }>('vibium:context.newPage', {
       userContext: this.userContextId,
     });
-    return new Page(this.client, result.context);
+    return new Page(this.client, result.context, this.userContextId);
   }
 
   /** Close this context and all its pages. */

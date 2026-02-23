@@ -37,7 +37,7 @@ class BrowserContext:
         result = await self._client.send("vibium:context.newPage", {
             "userContext": self._user_context_id,
         })
-        return Page(self._client, result["context"])
+        return Page(self._client, result["context"], self._user_context_id)
 
     async def close(self) -> None:
         """Close this context and all its pages."""

@@ -21,6 +21,7 @@ from .websocket_info import WebSocketInfo
 
 if TYPE_CHECKING:
     from ..client import BiDiClient
+    from .context import BrowserContext as BrowserContextType
 
 
 def _match_pattern(pattern: str, url: str) -> bool:
@@ -92,9 +93,11 @@ class Touch:
 class Page:
     """Async page automation interface."""
 
-    def __init__(self, client: BiDiClient, context_id: str) -> None:
+    def __init__(self, client: BiDiClient, context_id: str, user_context_id: str = "default") -> None:
         self._client = client
         self._context_id = context_id
+        self._user_context_id = user_context_id
+        self._context: Optional[BrowserContextType] = None
 
         self.keyboard = Keyboard(client, context_id)
         self.mouse = Mouse(client, context_id)
@@ -127,6 +130,14 @@ class Page:
     @property
     def id(self) -> str:
         return self._context_id
+
+    @property
+    def context(self) -> BrowserContextType:
+        """The parent BrowserContext that owns this page."""
+        if self._context is None:
+            from .context import BrowserContext
+            self._context = BrowserContext(self._client, self._user_context_id)
+        return self._context
 
     # --- Navigation ---
 

@@ -3,6 +3,7 @@ import { ElementSync } from './element';
 import { ElementListSync } from './element-list';
 import { KeyboardSync, MouseSync, TouchSync } from './keyboard';
 import { ClockSync } from './clock';
+import { BrowserContextSync } from './context';
 import { RouteSync, RouteRequest } from './route';
 import { DialogSync, DialogData } from './dialog';
 import { ElementInfo, SelectorOptions } from '../element';
@@ -87,6 +88,7 @@ export class PageSync {
   private _downloadHandlerId: string | null = null;
   private _wsHandlerId: string | null = null;
   private _wsInstances = new Map<number, WebSocketInfoSync>();
+  private _cachedContext: BrowserContextSync | null = null;
 
   constructor(bridge: SyncBridge, pageId: number) {
     this._bridge = bridge;
@@ -111,6 +113,15 @@ export class PageSync {
         },
       }
     );
+  }
+
+  /** The parent BrowserContext that owns this page. */
+  get context(): BrowserContextSync {
+    if (!this._cachedContext) {
+      const result = this._bridge.call<{ contextId: number }>('page.context', [this._pageId]);
+      this._cachedContext = new BrowserContextSync(this._bridge, result.contextId);
+    }
+    return this._cachedContext;
   }
 
   // --- Navigation ---

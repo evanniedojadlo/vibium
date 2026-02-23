@@ -60,6 +60,7 @@ const pages = new Map<number, Page>();
 const contexts = new Map<number, BrowserContext>();
 const elements = new Map<number, Element>();
 const elementLists = new Map<number, ElementList>();
+const pageContextMap = new Map<number, number>(); // pageId → contextId (sync worker IDs)
 
 // Default page ID (first page from launch)
 let defaultPageId = 0;
@@ -95,6 +96,21 @@ function getElementList(id: number): ElementList {
 function storePage(page: Page): number {
   const id = allocId();
   pages.set(id, page);
+
+  // Track page→context mapping: find or create sync context for this page's BrowserContext
+  const pageContext = page.context;
+  let contextSyncId: number | undefined;
+  for (const [cid, ctx] of contexts) {
+    if (ctx.id === pageContext.id) {
+      contextSyncId = cid;
+      break;
+    }
+  }
+  if (contextSyncId === undefined) {
+    contextSyncId = storeContext(pageContext);
+  }
+  pageContextMap.set(id, contextSyncId);
+
   return id;
 }
 
@@ -503,6 +519,13 @@ const handlers: Record<string, Handler> = {
     const [pageId, options] = args as [number, any];
     const tree = await getPage(pageId).a11yTree(options);
     return { tree };
+  },
+
+  'page.context': async (args) => {
+    const [pageId] = args as [number];
+    const contextId = pageContextMap.get(pageId);
+    if (contextId === undefined) throw new Error(`No context found for page ${pageId}`);
+    return { contextId };
   },
 
   // --- Page network ---

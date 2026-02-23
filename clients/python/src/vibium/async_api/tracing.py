@@ -24,8 +24,15 @@ class Tracing:
         sources: Optional[bool] = None,
         title: Optional[str] = None,
         bidi: Optional[bool] = None,
+        format: Optional[str] = None,
+        quality: Optional[float] = None,
     ) -> None:
-        """Start trace recording."""
+        """Start trace recording.
+
+        Args:
+            format: Screenshot format — 'jpeg' (default, faster/smaller) or 'png' (lossless).
+            quality: JPEG quality 0.0-1.0 (default 0.8). Ignored for PNG.
+        """
         params: Dict[str, Any] = {"userContext": self._user_context_id}
         if name is not None:
             params["name"] = name
@@ -39,6 +46,10 @@ class Tracing:
             params["title"] = title
         if bidi is not None:
             params["bidi"] = bidi
+        if format is not None:
+            params["format"] = format
+        if quality is not None:
+            params["quality"] = quality
         await self._client.send("vibium:tracing.start", params)
 
     async def stop(self, path: Optional[str] = None) -> bytes:

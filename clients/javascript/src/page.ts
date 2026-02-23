@@ -1,6 +1,7 @@
 import { BiDiClient, BiDiEvent, ScreenshotResult } from './bidi';
 import { Element, ElementInfo, SelectorOptions, FluentElement, fluent } from './element';
 import { ElementList, ElementListInfo } from './element-list';
+import { BrowserContext } from './context';
 import { Route } from './route';
 import { Request, Response } from './network';
 import { Dialog } from './dialog';
@@ -178,6 +179,7 @@ export interface A11yNode {
 export class Page {
   private client: BiDiClient;
   private contextId: string;
+  private _context: BrowserContext;
 
   /** Page-level keyboard input. */
   readonly keyboard: Keyboard;
@@ -208,9 +210,10 @@ export class Page {
   private _consoleBuffer: { type: string; text: string }[] | null = null;
   private _errorBuffer: { message: string }[] | null = null;
 
-  constructor(client: BiDiClient, contextId: string) {
+  constructor(client: BiDiClient, contextId: string, userContextId: string = 'default') {
     this.client = client;
     this.contextId = contextId;
+    this._context = new BrowserContext(client, userContextId);
     this.keyboard = new Keyboard(client, contextId);
     this.mouse = new Mouse(client, contextId);
     this.touch = new Touch(client, contextId);
@@ -312,6 +315,11 @@ export class Page {
   /** The browsing context ID for this page. */
   get id(): string {
     return this.contextId;
+  }
+
+  /** The parent BrowserContext that owns this page. */
+  get context(): BrowserContext {
+    return this._context;
   }
 
   /** Navigate to a URL. */

@@ -35,19 +35,19 @@ class Browser:
         self._seen_context_ids.add(context_id)
         callbacks = self._popup_callbacks if params.get("originalOpener") else self._page_callbacks
         if callbacks:
-            page = Page(self._client, params["context"])
+            page = Page(self._client, params["context"], params.get("userContext", "default"))
             for cb in callbacks:
                 cb(page)
 
     async def page(self) -> Page:
         """Get the default page (first browsing context)."""
         result = await self._client.send("vibium:browser.page", {})
-        return Page(self._client, result["context"])
+        return Page(self._client, result["context"], result.get("userContext", "default"))
 
     async def new_page(self) -> Page:
         """Create a new page (tab) in the default context."""
         result = await self._client.send("vibium:browser.newPage", {})
-        return Page(self._client, result["context"])
+        return Page(self._client, result["context"], result.get("userContext", "default"))
 
     async def new_context(self) -> BrowserContext:
         """Create a new browser context (isolated, incognito-like)."""
@@ -57,7 +57,7 @@ class Browser:
     async def pages(self) -> List[Page]:
         """Get all open pages."""
         result = await self._client.send("vibium:browser.pages", {})
-        return [Page(self._client, p["context"]) for p in result["pages"]]
+        return [Page(self._client, p["context"], p.get("userContext", "default")) for p in result["pages"]]
 
     def on_page(self, callback: Callable[[Page], None]) -> None:
         """Register a callback for when a new page is created."""

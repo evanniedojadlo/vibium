@@ -13,6 +13,7 @@ from .route import Route
 if TYPE_CHECKING:
     from .._sync_base import _EventLoopThread
     from ..async_api.page import Page as AsyncPage
+    from .context import BrowserContext as BrowserContextType
 
 
 class Keyboard:
@@ -84,10 +85,19 @@ class Page:
         # Sync event state
         self._console_messages: List[Dict[str, str]] = []
         self._errors: List[Dict[str, str]] = []
+        self._cached_context: Optional[BrowserContextType] = None
 
     @property
     def id(self) -> str:
         return self._async.id
+
+    @property
+    def context(self) -> BrowserContextType:
+        """The parent BrowserContext that owns this page."""
+        if self._cached_context is None:
+            from .context import BrowserContext
+            self._cached_context = BrowserContext(self._async.context, self._loop)
+        return self._cached_context
 
     # --- Navigation ---
 
