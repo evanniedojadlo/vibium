@@ -304,6 +304,10 @@ export class PageSync {
     this._bridge.call('page.close', [this._pageId]);
   }
 
+  scroll(direction?: string, amount?: number, selector?: string): void {
+    this._bridge.call('page.scroll', [this._pageId, direction, amount, selector]);
+  }
+
   // --- Emulation ---
 
   setViewport(size: { width: number; height: number }): void {

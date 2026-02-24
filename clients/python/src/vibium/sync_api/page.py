@@ -274,6 +274,12 @@ class Page:
     def close(self) -> None:
         self._loop.run(self._async.close())
 
+    # --- Scrolling ---
+
+    def scroll(self, direction: str = "down", amount: int = 3, selector: Optional[str] = None) -> None:
+        """Scroll the page in a direction (up/down/left/right)."""
+        self._loop.run(self._async.scroll(direction, amount, selector))
+
     # --- Network ---
 
     def route(

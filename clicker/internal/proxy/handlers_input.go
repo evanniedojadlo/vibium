@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"fmt"
+
 	"github.com/vibium/clicker/internal/bidi"
 )
 
@@ -281,6 +283,82 @@ func (r *Router) handleMouseWheel(session *BrowserSession, cmd bidiCommand) {
 						"y":      int(y),
 						"deltaX": int(deltaX),
 						"deltaY": int(deltaY),
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := r.sendInternalCommand(session, "input.performActions", wheelParams); err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{"scrolled": true})
+}
+
+// handlePageScroll handles vibium:page.scroll — scrolls the page in a direction.
+// Accepts direction (up/down/left/right, default "down"), amount (default 3), optional selector.
+func (r *Router) handlePageScroll(session *BrowserSession, cmd bidiCommand) {
+	direction := "down"
+	if d, ok := cmd.Params["direction"].(string); ok && d != "" {
+		direction = d
+	}
+
+	amount := 3
+	if a, ok := cmd.Params["amount"].(float64); ok {
+		amount = int(a)
+	}
+
+	context, err := r.resolveContext(session, cmd.Params)
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	// Determine scroll target coordinates
+	x, y := 0, 0
+	if selector, ok := cmd.Params["selector"].(string); ok && selector != "" {
+		// Scroll at element center
+		info, err := r.resolveElement(session, context, elementParams{Selector: selector})
+		if err != nil {
+			r.sendError(session, cmd.ID, err)
+			return
+		}
+		x = int(info.Box.X + info.Box.Width/2)
+		y = int(info.Box.Y + info.Box.Height/2)
+	}
+
+	// Map direction to deltas (120 pixels per scroll "notch")
+	deltaX, deltaY := 0, 0
+	pixels := amount * 120
+	switch direction {
+	case "down":
+		deltaY = pixels
+	case "up":
+		deltaY = -pixels
+	case "right":
+		deltaX = pixels
+	case "left":
+		deltaX = -pixels
+	default:
+		r.sendError(session, cmd.ID, fmt.Errorf("invalid direction: %q (use up, down, left, right)", direction))
+		return
+	}
+
+	wheelParams := map[string]interface{}{
+		"context": context,
+		"actions": []map[string]interface{}{
+			{
+				"type": "wheel",
+				"id":   "wheel",
+				"actions": []map[string]interface{}{
+					{
+						"type":   "scroll",
+						"x":      x,
+						"y":      y,
+						"deltaX": deltaX,
+						"deltaY": deltaY,
 					},
 				},
 			},

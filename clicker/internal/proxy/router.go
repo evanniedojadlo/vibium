@@ -374,6 +374,9 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	case "vibium:mouse.wheel":
 		r.dispatch(session, cmd, r.handleMouseWheel)
 		return
+	case "vibium:page.scroll":
+		r.dispatch(session, cmd, r.handlePageScroll)
+		return
 	case "vibium:touch.tap":
 		r.dispatch(session, cmd, r.handleTouchTap)
 		return

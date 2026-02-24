@@ -449,6 +449,12 @@ const handlers: Record<string, Handler> = {
     return { success: true };
   },
 
+  'page.scroll': async (args) => {
+    const [pageId, direction, amount, selector] = args as [number, string | undefined, number | undefined, string | undefined];
+    await getPage(pageId).scroll(direction, amount, selector);
+    return { success: true };
+  },
+
   // --- Page emulation ---
 
   'page.setViewport': async (args) => {

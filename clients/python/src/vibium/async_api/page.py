@@ -710,6 +710,17 @@ class Page:
     async def close(self) -> None:
         await self._client.send("browsingContext.close", {"context": self._context_id})
 
+    # --- Scrolling ---
+
+    async def scroll(self, direction: str = "down", amount: int = 3, selector: Optional[str] = None) -> None:
+        """Scroll the page in a direction (up/down/left/right)."""
+        await self._client.send("vibium:page.scroll", {
+            "context": self._context_id,
+            "direction": direction,
+            "amount": amount,
+            "selector": selector,
+        })
+
     # --- Network Interception ---
 
     async def route(self, pattern: str, handler: Callable[[Route], Any]) -> None:

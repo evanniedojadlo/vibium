@@ -124,6 +124,7 @@
 | `page.mouse.down()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.mouse.up()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.mouse.wheel(dx,dy)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `page.scroll(dir,amt)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.touch.tap(x,y)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
 ## Network Interception

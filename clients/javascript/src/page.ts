@@ -500,6 +500,16 @@ export class Page {
     await this.client.send('browsingContext.close', { context: this.contextId });
   }
 
+  /** Scroll the page in a direction. */
+  async scroll(direction?: string, amount?: number, selector?: string): Promise<void> {
+    await this.client.send('vibium:page.scroll', {
+      context: this.contextId,
+      direction,
+      amount,
+      selector,
+    });
+  }
+
   // --- Screenshots & PDF ---
 
   /** Take a screenshot of the page. Returns a PNG buffer. */
