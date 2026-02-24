@@ -14,7 +14,7 @@ func newCheckActionableCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "check-actionable [url] [selector]",
 		Short: "Check actionability of an element (Visible, Stable, ReceivesEvents, Enabled, Editable)",
-		Example: `  clicker check-actionable https://example.com "a"
+		Example: `  vibium check-actionable https://example.com "a"
   # Output:
   # Checking actionability for selector: a
   # ✓ Visible: true

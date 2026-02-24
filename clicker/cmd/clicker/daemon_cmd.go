@@ -17,7 +17,7 @@ import (
 func newDaemonCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "daemon",
-		Short: "Manage the clicker daemon (background browser process)",
+		Short: "Manage the vibium daemon (background browser process)",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
@@ -39,14 +39,14 @@ func newDaemonStartCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "start",
-		Short: "Start the clicker daemon",
-		Example: `  clicker daemon start
+		Short: "Start the vibium daemon",
+		Example: `  vibium daemon start
   # Starts daemon in foreground
 
-  clicker daemon start -d
+  vibium daemon start -d
   # Starts daemon in background
 
-  clicker daemon start --idle-timeout 30m
+  vibium daemon start --idle-timeout 30m
   # Auto-shutdown after 30 minutes of inactivity`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if detach && !internal {
@@ -71,7 +71,7 @@ func newDaemonStartCmd() *cobra.Command {
 func newDaemonStopCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the clicker daemon",
+		Short: "Stop the vibium daemon",
 		Run: func(cmd *cobra.Command, args []string) {
 			if !daemon.IsRunning() {
 				fmt.Println("Daemon is not running.")
@@ -120,7 +120,7 @@ func newDaemonStatusCmd() *cobra.Command {
 				return
 			}
 
-			fmt.Printf("vibium clicker daemon v%s\n", status.Version)
+			fmt.Printf("vibium daemon v%s\n", status.Version)
 			fmt.Printf("status:   running\n")
 			fmt.Printf("pid:      %d\n", status.PID)
 			fmt.Printf("uptime:   %s\n", status.Uptime)

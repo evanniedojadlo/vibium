@@ -15,13 +15,13 @@ func newScreenshotCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "screenshot [url]",
 		Short: "Capture a screenshot (optionally navigate to URL first)",
-		Example: `  clicker screenshot -o shot.png
+		Example: `  vibium screenshot -o shot.png
   # Screenshots the current page (daemon mode)
 
-  clicker screenshot https://example.com -o shot.png
+  vibium screenshot https://example.com -o shot.png
   # Navigates to URL first, then screenshots
 
-  clicker screenshot -o full.png --full-page
+  vibium screenshot -o full.png --full-page
   # Capture the entire page (not just the viewport)`,
 		Args: cobra.RangeArgs(0, 1),
 		Run: func(cmd *cobra.Command, args []string) {

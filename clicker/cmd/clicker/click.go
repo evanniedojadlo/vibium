@@ -15,13 +15,13 @@ func newClickCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "click [url] [selector]",
 		Short: "Click an element (optionally navigate to URL first)",
-		Example: `  clicker click "a"
+		Example: `  vibium click "a"
   # Clicks on current page (daemon mode)
 
-  clicker click https://example.com "a"
+  vibium click https://example.com "a"
   # Navigates to URL first, then clicks
 
-  clicker click https://example.com "a" --timeout 5s
+  vibium click https://example.com "a" --timeout 5s
   # Custom timeout for actionability checks`,
 		Args: cobra.RangeArgs(1, 2),
 		Run: func(cmd *cobra.Command, args []string) {
