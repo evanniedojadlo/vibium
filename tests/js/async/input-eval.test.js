@@ -4,10 +4,21 @@
  * page.pdf, page.eval, page.evalHandle, page.addScript, page.addStyle, page.expose.
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { browser } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 // --- Keyboard, Mouse ---
 
@@ -16,7 +27,7 @@ describe('Keyboard: page-level input', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       // Click the input to focus it
       const input = await vibe.find('#username');
@@ -36,7 +47,7 @@ describe('Keyboard: page-level input', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       const input = await vibe.find('#username');
       await input.click();
@@ -56,7 +67,7 @@ describe('Keyboard: page-level input', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       const input = await vibe.find('#username');
       await input.click();
@@ -81,7 +92,7 @@ describe('Mouse: page-level input', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       // Find the username input bounds and click it via mouse
       const input = await vibe.find('#username');
@@ -103,7 +114,7 @@ describe('Mouse: page-level input', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/hovers');
+      await vibe.go(`${baseURL}/hovers`);
 
       // Get first figure position
       const figure = await vibe.find('.figure');
@@ -332,7 +343,7 @@ describe('Input & Eval Checkpoint', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       // Use keyboard.type via page.keyboard
       const input = await vibe.find('#username');

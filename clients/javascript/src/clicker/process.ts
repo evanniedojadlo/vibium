@@ -26,10 +26,7 @@ export class VibiumProcess {
     const binaryPath = options.executablePath || getVibiumBinPath();
     const port = options.port || 0; // 0 means auto-select
 
-    const args = ['serve'];
-    if (port > 0) {
-      args.push('--port', port.toString());
-    }
+    const args = ['serve', '--port', port.toString()];
     if (options.headless === true) {
       args.push('--headless');
     }

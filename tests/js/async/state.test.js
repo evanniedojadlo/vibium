@@ -5,10 +5,21 @@
  * Also tests page.wait, page.waitUntil.
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { browser } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 // --- Element State ---
 
@@ -59,7 +70,7 @@ describe('Element State: text and content', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       const input = await vibe.find('#username');
       await input.fill('testuser');
@@ -185,7 +196,7 @@ describe('Element State: enabled/checked/editable', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       const input = await vibe.find('#username');
       const enabled = await input.isEnabled();
@@ -199,7 +210,7 @@ describe('Element State: enabled/checked/editable', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/checkboxes');
+      await vibe.go(`${baseURL}/checkboxes`);
 
       const checkboxes = await vibe.findAll('input[type="checkbox"]');
       // First checkbox is unchecked, second is checked
@@ -216,7 +227,7 @@ describe('Element State: enabled/checked/editable', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(`${baseURL}/login`);
 
       const input = await vibe.find('#username');
       const editable = await input.isEditable();

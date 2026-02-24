@@ -3,10 +3,28 @@
  * Tests the vibium binary directly
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
-const { execSync } = require('node:child_process');
+const { execSync, spawn } = require('node:child_process');
+const path = require('path');
 const { VIBIUM } = require('../helpers');
+
+let serverProcess, baseURL;
+
+before(async () => {
+  serverProcess = spawn('node', [path.join(__dirname, '../helpers/test-server.js')], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  baseURL = await new Promise((resolve) => {
+    serverProcess.stdout.once('data', (data) => {
+      resolve(data.toString().trim());
+    });
+  });
+});
+
+after(() => {
+  if (serverProcess) serverProcess.kill();
+});
 
 describe('CLI: Elements', () => {
   test('find command locates element and returns @ref', () => {
@@ -30,7 +48,7 @@ describe('CLI: Elements', () => {
 
   test('type command enters text into input', () => {
     const result = execSync(
-      `${VIBIUM} type https://the-internet.herokuapp.com/inputs "input" "12345"`,
+      `${VIBIUM} type ${baseURL}/inputs "input" "12345"`,
       {
         encoding: 'utf-8',
         timeout: 30000,

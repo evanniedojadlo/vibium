@@ -4,10 +4,21 @@
  * context.newPage(), context.close(), page.activate(), page.close()
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { browser } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 describe('JS Lifecycle', () => {
   test('browser.page() returns default page', async () => {
@@ -92,7 +103,7 @@ describe('JS Lifecycle', () => {
       assert.ok(vibe.id, 'Page in new context should have an id');
 
       // Navigate in the new context
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       const title = await vibe.title();
       assert.match(title, /The Internet/i, 'Should navigate in new context');
 
@@ -128,8 +139,8 @@ describe('JS Lifecycle', () => {
       const page1 = await bro.page();
       const page2 = await bro.newPage();
 
-      await page1.go('https://the-internet.herokuapp.com/');
-      await page2.go('https://the-internet.herokuapp.com/login');
+      await page1.go(baseURL + '/');
+      await page2.go(baseURL + '/login');
 
       const url1 = await page1.url();
       const url2 = await page2.url();
@@ -199,7 +210,7 @@ describe('JS Lifecycle', () => {
   test('browser.close() shuts down cleanly', async () => {
     const bro = await browser.launch({ headless: true });
     const vibe = await bro.page();
-    await vibe.go('https://the-internet.herokuapp.com/');
+    await vibe.go(baseURL + '/');
 
     // close() should not throw
     await bro.close();

@@ -3,11 +3,22 @@
  * Tests that browser processes are cleaned up properly (async API)
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 const { execSync } = require('node:child_process');
 
 const { browser } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 /**
  * Get PIDs of Chrome for Testing processes spawned by clicker
@@ -51,7 +62,7 @@ describe('JS Async Process Cleanup', () => {
 
     const bro = await browser.launch({ headless: true });
     const vibe = await bro.page();
-    await vibe.go('https://the-internet.herokuapp.com/');
+    await vibe.go(baseURL);
     await bro.close();
 
     await sleep(2000);
@@ -73,7 +84,7 @@ describe('JS Async Process Cleanup', () => {
     for (let i = 0; i < 3; i++) {
       const bro = await browser.launch({ headless: true });
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL);
       await bro.close();
     }
 

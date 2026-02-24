@@ -4,10 +4,21 @@
  * selectOption, hover, focus, tap, scrollIntoView, dispatchEvent.
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { browser } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 // --- Checkpoint test: Login flow ---
 
@@ -16,7 +27,7 @@ describe('Interaction: Checkpoint', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/login');
 
       const username = await vibe.find('#username');
       await username.fill('tomsmith');
@@ -39,7 +50,7 @@ describe('Interaction: Checkpoint', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/checkboxes');
+      await vibe.go(baseURL + '/checkboxes');
 
       const checkboxes = await vibe.findAll('input[type="checkbox"]');
       const first = checkboxes.first();
@@ -66,7 +77,7 @@ describe('Interaction: Checkpoint', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/hovers');
+      await vibe.go(baseURL + '/hovers');
 
       const figures = await vibe.findAll('.figure');
       const first = figures.first();
@@ -94,7 +105,7 @@ describe('Interaction: Click variants', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com');
+      await vibe.go(baseURL);
 
       const link = await vibe.find('a[href="/login"]');
       await link.click();
@@ -132,7 +143,7 @@ describe('Interaction: Input methods', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/login');
 
       const username = await vibe.find('#username');
       await username.fill('firstvalue');
@@ -151,7 +162,7 @@ describe('Interaction: Input methods', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/inputs');
+      await vibe.go(baseURL + '/inputs');
 
       const input = await vibe.find('input');
       await input.type('123');
@@ -170,7 +181,7 @@ describe('Interaction: Input methods', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/login');
 
       const username = await vibe.find('#username');
       await username.fill('sometext');
@@ -189,7 +200,7 @@ describe('Interaction: Input methods', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/login');
 
       const username = await vibe.find('#username');
       await username.fill('tomsmith');
@@ -214,7 +225,7 @@ describe('Interaction: Select', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/dropdown');
+      await vibe.go(baseURL + '/dropdown');
 
       const dropdown = await vibe.find('#dropdown');
       await dropdown.selectOption('2');
@@ -234,7 +245,7 @@ describe('Interaction: Focus', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/login');
 
       const username = await vibe.find('#username');
       await username.focus();
@@ -254,7 +265,7 @@ describe('Interaction: Scroll', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com');
+      await vibe.go(baseURL);
 
       // The footer is below the fold
       const footer = await vibe.find('#page-footer');
@@ -277,7 +288,7 @@ describe('Interaction: findAll index bug fix', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/checkboxes');
+      await vibe.go(baseURL + '/checkboxes');
 
       const checkboxes = await vibe.findAll('input[type="checkbox"]');
       assert.strictEqual(checkboxes.count(), 2, 'Should find 2 checkboxes');

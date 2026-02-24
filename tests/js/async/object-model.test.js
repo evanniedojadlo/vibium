@@ -3,10 +3,21 @@
  * Verifies the Browser → Page → BrowserContext object model works end-to-end.
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { browser, Browser, Page, BrowserContext } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 describe('JS Object Model', () => {
   test('browser.launch() returns Browser instance', async () => {
@@ -78,9 +89,9 @@ describe('JS Object Model', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       const url = await vibe.url();
-      assert.ok(url.includes('the-internet.herokuapp.com'), `URL should contain domain, got: ${url}`);
+      assert.ok(url.includes('127.0.0.1'), `URL should contain domain, got: ${url}`);
     } finally {
       await bro.close();
     }
@@ -90,7 +101,7 @@ describe('JS Object Model', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       const title = await vibe.title();
       assert.match(title, /The Internet/i, 'Should return page title');
     } finally {

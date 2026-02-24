@@ -4,19 +4,30 @@
  * waitUntil.url(), waitUntil.loaded()
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { browser } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 describe('JS Navigation', () => {
   test('page.go() navigates to URL', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       const url = await vibe.url();
-      assert.ok(url.includes('the-internet.herokuapp.com'), 'Should have navigated');
+      assert.ok(url.includes('127.0.0.1'), 'Should have navigated');
     } finally {
       await bro.close();
     }
@@ -26,8 +37,8 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/');
+      await vibe.go(baseURL + '/login');
 
       const urlAfterNav = await vibe.url();
       assert.ok(urlAfterNav.includes('/login'), 'Should be on login page');
@@ -48,10 +59,10 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       await vibe.reload();
       const url = await vibe.url();
-      assert.ok(url.includes('the-internet.herokuapp.com'), 'Should still be on same page after reload');
+      assert.ok(url.includes('127.0.0.1'), 'Should still be on same page after reload');
     } finally {
       await bro.close();
     }
@@ -61,7 +72,7 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/login');
       const url = await vibe.url();
       assert.ok(url.includes('/login'), 'URL should contain /login');
     } finally {
@@ -73,7 +84,7 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       const title = await vibe.title();
       assert.match(title, /The Internet/i, 'Should return page title');
     } finally {
@@ -85,7 +96,7 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       const content = await vibe.content();
       assert.ok(content.includes('<html'), 'Should contain <html tag');
       assert.ok(content.includes('Welcome to the-internet'), 'Should contain page content');
@@ -98,7 +109,7 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/login');
+      await vibe.go(baseURL + '/login');
 
       // URL should already match — waitUntil.url should return immediately
       await vibe.waitUntil.url('/login', { timeout: 5000 });
@@ -114,7 +125,7 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
       await vibe.waitUntil.loaded('complete', { timeout: 10000 });
       // If we get here, it passed
       assert.ok(true);
@@ -127,7 +138,7 @@ describe('JS Navigation', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
 
       await assert.rejects(
         () => vibe.waitUntil.url('**/nonexistent-page-xyz', { timeout: 1000 }),

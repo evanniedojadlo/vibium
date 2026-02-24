@@ -3,17 +3,28 @@
  * Tests that actions wait for elements to be actionable
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { browser } = require('../../../clients/javascript/dist');
+const { createTestServer } = require('../../helpers/test-server');
+
+let server, baseURL;
+
+before(async () => {
+  ({ server, baseURL } = await createTestServer());
+});
+
+after(() => {
+  if (server) server.close();
+});
 
 describe('JS Auto-Wait', () => {
   test('find() waits for element to appear', async () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/dynamic_loading/1');
+      await vibe.go(baseURL + '/dynamic_loading/1');
 
       // Click the start button to trigger dynamic loading
       const startBtn = await vibe.find('#start button', { timeout: 5000 });
@@ -32,7 +43,7 @@ describe('JS Auto-Wait', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/add_remove_elements/');
+      await vibe.go(baseURL + '/add_remove_elements/');
 
       // Click the "Add Element" button
       const addBtn = await vibe.find('button[onclick="addElement()"]', { timeout: 5000 });
@@ -50,7 +61,7 @@ describe('JS Auto-Wait', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
 
       await assert.rejects(
         async () => {
@@ -68,7 +79,7 @@ describe('JS Auto-Wait', () => {
     const bro = await browser.launch({ headless: true });
     try {
       const vibe = await bro.page();
-      await vibe.go('https://the-internet.herokuapp.com/');
+      await vibe.go(baseURL + '/');
 
       try {
         await vibe.find('#nonexistent-element-xyz', { timeout: 1000 });

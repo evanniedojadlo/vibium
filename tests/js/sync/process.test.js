@@ -1,13 +1,33 @@
 /**
  * JS Library Tests: Sync Process Management
  * Tests that browser processes are cleaned up properly (sync API)
+ *
+ * Uses a subprocess test server because the sync API blocks the event loop.
  */
 
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
-const { execSync } = require('node:child_process');
+const { execSync, spawn } = require('node:child_process');
+const path = require('path');
 
 const { browser: browserSync } = require('../../../clients/javascript/dist/sync');
+
+let serverProcess, baseURL;
+
+before(async () => {
+  serverProcess = spawn('node', [path.join(__dirname, '../../helpers/test-server.js')], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  baseURL = await new Promise((resolve) => {
+    serverProcess.stdout.once('data', (data) => {
+      resolve(data.toString().trim());
+    });
+  });
+});
+
+after(() => {
+  if (serverProcess) serverProcess.kill();
+});
 
 /**
  * Get PIDs of Chrome for Testing processes spawned by clicker
@@ -51,7 +71,7 @@ describe('JS Sync Process Cleanup', () => {
 
     const bro = browserSync.launch({ headless: true });
     const vibe = bro.page();
-    vibe.go('https://the-internet.herokuapp.com/');
+    vibe.go(baseURL);
     bro.close();
 
     await sleep(2000);
