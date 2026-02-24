@@ -136,13 +136,13 @@ test-js: build
 	@echo "━━━ JS Input & Eval Tests (Keyboard, Mouse, Screenshots, Eval) ━━━"
 	node --test --test-concurrency=1 tests/js/async/input-eval.test.js
 	@echo "━━━ JS Network & Dialog Tests ━━━"
-	node --test --test-concurrency=1 tests/js/async/network-dialog.test.js
+	node --test --test-concurrency=1 tests/js/async/network-dialog.test.js tests/js/sync/network-events.test.js
 	@echo "━━━ JS WebSocket Monitoring Tests ━━━"
-	node --test --test-concurrency=1 tests/js/async/websocket.test.js
+	node --test --test-concurrency=1 tests/js/async/websocket.test.js tests/js/sync/websocket-sync.test.js
 	@echo "━━━ JS Console & Error Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async/console-error.test.js tests/js/sync/console-error.test.js
 	@echo "━━━ JS Download & File Tests ━━━"
-	node --test --test-concurrency=1 tests/js/async/download-file.test.js
+	node --test --test-concurrency=1 tests/js/async/download-file.test.js tests/js/sync/download-sync.test.js
 	@echo "━━━ JS Tracing Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async/tracing.test.js
 	@echo "━━━ JS Clock Tests ━━━"
@@ -151,6 +151,10 @@ test-js: build
 	node --test --test-concurrency=1 tests/js/async/emulation.test.js
 	@echo "━━━ JS Accessibility Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async/a11y.test.js
+	@echo "━━━ JS A11y Tree Tutorial Tests ━━━"
+	node --test --test-concurrency=1 tests/js/async/a11y-tree-tutorial.test.js tests/js/sync/a11y-tree-tutorial-sync.test.js
+	@echo "━━━ JS Downloads Tutorial Tests ━━━"
+	node --test --test-concurrency=1 tests/js/async/downloads-tutorial.test.js tests/js/sync/downloads-tutorial-sync.test.js
 	@echo "━━━ JS Cookie & Storage Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async/cookies.test.js
 	@echo "━━━ JS Frame Tests ━━━"
