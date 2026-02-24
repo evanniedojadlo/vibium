@@ -1,6 +1,6 @@
-# Vibium V2 Roadmap
+# Vibium Roadmap
 
-Features deferred from V1 to keep scope tight. Revisit after V1 ships and we have user feedback.
+Future features — not yet prioritized. Revisit based on user feedback.
 
 ---
 
