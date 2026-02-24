@@ -4,7 +4,7 @@
 
 Vibium gives AI agents a browser. Install the `vibium` skill and your agent can navigate pages, fill forms, click buttons, and take screenshots — all through simple CLI commands. Also available as an MCP server and as JS/TS and Python client libraries.
 
-**New here?** [Getting Started Tutorial](docs/tutorials/getting-started.md) — zero to hello world in 5 minutes.
+**New here?** [Getting Started Tutorial](docs/tutorials/getting-started-js.md) — zero to hello world in 5 minutes.
 
 ## Why Vibium?
 

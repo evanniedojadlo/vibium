@@ -240,4 +240,4 @@ When `path` is omitted, the zip data is returned as a `Buffer`.
 ## Next Steps
 
 - [Trace Format](../explanation/trace-format.md) — detailed spec of the zip structure
-- [Getting Started](getting-started.md) — first steps with Vibium
+- [Getting Started](getting-started-js.md) — first steps with Vibium

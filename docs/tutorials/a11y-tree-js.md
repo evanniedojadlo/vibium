@@ -659,5 +659,5 @@ Elements without semantic roles (plain divs, spans) appear as "generic" in the t
 
 ## Next Steps
 
-- [Getting Started](getting-started.md) — First steps with Vibium (JavaScript)
+- [Getting Started](getting-started-js.md) — First steps with Vibium (JavaScript)
 - [Accessibility Tree (Python)](a11y-tree-python.md) — This same tutorial in Python

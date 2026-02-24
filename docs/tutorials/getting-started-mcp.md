@@ -11,7 +11,7 @@ After setup, you can ask your AI assistant things like:
 - "Go to Hacker News and find the top story"
 - "Fill out this form and click submit"
 
-The AI will control a real browser to do it. Vibium exposes 74 browser automation tools — just describe what you want in plain English.
+The AI will control a real browser to do it. Vibium exposes dozens of browser automation tools — just describe what you want in plain English.
 
 ---
 
@@ -166,7 +166,7 @@ You should see a JSON response with `serverInfo` and `capabilities`.
 ## Next Steps
 
 **Use the JS API directly:**
-See [Getting Started Tutorial](getting-started.md) for programmatic control with JavaScript/TypeScript.
+See [Getting Started Tutorial](getting-started-js.md) for programmatic control with JavaScript/TypeScript.
 
 **Use the Python API:**
 See [Getting Started with Python](getting-started-python.md) for programmatic control with Python.

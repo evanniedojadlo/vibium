@@ -117,7 +117,7 @@ python3 hello.py
 You should see:
 1. A Chrome window open
 2. example.com load
-3. The browser click "More information..."
+3. The browser click "Learn more"
 4. The browser close
 
 Check your folder - there's now a `screenshot.png` file!
@@ -162,7 +162,7 @@ asyncio.run(main())
 ```
 
 **Use JavaScript instead:**
-See [Getting Started (JavaScript)](getting-started.md) for the JS version.
+See [Getting Started (JavaScript)](getting-started-js.md) for the JS version.
 
 **Add to Claude Code** (let AI control the browser):
 ```bash
