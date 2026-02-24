@@ -6,7 +6,7 @@
 
 ---
 
-## Navigation (7 commands)
+## Navigation
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -18,7 +18,7 @@
 | `page.title()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.content()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Pages & Contexts (12 commands)
+## Pages & Contexts
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -35,7 +35,7 @@
 | `page.bringToFront()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Element Finding (6 commands)
+## Element Finding
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -46,7 +46,7 @@
 | `el.find('css')` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.find({…})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Selector Strategies (9 commands)
+## Selector Strategies
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -60,7 +60,7 @@
 | `find({xpath: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `find({role, text}) combo` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
-## Locator Chaining & Filtering (6 commands)
+## Locator Chaining & Filtering
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -71,7 +71,7 @@
 | `el.filter({hasText})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.filter({has})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Element Interaction (17 commands)
+## Element Interaction
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -93,7 +93,7 @@
 | `el.scrollIntoView()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.dispatchEvent(type)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Element State (13 commands)
+## Element State
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -111,7 +111,7 @@
 | `el.eval(fn)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.screenshot()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Keyboard & Mouse (10 commands)
+## Keyboard & Mouse
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -126,7 +126,7 @@
 | `page.mouse.wheel(dx,dy)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.touch.tap(x,y)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Network Interception (10 commands)
+## Network Interception
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -141,7 +141,7 @@
 | `page.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.onWebSocket(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Request & Response (8 commands)
+## Request & Response
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -154,7 +154,7 @@
 | `response.body()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `response.json()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Dialogs (5 commands)
+## Dialogs
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -164,7 +164,7 @@
 | `dialog.message()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `dialog.type()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Screenshots & PDF (4 commands)
+## Screenshots & PDF
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -173,7 +173,7 @@
 | `page.screenshot({clip})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.pdf()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Cookies & Storage (5 commands)
+## Cookies & Storage
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -183,7 +183,7 @@
 | `context.storageState()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.addInitScript()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Emulation (7 commands)
+## Emulation
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -195,7 +195,7 @@
 | `page.window()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.setWindow(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Frames (4 commands)
+## Frames
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -204,7 +204,7 @@
 | `page.mainFrame()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | Frames have full Page API | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 
-## Accessibility (3 commands)
+## Accessibility
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -212,7 +212,7 @@
 | `el.role()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `el.label()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Console & Errors (4 commands)
+## Console & Errors
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -221,7 +221,7 @@
 | `page.consoleMessages()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `page.errors()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## Waiting (11 commands)
+## Waiting
 
 ### Capture — set up before the action
 
@@ -244,7 +244,7 @@
 | `el.waitUntil(state)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Downloads & Files (4 commands)
+## Downloads & Files
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -253,7 +253,7 @@
 | `download.saveAs(path)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Clock (8 commands)
+## Clock
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -266,7 +266,7 @@
 | `page.clock.setSystemTime(time)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | `page.clock.setTimezone(tz)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 
-## Tracing (6 commands)
+## Tracing
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -277,7 +277,7 @@
 | `context.tracing.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `context.tracing.stopGroup()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
-## Evaluation (6 commands)
+## Evaluation
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
@@ -288,7 +288,7 @@
 | `page.addStyle(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.expose(name, fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 
-## AI-Native Methods (3 commands)
+## AI-Native Methods
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
