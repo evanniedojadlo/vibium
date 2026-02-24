@@ -8,7 +8,7 @@ Vibium gives AI agents a browser. Install the `vibium` skill and your agent can 
 
 ## Why Vibium?
 
-- **AI-native.** Install as a skill — your agent learns 74 browser automation tools instantly.
+- **AI-native.** Install as a skill — your agent learns 81 browser automation tools instantly.
 - **Zero config.** One install, browser downloads automatically, visible by default.
 - **Standards-based.** Built on [WebDriver BiDi](docs/explanation/webdriver-bidi.md), not proprietary protocols controlled by large corporations.
 - **Lightweight.** Single ~10MB binary. No runtime dependencies.
