@@ -1,6 +1,6 @@
 # Vibium API
 
-167 commands across 23 categories, tracked across 6 implementation targets.
+168 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -244,12 +244,13 @@
 | `el.waitUntil(state)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Downloads & Files (3 commands)
+## Downloads & Files (4 commands)
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
 | `page.onDownload(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `download.saveAs(path)` | ✅ | — | ✅ | — | ⬜ | ⬜ |
+| `download.path()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `download.saveAs(path)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Clock (8 commands)

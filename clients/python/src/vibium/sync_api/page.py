@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from .._types import A11yNode
@@ -443,9 +444,30 @@ class Page:
     def on_download(self, fn: Callable) -> None:
         """Register a callback for file downloads.
 
-        fn receives a Download object with sync methods: url(), suggested_filename().
+        fn receives a SyncDownload object with methods: url(), suggested_filename(),
+        path(), save_as(), and dict access for backward compatibility.
         """
-        self._async.on_download(fn)
+        import asyncio
+
+        async def _wrapper(dl: Any) -> None:
+            try:
+                file_path = await dl.path()
+                sync_dl = SyncDownload({
+                    "url": dl.url(),
+                    "suggested_filename": dl.suggested_filename(),
+                    "path": file_path,
+                })
+                fn(sync_dl)
+            except Exception as e:
+                import sys
+                print(f"vibium: error in on_download callback: {e}", file=sys.stderr)
+
+        def _sync_wrapper(dl: Any) -> None:
+            asyncio.ensure_future(_wrapper(dl))
+
+        async def _register() -> None:
+            self._async.on_download(_sync_wrapper)
+        self._loop.run(_register())
 
     def on_web_socket(self, fn: Callable) -> None:
         """Listen for WebSocket connections opened by the page.
@@ -512,6 +534,32 @@ class _SyncResponseData:
         if self._body is None:
             return None
         return _json.loads(self._body)
+
+
+class SyncDownload(dict):
+    """Download result with dict access (backward-compatible) plus save_as().
+
+    Supports result["url"], result["suggested_filename"], result["path"],
+    and result.save_as(dest).
+    """
+
+    def save_as(self, dest: str) -> None:
+        """Copy the downloaded file to *dest*."""
+        src = self.get("path")
+        if not src:
+            raise RuntimeError("Download failed or path not available")
+        import os
+        os.makedirs(os.path.dirname(os.path.abspath(dest)), exist_ok=True)
+        shutil.copy2(src, dest)
+
+    def url(self) -> str:
+        return self["url"]
+
+    def suggested_filename(self) -> str:
+        return self["suggested_filename"]
+
+    def path(self) -> Optional[str]:
+        return self.get("path")
 
 
 class _SyncCapturedResponse:
@@ -598,7 +646,8 @@ class _SyncCapturedDownload:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         if exc_type is None and self._wait_coro:
             dl = self._page._loop.run(self._wait_coro)
-            self.value = {"url": dl.url(), "suggested_filename": dl.suggested_filename()}
+            file_path = self._page._loop.run(dl.path())
+            self.value = SyncDownload({"url": dl.url(), "suggested_filename": dl.suggested_filename(), "path": file_path})
 
 
 class _SyncCapturedDialog:
@@ -695,7 +744,7 @@ class _SyncCaptureNamespace:
             return self._page._loop.run(wait_coro)
         return _SyncCapturedNavigation(self._page, timeout)
 
-    def download(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncCapturedDownload]:
+    def download(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[SyncDownload, _SyncCapturedDownload]:
         """Wait for a download event."""
         if fn is not None:
             wait_coro = self._page._loop.run(
@@ -703,7 +752,8 @@ class _SyncCaptureNamespace:
             )
             fn()
             dl = self._page._loop.run(wait_coro)
-            return {"url": dl.url(), "suggested_filename": dl.suggested_filename()}
+            file_path = self._page._loop.run(dl.path())
+            return SyncDownload({"url": dl.url(), "suggested_filename": dl.suggested_filename(), "path": file_path})
         return _SyncCapturedDownload(self._page, timeout)
 
     def dialog(self, fn: Optional[Callable] = None, timeout: Optional[int] = None) -> Union[Dict[str, Any], _SyncCapturedDialog]:

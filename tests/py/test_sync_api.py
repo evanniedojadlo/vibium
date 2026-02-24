@@ -686,6 +686,24 @@ def test_capture_download(bro, test_server):
     assert info.value is not None
     assert "/download-file" in info.value["url"]
     assert info.value["suggested_filename"] == "test.txt"
+    assert info.value["path"] is not None
+
+
+def test_capture_download_save_as(bro, test_server):
+    import os
+    import tempfile
+    import shutil
+    vibe = bro.new_page()
+    vibe.go(test_server + "/download")
+    result = vibe.capture.download(lambda: vibe.find("#download-link").click())
+    assert result["path"] is not None
+    tmp_dir = tempfile.mkdtemp(prefix="vibium-dl-")
+    try:
+        result.save_as(os.path.join(tmp_dir, "saved.txt"))
+        with open(os.path.join(tmp_dir, "saved.txt")) as f:
+            assert f.read() == "download content"
+    finally:
+        shutil.rmtree(tmp_dir)
 
 
 # ===========================================================================

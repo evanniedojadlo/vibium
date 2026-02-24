@@ -69,6 +69,7 @@ const result = vibe.capture.download(() => {
 });
 
 console.log(result.suggestedFilename); // hello.txt
+result.saveAs('/tmp/hello.txt');
 
 bro.close();
 ```
@@ -114,6 +115,9 @@ await bro.close();
 <!-- test: sync "capture.download returns download with properties" -->
 ```javascript
 const { browser } = require('vibium/sync');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const bro = browser.launch({ headless: true });
 const vibe = bro.page();
@@ -125,6 +129,15 @@ const result = vibe.capture.download(() => {
 
 assert.ok(result.url.includes('/file'));
 assert.strictEqual(result.suggestedFilename, 'hello.txt');
+assert.ok(result.path, 'path should be set after download');
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-dl-'));
+try {
+  result.saveAs(path.join(tmpDir, 'saved.txt'));
+  assert.strictEqual(fs.readFileSync(path.join(tmpDir, 'saved.txt'), 'utf-8'), 'hello world');
+} finally {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+}
 
 bro.close();
 ```
@@ -170,10 +183,11 @@ const downloads = [];
 vibe.onDownload((dl) => downloads.push(dl));
 
 vibe.find('#dl-link').click();
-vibe.wait(1000);
+vibe.wait(2000);
 
 assert.ok(downloads.length >= 1);
 assert.strictEqual(downloads[0].suggestedFilename, 'hello.txt');
+assert.ok(downloads[0].path, 'download should have path');
 
 bro.close();
 ```

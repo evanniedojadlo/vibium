@@ -1,7 +1,7 @@
 """Vibium sync API (internal re-exports)."""
 
 from .browser import browser, Browser
-from .page import Page, Keyboard, Mouse, Touch
+from .page import Page, Keyboard, Mouse, Touch, SyncDownload
 from .element import Element
 from .element_list import ElementList
 from .context import BrowserContext
@@ -24,4 +24,5 @@ __all__ = [
     "Tracing",
     "Route",
     "Dialog",
+    "SyncDownload",
 ]

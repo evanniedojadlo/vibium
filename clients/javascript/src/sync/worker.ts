@@ -696,9 +696,11 @@ const handlers: Record<string, Handler> = {
     const page = getPage(pageId);
     const download = await (page as any)._pendingCaptureDownload;
     delete (page as any)._pendingCaptureDownload;
+    const filePath = await download.path();
     return {
       url: download.url(),
       suggestedFilename: download.suggestedFilename(),
+      path: filePath,
     };
   },
 
@@ -872,12 +874,13 @@ const handlers: Record<string, Handler> = {
     const [pageId, handlerId] = args as [number, string];
     const page = getPage(pageId);
     onDownloadHandlerIds.set(pageId, handlerId);
-    page.onDownload((dl) => {
+    page.onDownload(async (dl) => {
       const hid = onDownloadHandlerIds.get(pageId);
       if (!hid) return;
+      const filePath = await dl.path();
       networkEventBuffer.push({
         handlerId: hid,
-        data: { url: dl.url(), suggestedFilename: dl.suggestedFilename() },
+        data: { url: dl.url(), suggestedFilename: dl.suggestedFilename(), path: filePath },
       });
     });
     return { success: true };

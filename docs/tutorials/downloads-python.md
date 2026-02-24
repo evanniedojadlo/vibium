@@ -47,6 +47,7 @@ vibe.go("http://localhost:3000")
 result = vibe.capture.download(lambda: vibe.find("#dl-link").click())
 
 print(result["suggested_filename"])  # hello.txt
+result.save_as("/tmp/hello.txt")
 
 bro.close()
 ```
@@ -76,7 +77,7 @@ async def main():
 asyncio.run(main())
 ```
 
-In async mode you get a `Download` object with methods and `save_as()`. In sync mode you get a plain dict.
+In async mode you get a `Download` object with methods and `save_as()`. In sync mode you get a `SyncDownload` (dict subclass) with both dict access and `save_as()`.
 
 </details>
 
@@ -86,6 +87,9 @@ In async mode you get a `Download` object with methods and `save_as()`. In sync 
 
 <!-- test: sync "capture.download returns download with properties" -->
 ```python
+import os
+import tempfile
+import shutil
 from vibium import browser
 
 bro = browser.launch(headless=True)
@@ -96,6 +100,15 @@ result = vibe.capture.download(lambda: vibe.find("#dl-link").click())
 
 assert "/file" in result["url"]
 assert result["suggested_filename"] == "hello.txt"
+assert result["path"] is not None
+
+tmp_dir = tempfile.mkdtemp(prefix="vibium-dl-")
+try:
+    result.save_as(os.path.join(tmp_dir, "saved.txt"))
+    with open(os.path.join(tmp_dir, "saved.txt")) as f:
+        assert f.read() == "hello world"
+finally:
+    shutil.rmtree(tmp_dir)
 
 bro.close()
 ```
@@ -152,10 +165,11 @@ downloads = []
 vibe.on_download(lambda dl: downloads.append(dl))
 
 vibe.find("#dl-link").click()
-time.sleep(1)
+time.sleep(2)
 
 assert len(downloads) >= 1
 assert downloads[0].suggested_filename() == "hello.txt"
+assert downloads[0]["path"] is not None
 
 bro.close()
 ```

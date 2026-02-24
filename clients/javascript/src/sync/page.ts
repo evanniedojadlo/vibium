@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as nodePath from 'path';
 import { SyncBridge } from './bridge';
 import { ElementSync } from './element';
 import { ElementListSync } from './element-list';
@@ -23,9 +25,25 @@ export interface ResponseData {
   body: string | null;
 }
 
-export interface DownloadData {
-  url: string;
-  suggestedFilename: string;
+export class DownloadData {
+  readonly url: string;
+  readonly suggestedFilename: string;
+  readonly path: string | null;
+
+  constructor(data: { url: string; suggestedFilename: string; path: string | null }) {
+    this.url = data.url;
+    this.suggestedFilename = data.suggestedFilename;
+    this.path = data.path;
+  }
+
+  /** Save the downloaded file to a destination path. */
+  saveAs(destPath: string): void {
+    if (!this.path) {
+      throw new Error('Download failed or path not available');
+    }
+    fs.mkdirSync(nodePath.dirname(destPath), { recursive: true });
+    fs.copyFileSync(this.path, destPath);
+  }
 }
 
 type MessageHandler = (data: string, info: { direction: 'sent' | 'received' }) => void;
@@ -178,7 +196,7 @@ export class PageSync {
     response(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; status: number; headers: Record<string, string>; body: string | null };
     request(pattern: string, fn?: () => void, options?: { timeout?: number }): { url: string; method: string; headers: Record<string, string>; postData: string | null };
     navigation(fn?: () => void, options?: { timeout?: number }): { url: string };
-    download(fn?: () => void, options?: { timeout?: number }): { url: string; suggestedFilename: string };
+    download(fn?: () => void, options?: { timeout?: number }): DownloadData;
     dialog(fn?: () => void, options?: { timeout?: number }): { type: string; message: string; defaultValue: string };
     event(name: string, fn?: () => void, options?: { timeout?: number }): unknown;
   } {
@@ -209,7 +227,8 @@ export class PageSync {
       download(fn?: () => void, options?: { timeout?: number }) {
         bridge.call('page.captureDownloadStart', [pageId, options]);
         if (fn) fn();
-        return bridge.call('page.captureDownloadFinish', [pageId]);
+        const raw = bridge.call<{ url: string; suggestedFilename: string; path: string | null }>('page.captureDownloadFinish', [pageId]);
+        return new DownloadData(raw);
       },
       dialog(fn?: () => void, options?: { timeout?: number }) {
         bridge.call('page.captureDialogStart', [pageId, options]);
@@ -447,8 +466,8 @@ export class PageSync {
 
   onDownload(fn: (dl: DownloadData) => void): void {
     const handlerId = `download_${this._pageId}_${this._nextHandlerId++}`;
-    this._bridge.registerHandler(handlerId, (data: DownloadData) => {
-      fn(data);
+    this._bridge.registerHandler(handlerId, (data: { url: string; suggestedFilename: string; path: string | null }) => {
+      fn(new DownloadData(data));
       return null;
     });
     if (this._downloadHandlerId) {
