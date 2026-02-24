@@ -120,7 +120,7 @@ vibium/
 │   ├── reference/
 │   │   └── WebDriver-Bidi-Spec.md        # BiDi protocol reference
 │   ├── tutorials/
-│   │   └── claude-code-mcp-setup.md      # MCP setup guide
+│   │   └── getting-started-mcp.md         # MCP setup guide
 │   └── updates/                          # Development updates
 │       ├── 2025-12-11-v1-announcement.md
 │       ├── 2025-12-16-week1-progress.md

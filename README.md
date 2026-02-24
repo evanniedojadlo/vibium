@@ -8,7 +8,7 @@ Vibium gives AI agents a browser. Install the `vibium` skill and your agent can 
 
 ## Why Vibium?
 
-- **AI-native.** Install as a skill — your agent learns 22 browser commands instantly.
+- **AI-native.** Install as a skill — your agent learns 74 browser automation tools instantly.
 - **Zero config.** One install, browser downloads automatically, visible by default.
 - **Standards-based.** Built on [WebDriver BiDi](docs/explanation/webdriver-bidi.md), not proprietary protocols controlled by large corporations.
 - **Lightweight.** Single ~10MB binary. No runtime dependencies.
@@ -86,7 +86,7 @@ claude mcp add vibium -- npx -y vibium mcp    # Claude Code
 gemini mcp add vibium npx -y vibium mcp       # Gemini CLI
 ```
 
-See detailed setup guides: [MCP Server](docs/tutorials/claude-code-mcp-setup.md) | [Gemini CLI](docs/tutorials/gemini-cli-mcp-setup.md)
+See [MCP setup guide](docs/tutorials/getting-started-mcp.md) for options and troubleshooting.
 
 ---
 
