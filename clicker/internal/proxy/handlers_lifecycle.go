@@ -174,14 +174,16 @@ func (r *Router) handleContextClose(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
-// handleBrowserClose handles vibium:browser.close — sends success then tears down the session.
+// handleBrowserClose handles vibium:browser.close — closes the browser, then confirms to the client.
+// The response is sent AFTER cleanup so the client knows Chrome is fully terminated
+// before it sends SIGTERM to the server process.
 func (r *Router) handleBrowserClose(session *BrowserSession, cmd bidiCommand) {
-	// Send success before closing so the client receives confirmation
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
-
-	// Close the session (browser + connections)
+	// Close the session (browser + connections) — kills chromedriver + Chrome
 	r.sessions.Delete(session.Client.ID)
 	r.closeSession(session)
+
+	// Send success after closing so the client knows cleanup is done
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
 // handlePageActivate handles vibium:page.activate — brings a tab to the foreground.

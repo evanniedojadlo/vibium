@@ -355,7 +355,7 @@ func killProcessTree(pid int) {
 
 	// Kill any orphaned Chrome processes that escaped
 	// (Chrome helpers sometimes get reparented to init before we can kill them)
-	killOrphanedChromeProcesses()
+	KillOrphanedChromeProcesses()
 }
 
 // getDescendants returns all descendant PIDs of a process (recursive).
@@ -386,9 +386,9 @@ func getDescendants(pid int) []int {
 	return descendants
 }
 
-// killOrphanedChromeProcesses finds and kills Chrome/chromedriver processes
+// KillOrphanedChromeProcesses finds and kills Chrome/chromedriver processes
 // that have been orphaned (reparented to init/launchd).
-func killOrphanedChromeProcesses() {
+func KillOrphanedChromeProcesses() {
 	// Kill orphaned chromedriver and Chrome for Testing processes
 	patterns := []string{"chromedriver", "Chrome for Testing"}
 

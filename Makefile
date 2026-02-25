@@ -7,7 +7,7 @@ else
   EXE :=
 endif
 
-.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-daemon test-python double-tap get-version set-version help
+.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-daemon test-python test-cleanup double-tap get-version set-version help
 
 # Version from VERSION file
 # Note: GnuWin32 Make 3.81 runs $(shell) via CreateProcess, not SHELL,
@@ -110,7 +110,13 @@ serve: build-go
 	./clicker/bin/vibium$(EXE) serve
 
 # Build everything and run all tests: make test
-test: build install-browser test-cli test-js test-mcp test-python
+test: build install-browser test-cli test-js test-mcp test-python test-cleanup
+
+# Kill any Chrome/chromedriver processes left over from tests
+test-cleanup:
+	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon stop 2>/dev/null || true
+	@pkill -9 -f 'Chrome for Testing' 2>/dev/null || true
+	@pkill -9 -f 'chromedriver' 2>/dev/null || true
 
 # Run CLI tests (tests the vibium binary directly)
 # Process tests run separately with --test-concurrency=1 to avoid interference

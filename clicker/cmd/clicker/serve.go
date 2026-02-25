@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/vibium/clicker/internal/process"
+	"github.com/vibium/clicker/internal/browser"
 	"github.com/vibium/clicker/internal/proxy"
 )
 
@@ -24,41 +26,44 @@ func newServeCmd() *cobra.Command {
   vibium serve --headless
   # Starts server with headless browser`,
 		Run: func(cmd *cobra.Command, args []string) {
-			process.WithCleanup(func() {
-				port, _ := cmd.Flags().GetInt("port")
+			port, _ := cmd.Flags().GetInt("port")
 
-				fmt.Printf("Starting Vibium proxy server on port %d...\n", port)
+			fmt.Printf("Starting Vibium proxy server on port %d...\n", port)
 
-				// Create router to manage browser sessions
-				router := proxy.NewRouter(headless)
+			// Create router to manage browser sessions
+			router := proxy.NewRouter(headless)
 
-				server := proxy.NewServer(
-					proxy.WithPort(port),
-					proxy.WithOnConnect(router.OnClientConnect),
-					proxy.WithOnMessage(router.OnClientMessage),
-					proxy.WithOnClose(router.OnClientDisconnect),
-				)
+			server := proxy.NewServer(
+				proxy.WithPort(port),
+				proxy.WithOnConnect(router.OnClientConnect),
+				proxy.WithOnMessage(router.OnClientMessage),
+				proxy.WithOnClose(router.OnClientDisconnect),
+			)
 
-				if err := server.Start(); err != nil {
-					fmt.Fprintf(os.Stderr, "Error starting server: %v\n", err)
-					os.Exit(1)
-				}
+			if err := server.Start(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error starting server: %v\n", err)
+				os.Exit(1)
+			}
 
-				fmt.Printf("Server listening on ws://localhost:%d\n", server.Port())
-				fmt.Println("Press Ctrl+C to stop...")
+			fmt.Printf("Server listening on ws://localhost:%d\n", server.Port())
+			fmt.Println("Press Ctrl+C to stop...")
 
-				// Wait for signal
-				process.WaitForSignal()
+			// Wait for signal
+			sigCh := make(chan os.Signal, 1)
+			signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+			<-sigCh
 
-				fmt.Println("\nShutting down...")
+			fmt.Println("\nShutting down...")
 
-				// Close all browser sessions
-				router.CloseAll()
+			// Close all browser sessions (thorough kill of chromedriver + Chrome)
+			router.CloseAll()
 
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				server.Stop(ctx)
-			})
+			// Safety net: kill any Chrome/chromedriver processes orphaned by races
+			browser.KillOrphanedChromeProcesses()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			server.Stop(ctx)
 		},
 	}
 	cmd.Flags().IntP("port", "p", 9515, "Port to listen on")
