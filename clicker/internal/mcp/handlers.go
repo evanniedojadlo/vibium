@@ -2,12 +2,9 @@ package mcp
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +15,7 @@ import (
 	"github.com/vibium/clicker/internal/browser"
 	"github.com/vibium/clicker/internal/features"
 	"github.com/vibium/clicker/internal/log"
+	"github.com/vibium/clicker/internal/proxy"
 )
 
 // Handlers manages browser session state and executes tool calls.
@@ -361,15 +359,19 @@ func (h *Handlers) browserNavigate(args map[string]interface{}) (*ToolsCallResul
 		return nil, fmt.Errorf("url is required")
 	}
 
-	result, err := h.client.Navigate("", url)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
+		return nil, err
+	}
+	if err := proxy.Navigate(s, ctx, url, "complete"); err != nil {
 		return nil, fmt.Errorf("failed to navigate: %w", err)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Navigated to %s", result.URL),
+			Text: fmt.Sprintf("Navigated to %s", url),
 		}},
 	}, nil
 }
@@ -386,14 +388,12 @@ func (h *Handlers) browserClick(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	// Wait for element to be actionable
-	opts := features.DefaultWaitOptions()
-	if err := features.WaitForClick(h.client, "", selector, opts); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
 		return nil, err
 	}
-
-	// Click the element
-	if err := h.client.ClickElement("", selector); err != nil {
+	if err := proxy.Click(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to click: %w", err)
 	}
 
@@ -422,14 +422,12 @@ func (h *Handlers) browserType(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, fmt.Errorf("text is required")
 	}
 
-	// Wait for element to be actionable
-	opts := features.DefaultWaitOptions()
-	if err := features.WaitForType(h.client, "", selector, opts); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
 		return nil, err
 	}
-
-	// Type into the element
-	if err := h.client.TypeIntoElement("", selector, text); err != nil {
+	if err := proxy.TypeInto(s, ctx, proxy.ElementParams{Selector: selector}, text); err != nil {
 		return nil, fmt.Errorf("failed to type: %w", err)
 	}
 
@@ -486,13 +484,12 @@ func (h *Handlers) browserScreenshot(args map[string]interface{}) (*ToolsCallRes
 		}
 	}
 
-	var base64Data string
-	var err error
-	if fullPage {
-		base64Data, err = h.client.CaptureFullPageScreenshot("")
-	} else {
-		base64Data, err = h.client.CaptureScreenshot("")
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
 	}
+	base64Data, err := proxy.Screenshot(s, ctx, fullPage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to capture screenshot: %w", err)
 	}
@@ -907,8 +904,8 @@ func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult,
 
 	url, _ := args["url"].(string)
 
-	contextID, err := h.client.CreateTab(url)
-	if err != nil {
+	s := proxy.NewMCPSession(h.client)
+	if _, err := proxy.NewTab(s, url); err != nil {
 		return nil, fmt.Errorf("failed to create tab: %w", err)
 	}
 
@@ -916,7 +913,6 @@ func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult,
 	if url != "" {
 		msg = fmt.Sprintf("New tab opened and navigated to %s", url)
 	}
-	_ = contextID
 
 	return &ToolsCallResult{
 		Content: []Content{{
@@ -932,14 +928,15 @@ func (h *Handlers) browserListTabs(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	tree, err := h.client.GetTree()
+	s := proxy.NewMCPSession(h.client)
+	tabs, err := proxy.ListTabs(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tabs: %w", err)
 	}
 
 	var text string
-	for i, ctx := range tree.Contexts {
-		text += fmt.Sprintf("[%d] %s\n", i, ctx.URL)
+	for i, tab := range tabs {
+		text += fmt.Sprintf("[%d] %s\n", i, tab.URL)
 	}
 	if text == "" {
 		text = "No tabs open"
@@ -959,7 +956,8 @@ func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResu
 		return nil, err
 	}
 
-	tree, err := h.client.GetTree()
+	s := proxy.NewMCPSession(h.client)
+	tabs, err := proxy.ListTabs(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tabs: %w", err)
 	}
@@ -969,15 +967,15 @@ func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResu
 	// Try index first
 	if idx, ok := args["index"].(float64); ok {
 		i := int(idx)
-		if i < 0 || i >= len(tree.Contexts) {
-			return nil, fmt.Errorf("tab index %d out of range (0-%d)", i, len(tree.Contexts)-1)
+		if i < 0 || i >= len(tabs) {
+			return nil, fmt.Errorf("tab index %d out of range (0-%d)", i, len(tabs)-1)
 		}
-		contextID = tree.Contexts[i].Context
+		contextID = tabs[i].Context
 	} else if url, ok := args["url"].(string); ok && url != "" {
 		// Search by URL substring
-		for _, ctx := range tree.Contexts {
-			if containsSubstring(ctx.URL, url) {
-				contextID = ctx.Context
+		for _, tab := range tabs {
+			if strings.Contains(tab.URL, url) {
+				contextID = tab.Context
 				break
 			}
 		}
@@ -988,7 +986,7 @@ func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("index or url is required")
 	}
 
-	if err := h.client.ActivateTab(contextID); err != nil {
+	if err := proxy.SwitchTab(s, contextID); err != nil {
 		return nil, err
 	}
 
@@ -1006,12 +1004,13 @@ func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	tree, err := h.client.GetTree()
+	s := proxy.NewMCPSession(h.client)
+	tabs, err := proxy.ListTabs(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tabs: %w", err)
 	}
 
-	if len(tree.Contexts) == 0 {
+	if len(tabs) == 0 {
 		return nil, fmt.Errorf("no tabs open")
 	}
 
@@ -1020,12 +1019,11 @@ func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResul
 		idx = int(i)
 	}
 
-	if idx < 0 || idx >= len(tree.Contexts) {
-		return nil, fmt.Errorf("tab index %d out of range (0-%d)", idx, len(tree.Contexts)-1)
+	if idx < 0 || idx >= len(tabs) {
+		return nil, fmt.Errorf("tab index %d out of range (0-%d)", idx, len(tabs)-1)
 	}
 
-	contextID := tree.Contexts[idx].Context
-	if err := h.client.CloseTab(contextID); err != nil {
+	if err := proxy.CloseTab(s, tabs[idx].Context); err != nil {
 		return nil, err
 	}
 
@@ -1048,8 +1046,13 @@ func (h *Handlers) browserA11yTree(args map[string]interface{}) (*ToolsCallResul
 		interestingOnly = !val
 	}
 
-	script := a11yTreeMCPScript()
-	result, err := h.client.CallFunction("", script, []interface{}{interestingOnly})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := proxy.A11yTree(s, ctx, interestingOnly, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accessibility tree: %w", err)
 	}
@@ -1057,165 +1060,11 @@ func (h *Handlers) browserA11yTree(args map[string]interface{}) (*ToolsCallResul
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("%v", result),
+			Text: result,
 		}},
 	}, nil
 }
 
-// a11yTreeMCPScript returns the JS function for the MCP a11y tree tool.
-func a11yTreeMCPScript() string {
-	return `(interestingOnly) => {
-		const IMPLICIT_ROLES = {
-			A: (el) => el.hasAttribute('href') ? 'link' : '',
-			AREA: (el) => el.hasAttribute('href') ? 'link' : '',
-			ARTICLE: () => 'article',
-			ASIDE: () => 'complementary',
-			BUTTON: () => 'button',
-			DETAILS: () => 'group',
-			DIALOG: () => 'dialog',
-			FOOTER: () => 'contentinfo',
-			FORM: () => 'form',
-			H1: () => 'heading', H2: () => 'heading', H3: () => 'heading',
-			H4: () => 'heading', H5: () => 'heading', H6: () => 'heading',
-			HEADER: () => 'banner',
-			HR: () => 'separator',
-			IMG: (el) => el.getAttribute('alt') ? 'img' : 'presentation',
-			INPUT: (el) => {
-				const t = (el.getAttribute('type') || 'text').toLowerCase();
-				const map = {button:'button',checkbox:'checkbox',image:'button',
-					number:'spinbutton',radio:'radio',range:'slider',
-					reset:'button',search:'searchbox',submit:'button',text:'textbox',
-					email:'textbox',tel:'textbox',url:'textbox',password:'textbox'};
-				return map[t] || 'textbox';
-			},
-			LI: () => 'listitem',
-			MAIN: () => 'main',
-			MENU: () => 'list',
-			NAV: () => 'navigation',
-			OL: () => 'list',
-			OPTION: () => 'option',
-			OUTPUT: () => 'status',
-			PROGRESS: () => 'progressbar',
-			SECTION: () => 'region',
-			SELECT: (el) => el.hasAttribute('multiple') ? 'listbox' : 'combobox',
-			SUMMARY: () => 'button',
-			TABLE: () => 'table',
-			TBODY: () => 'rowgroup', THEAD: () => 'rowgroup', TFOOT: () => 'rowgroup',
-			TD: () => 'cell',
-			TEXTAREA: () => 'textbox',
-			TH: () => 'columnheader',
-			TR: () => 'row',
-			UL: () => 'list',
-		};
-
-		function getRole(el) {
-			if (typeof el.computedRole === 'string' && el.computedRole !== '') return el.computedRole;
-			const explicit = el.getAttribute('role');
-			if (explicit) return explicit.toLowerCase();
-			const fn = IMPLICIT_ROLES[el.tagName];
-			return fn ? fn(el) : 'generic';
-		}
-
-		function getName(el) {
-			if (typeof el.computedName === 'string') return el.computedName;
-			const ariaLabel = el.getAttribute('aria-label');
-			if (ariaLabel) return ariaLabel;
-			const labelledBy = el.getAttribute('aria-labelledby');
-			if (labelledBy) {
-				const parts = labelledBy.split(/\\s+/).map(id => {
-					const ref = document.getElementById(id);
-					return ref ? (ref.textContent || '').trim() : '';
-				}).filter(Boolean);
-				if (parts.length) return parts.join(' ');
-			}
-			if (el.id) {
-				const assocLabel = document.querySelector('label[for="' + el.id + '"]');
-				if (assocLabel) return (assocLabel.textContent || '').trim();
-			}
-			const placeholder = el.getAttribute('placeholder');
-			if (placeholder) return placeholder;
-			const alt = el.getAttribute('alt');
-			if (alt) return alt;
-			const title = el.getAttribute('title');
-			if (title) return title;
-			return '';
-		}
-
-		function getChildren(el) {
-			if (el.shadowRoot) return Array.from(el.shadowRoot.children);
-			return Array.from(el.children);
-		}
-
-		function getHeadingLevel(el) {
-			const tag = el.tagName;
-			if (tag === 'H1') return 1;
-			if (tag === 'H2') return 2;
-			if (tag === 'H3') return 3;
-			if (tag === 'H4') return 4;
-			if (tag === 'H5') return 5;
-			if (tag === 'H6') return 6;
-			const level = el.getAttribute('aria-level');
-			if (level) return parseInt(level, 10);
-			return undefined;
-		}
-
-		function buildNode(el) {
-			const role = getRole(el);
-			const name = getName(el);
-			const childNodes = [];
-			for (const child of getChildren(el)) {
-				if (child.nodeType !== 1) continue;
-				const nodes = buildNode(child);
-				if (nodes) {
-					if (Array.isArray(nodes)) childNodes.push(...nodes);
-					else childNodes.push(nodes);
-				}
-			}
-			if (interestingOnly) {
-				if (role === 'none' || role === 'presentation') return childNodes.length ? childNodes : null;
-				if (role === 'generic' && !name) return childNodes.length ? childNodes : null;
-			}
-			const node = { role: role };
-			if (name) node.name = name;
-			if (el.hasAttribute('disabled') || el.disabled) node.disabled = true;
-			if (el.hasAttribute('aria-expanded')) node.expanded = el.getAttribute('aria-expanded') === 'true';
-			if (document.activeElement === el) node.focused = true;
-			if (typeof el.checked === 'boolean' && (el.type === 'checkbox' || el.type === 'radio')) {
-				node.checked = el.checked;
-			} else if (el.hasAttribute('aria-checked')) {
-				const v = el.getAttribute('aria-checked');
-				node.checked = v === 'true' ? true : v === 'mixed' ? 'mixed' : false;
-			}
-			if (el.hasAttribute('aria-pressed')) {
-				const v = el.getAttribute('aria-pressed');
-				node.pressed = v === 'true' ? true : v === 'mixed' ? 'mixed' : false;
-			}
-			if (el.hasAttribute('aria-selected') && el.getAttribute('aria-selected') === 'true') node.selected = true;
-			if (el.hasAttribute('required') || el.required) node.required = true;
-			if (el.hasAttribute('readonly') || el.readOnly) node.readonly = true;
-			const level = getHeadingLevel(el);
-			if (level !== undefined) node.level = level;
-			if (childNodes.length) node.children = childNodes;
-			return node;
-		}
-
-		const children = [];
-		for (const child of getChildren(document.body)) {
-			if (child.nodeType !== 1) continue;
-			const nodes = buildNode(child);
-			if (nodes) {
-				if (Array.isArray(nodes)) children.push(...nodes);
-				else children.push(nodes);
-			}
-		}
-		return JSON.stringify({ role: 'WebArea', name: document.title, children: children });
-	}`
-}
-
-// containsSubstring checks if s contains substr (case-sensitive).
-func containsSubstring(s, substr string) bool {
-	return len(s) >= len(substr) && strings.Contains(s, substr)
-}
 
 // browserHover moves the mouse over an element.
 func (h *Handlers) browserHover(args map[string]interface{}) (*ToolsCallResult, error) {
@@ -1229,13 +1078,12 @@ func (h *Handlers) browserHover(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	info, err := h.client.FindElement("", selector)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
 	}
-
-	x, y := info.GetCenter()
-	if err := h.client.MoveMouse("", x, y); err != nil {
+	if err := proxy.Hover(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to hover: %w", err)
 	}
 
@@ -1264,24 +1112,19 @@ func (h *Handlers) browserSelect(args map[string]interface{}) (*ToolsCallResult,
 		return nil, fmt.Errorf("value is required")
 	}
 
-	script := `(selector, value) => {
-		const el = document.querySelector(selector);
-		if (!el) return JSON.stringify({error: 'Element not found'});
-		if (el.tagName.toLowerCase() !== 'select') return JSON.stringify({error: 'Element is not a <select>'});
-		el.value = value;
-		el.dispatchEvent(new Event('change', {bubbles: true}));
-		return JSON.stringify({selected: el.value});
-	}`
-
-	result, err := h.client.CallFunction("", script, []interface{}{selector, value})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
+		return nil, err
+	}
+	if err := proxy.SelectOption(s, ctx, proxy.ElementParams{Selector: selector}, value); err != nil {
 		return nil, fmt.Errorf("failed to select: %w", err)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Selected value %q in %s (result: %v)", value, selector, result),
+			Text: fmt.Sprintf("Selected value %q in %s", value, selector),
 		}},
 	}, nil
 }
@@ -1302,22 +1145,24 @@ func (h *Handlers) browserScroll(args map[string]interface{}) (*ToolsCallResult,
 		amount = int(a)
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+
 	// Determine scroll target coordinates
 	x, y := 0, 0
 	if selector, ok := args["selector"].(string); ok && selector != "" {
 		selector = h.resolveSelector(selector)
-		info, err := h.client.FindElement("", selector)
+		info, err := proxy.ResolveElement(s, ctx, proxy.ElementParams{Selector: selector})
 		if err != nil {
 			return nil, err
 		}
-		cx, cy := info.GetCenter()
-		x, y = int(cx), int(cy)
+		x = int(info.Box.X + info.Box.Width/2)
+		y = int(info.Box.Y + info.Box.Height/2)
 	} else {
-		// Viewport center
-		result, err := h.client.Evaluate("", "JSON.stringify({w: window.innerWidth, h: window.innerHeight})")
-		if err == nil && result != nil {
-			x, y = 400, 300 // Reasonable fallback
-		}
+		x, y = 400, 300 // Viewport center fallback
 	}
 
 	// Map direction to deltas (120 pixels per scroll "notch")
@@ -1336,7 +1181,7 @@ func (h *Handlers) browserScroll(args map[string]interface{}) (*ToolsCallResult,
 		return nil, fmt.Errorf("invalid direction: %q (use up, down, left, right)", direction)
 	}
 
-	if err := h.client.ScrollWheel("", x, y, deltaX, deltaY); err != nil {
+	if err := proxy.ScrollWheel(s, ctx, x, y, deltaX, deltaY); err != nil {
 		return nil, fmt.Errorf("failed to scroll: %w", err)
 	}
 
@@ -1359,7 +1204,12 @@ func (h *Handlers) browserKeys(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, fmt.Errorf("keys is required")
 	}
 
-	if err := h.client.PressKeyCombo("", keys); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.PressKey(s, ctx, keys); err != nil {
 		return nil, fmt.Errorf("failed to press keys: %w", err)
 	}
 
@@ -1377,28 +1227,28 @@ func (h *Handlers) browserGetHTML(args map[string]interface{}) (*ToolsCallResult
 		return nil, err
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+
 	outer, _ := args["outer"].(bool)
 
-	var expr string
+	var html string
 	if selector, ok := args["selector"].(string); ok && selector != "" {
 		selector = h.resolveSelector(selector)
+		ep := proxy.ElementParams{Selector: selector}
 		if outer {
-			expr = fmt.Sprintf(`document.querySelector(%q)?.outerHTML || ''`, selector)
+			html, err = proxy.GetOuterHTML(s, ctx, ep)
 		} else {
-			expr = fmt.Sprintf(`document.querySelector(%q)?.innerHTML || ''`, selector)
+			html, err = proxy.GetInnerHTML(s, ctx, ep)
 		}
 	} else {
-		expr = `document.documentElement.outerHTML`
+		html, err = proxy.GetContent(s, ctx)
 	}
-
-	result, err := h.client.Evaluate("", expr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get HTML: %w", err)
-	}
-
-	html := ""
-	if result != nil {
-		html = fmt.Sprintf("%v", result)
 	}
 
 	return &ToolsCallResult{
@@ -1536,22 +1386,21 @@ func (h *Handlers) browserGetText(args map[string]interface{}) (*ToolsCallResult
 		return nil, err
 	}
 
-	var expr string
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+
+	var text string
 	if selector, ok := args["selector"].(string); ok && selector != "" {
 		selector = h.resolveSelector(selector)
-		expr = fmt.Sprintf(`document.querySelector(%q)?.innerText || ''`, selector)
+		text, err = proxy.GetInnerText(s, ctx, proxy.ElementParams{Selector: selector})
 	} else {
-		expr = `document.body.innerText`
+		text, err = proxy.EvalSimpleScript(s, ctx, "() => document.body.innerText")
 	}
-
-	result, err := h.client.Evaluate("", expr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get text: %w", err)
-	}
-
-	text := ""
-	if result != nil {
-		text = fmt.Sprintf("%v", result)
 	}
 
 	return &ToolsCallResult{
@@ -1568,14 +1417,14 @@ func (h *Handlers) browserGetURL(args map[string]interface{}) (*ToolsCallResult,
 		return nil, err
 	}
 
-	result, err := h.client.Evaluate("", "window.location.href")
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	url, err := proxy.GetURL(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get URL: %w", err)
-	}
-
-	url := ""
-	if result != nil {
-		url = fmt.Sprintf("%v", result)
 	}
 
 	return &ToolsCallResult{
@@ -1592,14 +1441,14 @@ func (h *Handlers) browserGetTitle(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	result, err := h.client.Evaluate("", "document.title")
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	title, err := proxy.GetTitle(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get title: %w", err)
-	}
-
-	title := ""
-	if result != nil {
-		title = fmt.Sprintf("%v", result)
 	}
 
 	return &ToolsCallResult{
@@ -1616,20 +1465,26 @@ func (h *Handlers) pageClockInstall(args map[string]interface{}) (*ToolsCallResu
 		return nil, err
 	}
 
-	_, err := h.client.CallFunction("", clockInstallScript(), nil)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = proxy.EvalSimpleScript(s, ctx, proxy.ClockScript)
 	if err != nil {
 		return nil, fmt.Errorf("failed to install clock: %w", err)
 	}
 
 	if timeVal, ok := args["time"].(float64); ok {
 		script := fmt.Sprintf("() => { window.__vibiumClock.setSystemTime(%v); return 'ok'; }", timeVal)
-		if _, err := h.client.CallFunction("", script, nil); err != nil {
+		if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
 			return nil, fmt.Errorf("failed to set initial time: %w", err)
 		}
 	}
 
 	if tz, ok := args["timezone"].(string); ok && tz != "" {
-		if err := h.setTimezoneOverride(tz); err != nil {
+		if err := proxy.SetTimezone(s, ctx, tz); err != nil {
 			return nil, fmt.Errorf("failed to set timezone: %w", err)
 		}
 	}
@@ -1650,8 +1505,13 @@ func (h *Handlers) pageClockFastForward(args map[string]interface{}) (*ToolsCall
 		return nil, fmt.Errorf("ticks is required")
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.fastForward(%v); return 'ok'; }", ticks)
-	if _, err := h.client.CallFunction("", script, nil); err != nil {
+	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.fastForward failed: %w", err)
 	}
 
@@ -1671,8 +1531,13 @@ func (h *Handlers) pageClockRunFor(args map[string]interface{}) (*ToolsCallResul
 		return nil, fmt.Errorf("ticks is required")
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.runFor(%v); return 'ok'; }", ticks)
-	if _, err := h.client.CallFunction("", script, nil); err != nil {
+	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.runFor failed: %w", err)
 	}
 
@@ -1692,8 +1557,13 @@ func (h *Handlers) pageClockPauseAt(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("time is required")
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.pauseAt(%v); return 'ok'; }", timeVal)
-	if _, err := h.client.CallFunction("", script, nil); err != nil {
+	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.pauseAt failed: %w", err)
 	}
 
@@ -1708,7 +1578,12 @@ func (h *Handlers) pageClockResume(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	if _, err := h.client.CallFunction("", "() => { window.__vibiumClock.resume(); return 'ok'; }", nil); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := proxy.EvalSimpleScript(s, ctx, "() => { window.__vibiumClock.resume(); return 'ok'; }"); err != nil {
 		return nil, fmt.Errorf("clock.resume failed: %w", err)
 	}
 
@@ -1728,8 +1603,13 @@ func (h *Handlers) pageClockSetFixedTime(args map[string]interface{}) (*ToolsCal
 		return nil, fmt.Errorf("time is required")
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.setFixedTime(%v); return 'ok'; }", timeVal)
-	if _, err := h.client.CallFunction("", script, nil); err != nil {
+	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.setFixedTime failed: %w", err)
 	}
 
@@ -1749,8 +1629,13 @@ func (h *Handlers) pageClockSetSystemTime(args map[string]interface{}) (*ToolsCa
 		return nil, fmt.Errorf("time is required")
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.setSystemTime(%v); return 'ok'; }", timeVal)
-	if _, err := h.client.CallFunction("", script, nil); err != nil {
+	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.setSystemTime failed: %w", err)
 	}
 
@@ -1765,11 +1650,16 @@ func (h *Handlers) pageClockSetTimezone(args map[string]interface{}) (*ToolsCall
 		return nil, err
 	}
 
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+
 	tz, _ := args["timezone"].(string)
 
 	if tz == "" {
-		// Reset to default
-		if err := h.clearTimezoneOverride(); err != nil {
+		if err := proxy.ClearTimezone(s, ctx); err != nil {
 			return nil, fmt.Errorf("failed to clear timezone: %w", err)
 		}
 		return &ToolsCallResult{
@@ -1777,7 +1667,7 @@ func (h *Handlers) pageClockSetTimezone(args map[string]interface{}) (*ToolsCall
 		}, nil
 	}
 
-	if err := h.setTimezoneOverride(tz); err != nil {
+	if err := proxy.SetTimezone(s, ctx, tz); err != nil {
 		return nil, fmt.Errorf("failed to set timezone: %w", err)
 	}
 
@@ -1786,198 +1676,6 @@ func (h *Handlers) pageClockSetTimezone(args map[string]interface{}) (*ToolsCall
 	}, nil
 }
 
-// setTimezoneOverride uses BiDi emulation.setTimezoneOverride.
-func (h *Handlers) setTimezoneOverride(timezone string) error {
-	tree, err := h.client.GetTree()
-	if err != nil {
-		return fmt.Errorf("failed to get browsing context: %w", err)
-	}
-	if len(tree.Contexts) == 0 {
-		return fmt.Errorf("no browsing contexts available")
-	}
-
-	_, err = h.client.SendCommand("emulation.setTimezoneOverride", map[string]interface{}{
-		"timezone": timezone,
-		"contexts": []interface{}{tree.Contexts[0].Context},
-	})
-	return err
-}
-
-// clearTimezoneOverride resets the browser timezone to the system default.
-func (h *Handlers) clearTimezoneOverride() error {
-	tree, err := h.client.GetTree()
-	if err != nil {
-		return fmt.Errorf("failed to get browsing context: %w", err)
-	}
-	if len(tree.Contexts) == 0 {
-		return fmt.Errorf("no browsing contexts available")
-	}
-
-	_, err = h.client.SendCommand("emulation.setTimezoneOverride", map[string]interface{}{
-		"timezone": nil,
-		"contexts": []interface{}{tree.Contexts[0].Context},
-	})
-	return err
-}
-
-// clockInstallScript returns the JS that installs the fake clock on the page.
-// This is the same script used by the proxy handlers (defined separately to avoid circular imports).
-func clockInstallScript() string {
-	return `() => {
-	if (window.__vibiumClock) return 'already_installed';
-
-	const OrigDate = Date;
-	const origSetTimeout = setTimeout;
-	const origClearTimeout = clearTimeout;
-	const origSetInterval = setInterval;
-	const origClearInterval = clearInterval;
-	const origRAF = requestAnimationFrame;
-	const origCAF = cancelAnimationFrame;
-	const origPerfNow = performance.now.bind(performance);
-
-	let currentTime = OrigDate.now();
-	let fixedTime = null;
-	let paused = false;
-	let nextId = 1;
-	let resumeTimer = null;
-	const timers = new Map();
-
-	class FakeDate extends OrigDate {
-		constructor(...args) {
-			if (args.length === 0) {
-				super(fixedTime !== null ? fixedTime : currentTime);
-			} else {
-				super(...args);
-			}
-		}
-		static now() {
-			return fixedTime !== null ? fixedTime : currentTime;
-		}
-		static parse(s) { return OrigDate.parse(s); }
-		static UTC(...args) { return OrigDate.UTC(...args); }
-	}
-
-	function fakeSetTimeout(fn, delay, ...args) {
-		if (typeof fn !== 'function') return 0;
-		const id = nextId++;
-		timers.set(id, {
-			callback: fn, args: args,
-			triggerTime: currentTime + (delay || 0),
-			interval: 0, type: 'timeout'
-		});
-		return id;
-	}
-
-	function fakeSetInterval(fn, delay, ...args) {
-		if (typeof fn !== 'function') return 0;
-		const id = nextId++;
-		timers.set(id, {
-			callback: fn, args: args,
-			triggerTime: currentTime + (delay || 0),
-			interval: delay || 0, type: 'interval'
-		});
-		return id;
-	}
-
-	function fakeClearTimeout(id) { timers.delete(id); }
-	function fakeClearInterval(id) { timers.delete(id); }
-
-	let rafId = 1;
-	const rafCallbacks = new Map();
-	function fakeRAF(fn) { const id = rafId++; rafCallbacks.set(id, fn); return id; }
-	function fakeCAF(id) { rafCallbacks.delete(id); }
-
-	const startPerfTime = origPerfNow();
-	const startCurrentTime = currentTime;
-	function fakePerfNow() { return startPerfTime + (currentTime - startCurrentTime); }
-
-	window.Date = FakeDate;
-	window.setTimeout = fakeSetTimeout;
-	window.setInterval = fakeSetInterval;
-	window.clearTimeout = fakeClearTimeout;
-	window.clearInterval = fakeClearInterval;
-	window.requestAnimationFrame = fakeRAF;
-	window.cancelAnimationFrame = fakeCAF;
-	performance.now = fakePerfNow;
-
-	function getDueTimers(upTo) {
-		const due = [];
-		for (const [id, t] of timers) {
-			if (t.triggerTime <= upTo) due.push([id, t]);
-		}
-		due.sort((a, b) => a[1].triggerTime - b[1].triggerTime);
-		return due;
-	}
-
-	function fireRAFs() {
-		const cbs = Array.from(rafCallbacks.entries());
-		rafCallbacks.clear();
-		for (const [, fn] of cbs) { try { fn(currentTime); } catch (e) {} }
-	}
-
-	const clock = {
-		fastForward(ms) {
-			const target = currentTime + ms;
-			currentTime = target;
-			const due = getDueTimers(target);
-			for (const [id, t] of due) {
-				timers.delete(id);
-				try { t.callback(...t.args); } catch (e) {}
-			}
-			fireRAFs();
-		},
-		runFor(ms) {
-			const target = currentTime + ms;
-			while (currentTime < target) {
-				let earliest = null;
-				let earliestId = null;
-				for (const [id, t] of timers) {
-					if (t.triggerTime <= target && (!earliest || t.triggerTime < earliest.triggerTime)) {
-						earliest = t; earliestId = id;
-					}
-				}
-				if (!earliest || earliest.triggerTime > target) { currentTime = target; break; }
-				currentTime = earliest.triggerTime;
-				if (earliest.type === 'interval' && earliest.interval > 0) {
-					earliest.triggerTime = currentTime + earliest.interval;
-				} else { timers.delete(earliestId); }
-				try { earliest.callback(...earliest.args); } catch (e) {}
-			}
-			currentTime = target;
-			fireRAFs();
-		},
-		pauseAt(time) {
-			currentTime = time; paused = true;
-			if (resumeTimer) { origClearInterval(resumeTimer); resumeTimer = null; }
-			const due = getDueTimers(time);
-			for (const [id, t] of due) { timers.delete(id); try { t.callback(...t.args); } catch (e) {} }
-		},
-		resume() {
-			if (resumeTimer) return;
-			paused = false;
-			let lastReal = OrigDate.now();
-			resumeTimer = origSetInterval(() => {
-				const now = OrigDate.now();
-				const delta = now - lastReal;
-				lastReal = now;
-				currentTime += delta;
-				const due = getDueTimers(currentTime);
-				for (const [id, t] of due) {
-					if (t.type === 'interval' && t.interval > 0) { t.triggerTime = currentTime + t.interval; }
-					else { timers.delete(id); }
-					try { t.callback(...t.args); } catch (e) {}
-				}
-				fireRAFs();
-			}, 16);
-		},
-		setFixedTime(time) { fixedTime = time; },
-		setSystemTime(time) { currentTime = time; fixedTime = null; }
-	};
-
-	window.__vibiumClock = clock;
-	return 'installed';
-}`
-}
 
 // pollCallFunction polls a JS function until it returns a non-null/non-empty result.
 func pollCallFunction(h *Handlers, script string, args []interface{}, timeout time.Duration) (interface{}, error) {
@@ -2018,37 +1716,13 @@ func (h *Handlers) browserFill(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, fmt.Errorf("text is required")
 	}
 
-	// Wait for element to be editable
-	opts := features.DefaultWaitOptions()
-	if err := features.WaitForType(h.client, "", selector, opts); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
 		return nil, err
 	}
-
-	// Clear the field using JS
-	clearScript := `(selector) => {
-		const el = document.querySelector(selector);
-		if (!el) return 'not_found';
-		el.focus();
-		el.value = '';
-		el.dispatchEvent(new Event('input', {bubbles: true}));
-		return 'cleared';
-	}`
-	result, err := h.client.CallFunction("", clearScript, []interface{}{selector})
-	if err != nil {
-		return nil, fmt.Errorf("failed to clear field: %w", err)
-	}
-	if fmt.Sprintf("%v", result) == "not_found" {
-		return nil, fmt.Errorf("element not found: %s", selector)
-	}
-
-	// Click to ensure focus
-	if err := h.client.ClickElement("", selector); err != nil {
-		return nil, fmt.Errorf("failed to focus element: %w", err)
-	}
-
-	// Type the new text
-	if err := h.client.TypeIntoElement("", selector, text); err != nil {
-		return nil, fmt.Errorf("failed to type: %w", err)
+	if err := proxy.Fill(s, ctx, proxy.ElementParams{Selector: selector}, text); err != nil {
+		return nil, fmt.Errorf("failed to fill: %w", err)
 	}
 
 	return &ToolsCallResult{
@@ -2070,20 +1744,22 @@ func (h *Handlers) browserPress(args map[string]interface{}) (*ToolsCallResult, 
 		return nil, fmt.Errorf("key is required")
 	}
 
-	// If selector given, click to focus first
-	if selector, ok := args["selector"].(string); ok && selector != "" {
-		selector = h.resolveSelector(selector)
-		opts := features.DefaultWaitOptions()
-		if err := features.WaitForClick(h.client, "", selector, opts); err != nil {
-			return nil, err
-		}
-		if err := h.client.ClickElement("", selector); err != nil {
-			return nil, fmt.Errorf("failed to click element: %w", err)
-		}
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
 	}
 
-	if err := h.client.PressKeyCombo("", key); err != nil {
-		return nil, fmt.Errorf("failed to press key: %w", err)
+	// If selector given, click to focus first then press key
+	if selector, ok := args["selector"].(string); ok && selector != "" {
+		selector = h.resolveSelector(selector)
+		if err := proxy.PressOn(s, ctx, proxy.ElementParams{Selector: selector}, key); err != nil {
+			return nil, fmt.Errorf("failed to press key: %w", err)
+		}
+	} else {
+		if err := proxy.PressKey(s, ctx, key); err != nil {
+			return nil, fmt.Errorf("failed to press key: %w", err)
+		}
 	}
 
 	return &ToolsCallResult{
@@ -2100,7 +1776,12 @@ func (h *Handlers) browserBack(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, err
 	}
 
-	if err := h.client.TraverseHistory("", -1); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.GoBack(s, ctx); err != nil {
 		return nil, fmt.Errorf("failed to go back: %w", err)
 	}
 
@@ -2118,7 +1799,12 @@ func (h *Handlers) browserForward(args map[string]interface{}) (*ToolsCallResult
 		return nil, err
 	}
 
-	if err := h.client.TraverseHistory("", 1); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.GoForward(s, ctx); err != nil {
 		return nil, fmt.Errorf("failed to go forward: %w", err)
 	}
 
@@ -2136,7 +1822,12 @@ func (h *Handlers) browserReload(args map[string]interface{}) (*ToolsCallResult,
 		return nil, err
 	}
 
-	if err := h.client.Reload(""); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.Reload(s, ctx, "complete"); err != nil {
 		return nil, fmt.Errorf("failed to reload: %w", err)
 	}
 
@@ -2160,7 +1851,12 @@ func (h *Handlers) browserGetValue(args map[string]interface{}) (*ToolsCallResul
 	}
 	selector = h.resolveSelector(selector)
 
-	value, err := h.client.GetElementValue("", selector)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	value, err := proxy.GetValue(s, ctx, proxy.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get value: %w", err)
 	}
@@ -2190,21 +1886,20 @@ func (h *Handlers) browserGetAttribute(args map[string]interface{}) (*ToolsCallR
 		return nil, fmt.Errorf("attribute is required")
 	}
 
-	expr := fmt.Sprintf(`document.querySelector(%q)?.getAttribute(%q)`, selector, attribute)
-	result, err := h.client.Evaluate("", expr)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	value, err := proxy.GetAttribute(s, ctx, proxy.ElementParams{Selector: selector}, attribute)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attribute: %w", err)
-	}
-
-	text := "null"
-	if result != nil {
-		text = fmt.Sprintf("%v", result)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: text,
+			Text: value,
 		}},
 	}, nil
 }
@@ -2221,7 +1916,12 @@ func (h *Handlers) browserIsVisible(args map[string]interface{}) (*ToolsCallResu
 	}
 	selector = h.resolveSelector(selector)
 
-	visible, err := features.CheckVisible(h.client, "", selector)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	visible, err := proxy.IsVisible(s, ctx, proxy.ElementParams{Selector: selector})
 	if err != nil {
 		// Element not found or error — return false, not an error
 		return &ToolsCallResult{
@@ -2252,42 +1952,25 @@ func (h *Handlers) browserCheck(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	// Check current state
-	script := `(selector) => {
-		const el = document.querySelector(selector);
-		if (!el) return 'not_found';
-		return el.checked ? 'checked' : 'unchecked';
-	}`
-	result, err := h.client.CallFunction("", script, []interface{}{selector})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
-		return nil, fmt.Errorf("failed to check state: %w", err)
+		return nil, err
+	}
+	toggled, err := proxy.Check(s, ctx, proxy.ElementParams{Selector: selector})
+	if err != nil {
+		return nil, fmt.Errorf("failed to check: %w", err)
 	}
 
-	state := fmt.Sprintf("%v", result)
-	if state == "not_found" {
-		return nil, fmt.Errorf("element not found: %s", selector)
-	}
-
-	if state == "unchecked" {
-		opts := features.DefaultWaitOptions()
-		if err := features.WaitForClick(h.client, "", selector, opts); err != nil {
-			return nil, err
-		}
-		if err := h.client.ClickElement("", selector); err != nil {
-			return nil, fmt.Errorf("failed to click checkbox: %w", err)
-		}
-		return &ToolsCallResult{
-			Content: []Content{{
-				Type: "text",
-				Text: fmt.Sprintf("Checked %s", selector),
-			}},
-		}, nil
+	msg := fmt.Sprintf("Checked %s", selector)
+	if !toggled {
+		msg = fmt.Sprintf("Already checked: %s", selector)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Already checked: %s", selector),
+			Text: msg,
 		}},
 	}, nil
 }
@@ -2304,42 +1987,25 @@ func (h *Handlers) browserUncheck(args map[string]interface{}) (*ToolsCallResult
 	}
 	selector = h.resolveSelector(selector)
 
-	// Check current state
-	script := `(selector) => {
-		const el = document.querySelector(selector);
-		if (!el) return 'not_found';
-		return el.checked ? 'checked' : 'unchecked';
-	}`
-	result, err := h.client.CallFunction("", script, []interface{}{selector})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
-		return nil, fmt.Errorf("failed to check state: %w", err)
+		return nil, err
+	}
+	toggled, err := proxy.Uncheck(s, ctx, proxy.ElementParams{Selector: selector})
+	if err != nil {
+		return nil, fmt.Errorf("failed to uncheck: %w", err)
 	}
 
-	state := fmt.Sprintf("%v", result)
-	if state == "not_found" {
-		return nil, fmt.Errorf("element not found: %s", selector)
-	}
-
-	if state == "checked" {
-		opts := features.DefaultWaitOptions()
-		if err := features.WaitForClick(h.client, "", selector, opts); err != nil {
-			return nil, err
-		}
-		if err := h.client.ClickElement("", selector); err != nil {
-			return nil, fmt.Errorf("failed to click checkbox: %w", err)
-		}
-		return &ToolsCallResult{
-			Content: []Content{{
-				Type: "text",
-				Text: fmt.Sprintf("Unchecked %s", selector),
-			}},
-		}, nil
+	msg := fmt.Sprintf("Unchecked %s", selector)
+	if !toggled {
+		msg = fmt.Sprintf("Already unchecked: %s", selector)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Already unchecked: %s", selector),
+			Text: msg,
 		}},
 	}, nil
 }
@@ -2356,19 +2022,13 @@ func (h *Handlers) browserScrollIntoView(args map[string]interface{}) (*ToolsCal
 	}
 	selector = h.resolveSelector(selector)
 
-	script := `(selector) => {
-		const el = document.querySelector(selector);
-		if (!el) return 'not_found';
-		el.scrollIntoView({behavior: 'instant', block: 'center'});
-		return 'ok';
-	}`
-	result, err := h.client.CallFunction("", script, []interface{}{selector})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
-		return nil, fmt.Errorf("failed to scroll into view: %w", err)
+		return nil, err
 	}
-
-	if fmt.Sprintf("%v", result) == "not_found" {
-		return nil, fmt.Errorf("element not found: %s", selector)
+	if err := proxy.ScrollIntoView(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
+		return nil, fmt.Errorf("failed to scroll into view: %w", err)
 	}
 
 	return &ToolsCallResult{
@@ -2395,29 +2055,22 @@ func (h *Handlers) browserWaitForURL(args map[string]interface{}) (*ToolsCallRes
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	deadline := time.Now().Add(timeout)
-	interval := 100 * time.Millisecond
-
-	for {
-		result, err := h.client.Evaluate("", "window.location.href")
-		if err == nil && result != nil {
-			url := fmt.Sprintf("%v", result)
-			if strings.Contains(url, pattern) {
-				return &ToolsCallResult{
-					Content: []Content{{
-						Type: "text",
-						Text: fmt.Sprintf("URL matches pattern %q: %s", pattern, url),
-					}},
-				}, nil
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("timeout waiting for URL to contain %q", pattern)
-		}
-
-		time.Sleep(interval)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
 	}
+	url, err := proxy.WaitForURL(s, ctx, pattern, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("URL matches pattern %q: %s", pattern, url),
+		}},
+	}, nil
 }
 
 // browserWaitForLoad waits until document.readyState is "complete".
@@ -2431,29 +2084,21 @@ func (h *Handlers) browserWaitForLoad(args map[string]interface{}) (*ToolsCallRe
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	deadline := time.Now().Add(timeout)
-	interval := 100 * time.Millisecond
-
-	for {
-		result, err := h.client.Evaluate("", "document.readyState")
-		if err == nil && result != nil {
-			state := fmt.Sprintf("%v", result)
-			if state == "complete" {
-				return &ToolsCallResult{
-					Content: []Content{{
-						Type: "text",
-						Text: "Page loaded (readyState: complete)",
-					}},
-				}, nil
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("timeout waiting for page to load")
-		}
-
-		time.Sleep(interval)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
 	}
+	if err := proxy.WaitForLoad(s, ctx, "complete", timeout); err != nil {
+		return nil, err
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: "Page loaded (readyState: complete)",
+		}},
+	}, nil
 }
 
 // browserSleep pauses execution for a specified number of milliseconds.
@@ -2696,7 +2341,12 @@ func (h *Handlers) browserPDF(args map[string]interface{}) (*ToolsCallResult, er
 		return nil, err
 	}
 
-	base64Data, err := h.client.PrintToPDF("")
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	base64Data, err := proxy.PrintToPDF(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to print PDF: %w", err)
 	}
@@ -2778,13 +2428,12 @@ func (h *Handlers) browserDblClick(args map[string]interface{}) (*ToolsCallResul
 	}
 	selector = h.resolveSelector(selector)
 
-	info, err := h.client.FindElement("", selector)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
 	}
-
-	x, y := info.GetCenter()
-	if err := h.client.DoubleClick("", x, y); err != nil {
+	if err := proxy.DblClick(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to double-click: %w", err)
 	}
 
@@ -2808,20 +2457,13 @@ func (h *Handlers) browserFocus(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	script := `(selector) => {
-		const el = document.querySelector(selector);
-		if (!el) return 'not_found';
-		el.focus();
-		return 'focused';
-	}`
-
-	result, err := h.client.CallFunction("", script, []interface{}{selector})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
-		return nil, fmt.Errorf("failed to focus: %w", err)
+		return nil, err
 	}
-
-	if fmt.Sprintf("%v", result) == "not_found" {
-		return nil, fmt.Errorf("element not found: %s", selector)
+	if err := proxy.FocusElement(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
+		return nil, fmt.Errorf("failed to focus: %w", err)
 	}
 
 	return &ToolsCallResult{
@@ -2844,8 +2486,12 @@ func (h *Handlers) browserCount(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	expr := fmt.Sprintf(`document.querySelectorAll(%q).length`, selector)
-	result, err := h.client.Evaluate("", expr)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	count, err := proxy.GetCount(s, ctx, selector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count: %w", err)
 	}
@@ -2853,7 +2499,7 @@ func (h *Handlers) browserCount(args map[string]interface{}) (*ToolsCallResult, 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("%v", result),
+			Text: fmt.Sprintf("%d", count),
 		}},
 	}, nil
 }
@@ -2870,26 +2516,20 @@ func (h *Handlers) browserIsEnabled(args map[string]interface{}) (*ToolsCallResu
 	}
 	selector = h.resolveSelector(selector)
 
-	script := `(selector) => {
-		const el = document.querySelector(selector);
-		if (!el) return 'not_found';
-		return el.disabled === true ? 'false' : 'true';
-	}`
-
-	result, err := h.client.CallFunction("", script, []interface{}{selector})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	enabled, err := proxy.IsEnabled(s, ctx, proxy.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to check enabled: %w", err)
-	}
-
-	resultStr := fmt.Sprintf("%v", result)
-	if resultStr == "not_found" {
-		return nil, fmt.Errorf("element not found: %s", selector)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: resultStr,
+			Text: fmt.Sprintf("%v", enabled),
 		}},
 	}, nil
 }
@@ -2906,26 +2546,20 @@ func (h *Handlers) browserIsChecked(args map[string]interface{}) (*ToolsCallResu
 	}
 	selector = h.resolveSelector(selector)
 
-	script := `(selector) => {
-		const el = document.querySelector(selector);
-		if (!el) return 'not_found';
-		return el.checked ? 'true' : 'false';
-	}`
-
-	result, err := h.client.CallFunction("", script, []interface{}{selector})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	checked, err := proxy.IsChecked(s, ctx, proxy.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to check checked state: %w", err)
-	}
-
-	resultStr := fmt.Sprintf("%v", result)
-	if resultStr == "not_found" {
-		return nil, fmt.Errorf("element not found: %s", selector)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: resultStr,
+			Text: fmt.Sprintf("%v", checked),
 		}},
 	}, nil
 }
@@ -2946,29 +2580,21 @@ func (h *Handlers) browserWaitForText(args map[string]interface{}) (*ToolsCallRe
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	deadline := time.Now().Add(timeout)
-	interval := 100 * time.Millisecond
-
-	for {
-		result, err := h.client.Evaluate("", "document.body.innerText")
-		if err == nil && result != nil {
-			pageText := fmt.Sprintf("%v", result)
-			if strings.Contains(pageText, text) {
-				return &ToolsCallResult{
-					Content: []Content{{
-						Type: "text",
-						Text: fmt.Sprintf("Text %q found on page", text),
-					}},
-				}, nil
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("timeout waiting for text %q to appear", text)
-		}
-
-		time.Sleep(interval)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
 	}
+	if err := proxy.WaitForText(s, ctx, text, timeout); err != nil {
+		return nil, err
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Text %q found on page", text),
+		}},
+	}, nil
 }
 
 // browserWaitForFn waits until a JS expression returns truthy.
@@ -2987,29 +2613,22 @@ func (h *Handlers) browserWaitForFn(args map[string]interface{}) (*ToolsCallResu
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	deadline := time.Now().Add(timeout)
-	interval := 100 * time.Millisecond
-
-	for {
-		result, err := h.client.Evaluate("", expression)
-		if err == nil && result != nil {
-			s := fmt.Sprintf("%v", result)
-			if s != "" && s != "false" && s != "null" && s != "undefined" && s != "0" && s != "<nil>" {
-				return &ToolsCallResult{
-					Content: []Content{{
-						Type: "text",
-						Text: fmt.Sprintf("Expression returned truthy: %s", s),
-					}},
-				}, nil
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("timeout waiting for expression to return truthy: %s", expression)
-		}
-
-		time.Sleep(interval)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
 	}
+	result, err := proxy.WaitForFunction(s, ctx, expression, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Expression returned truthy: %s", result),
+		}},
+	}, nil
 }
 
 // browserDialogAccept accepts a dialog (alert, confirm, prompt).
@@ -3020,7 +2639,12 @@ func (h *Handlers) browserDialogAccept(args map[string]interface{}) (*ToolsCallR
 
 	text, _ := args["text"].(string)
 
-	if err := h.client.HandleUserPrompt("", true, text); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.DialogAccept(s, ctx, text); err != nil {
 		return nil, fmt.Errorf("failed to accept dialog: %w", err)
 	}
 
@@ -3043,7 +2667,12 @@ func (h *Handlers) browserDialogDismiss(args map[string]interface{}) (*ToolsCall
 		return nil, err
 	}
 
-	if err := h.client.HandleUserPrompt("", false, ""); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.DialogDismiss(s, ctx); err != nil {
 		return nil, fmt.Errorf("failed to dismiss dialog: %w", err)
 	}
 
@@ -3061,7 +2690,12 @@ func (h *Handlers) browserGetCookies(args map[string]interface{}) (*ToolsCallRes
 		return nil, err
 	}
 
-	cookies, err := h.client.GetCookies("")
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	cookies, err := proxy.GetCookies(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cookies: %w", err)
 	}
@@ -3104,18 +2738,15 @@ func (h *Handlers) browserSetCookie(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("value is required")
 	}
 
-	cookie := bidi.Cookie{
-		Name:  name,
-		Value: value,
-	}
-	if domain, ok := args["domain"].(string); ok {
-		cookie.Domain = domain
-	}
-	if path, ok := args["path"].(string); ok {
-		cookie.Path = path
-	}
+	domain, _ := args["domain"].(string)
+	path, _ := args["path"].(string)
 
-	if err := h.client.SetCookie("", cookie); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.SetCookie(s, ctx, name, value, domain, path); err != nil {
 		return nil, fmt.Errorf("failed to set cookie: %w", err)
 	}
 
@@ -3135,7 +2766,12 @@ func (h *Handlers) browserDeleteCookies(args map[string]interface{}) (*ToolsCall
 
 	name, _ := args["name"].(string)
 
-	if err := h.client.DeleteCookies("", name); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.DeleteCookies(s, ctx, name); err != nil {
 		return nil, fmt.Errorf("failed to delete cookies: %w", err)
 	}
 
@@ -3167,7 +2803,12 @@ func (h *Handlers) browserMouseMove(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("y is required")
 	}
 
-	if err := h.client.MoveMouse("", x, y); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.MouseMove(s, ctx, int(x), int(y)); err != nil {
 		return nil, fmt.Errorf("failed to move mouse: %w", err)
 	}
 
@@ -3190,7 +2831,12 @@ func (h *Handlers) browserMouseDown(args map[string]interface{}) (*ToolsCallResu
 		button = int(b)
 	}
 
-	if err := h.client.MouseDown("", button); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.MouseDown(s, ctx, button); err != nil {
 		return nil, fmt.Errorf("failed to press mouse button: %w", err)
 	}
 
@@ -3213,7 +2859,12 @@ func (h *Handlers) browserMouseUp(args map[string]interface{}) (*ToolsCallResult
 		button = int(b)
 	}
 
-	if err := h.client.MouseUp("", button); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.MouseUp(s, ctx, button); err != nil {
 		return nil, fmt.Errorf("failed to release mouse button: %w", err)
 	}
 
@@ -3236,44 +2887,26 @@ func (h *Handlers) browserMouseClick(args map[string]interface{}) (*ToolsCallRes
 		button = int(b)
 	}
 
-	var pointerActions []map[string]interface{}
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
 
-	// If coordinates provided, move there first
 	x, hasX := args["x"].(float64)
 	y, hasY := args["y"].(float64)
 	if hasX && hasY {
-		pointerActions = append(pointerActions, map[string]interface{}{
-			"type":     "pointerMove",
-			"x":        int(x),
-			"y":        int(y),
-			"duration": 0,
-		})
-	}
-
-	pointerActions = append(pointerActions,
-		map[string]interface{}{
-			"type":   "pointerDown",
-			"button": button,
-		},
-		map[string]interface{}{
-			"type":   "pointerUp",
-			"button": button,
-		},
-	)
-
-	actions := []map[string]interface{}{
-		{
-			"type": "pointer",
-			"id":   "mouse",
-			"parameters": map[string]interface{}{
-				"pointerType": "mouse",
-			},
-			"actions": pointerActions,
-		},
-	}
-
-	if err := h.client.PerformActions("", actions); err != nil {
-		return nil, fmt.Errorf("failed to click: %w", err)
+		if err := proxy.MouseClick(s, ctx, int(x), int(y), button); err != nil {
+			return nil, fmt.Errorf("failed to click: %w", err)
+		}
+	} else {
+		// Click at current position (down+up only)
+		if err := proxy.MouseDown(s, ctx, button); err != nil {
+			return nil, fmt.Errorf("failed to click: %w", err)
+		}
+		if err := proxy.MouseUp(s, ctx, button); err != nil {
+			return nil, fmt.Errorf("failed to click: %w", err)
+		}
 	}
 
 	msg := "Clicked at current position"
@@ -3310,7 +2943,12 @@ func (h *Handlers) browserDrag(args map[string]interface{}) (*ToolsCallResult, e
 	}
 	target = h.resolveSelector(target)
 
-	if err := h.client.DragElement("", source, target); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.DragTo(s, ctx, proxy.ElementParams{Selector: source}, proxy.ElementParams{Selector: target}); err != nil {
 		return nil, fmt.Errorf("failed to drag: %w", err)
 	}
 
@@ -3342,7 +2980,12 @@ func (h *Handlers) browserSetViewport(args map[string]interface{}) (*ToolsCallRe
 		dpr = d
 	}
 
-	if err := h.client.SetViewport("", int(width), int(height), dpr); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.SetViewport(s, ctx, int(width), int(height), dpr); err != nil {
 		return nil, fmt.Errorf("failed to set viewport: %w", err)
 	}
 
@@ -3365,7 +3008,12 @@ func (h *Handlers) browserGetViewport(args map[string]interface{}) (*ToolsCallRe
 		return nil, err
 	}
 
-	result, err := h.client.Evaluate("", "JSON.stringify({width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio})")
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	result, err := proxy.EvalSimpleScript(s, ctx, "() => JSON.stringify({width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio})")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get viewport: %w", err)
 	}
@@ -3373,49 +3021,24 @@ func (h *Handlers) browserGetViewport(args map[string]interface{}) (*ToolsCallRe
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("%v", result),
+			Text: result,
 		}},
 	}, nil
 }
 
 // browserGetWindow returns the OS browser window state and dimensions.
-// Uses BiDi browser.getClientWindows.
 func (h *Handlers) browserGetWindow(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
-	resp, err := h.client.SendCommand("browser.getClientWindows", map[string]interface{}{})
+	s := proxy.NewMCPSession(h.client)
+	win, err := proxy.GetWindow(s)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get window: %w", err)
+		return nil, err
 	}
 
-	var getResult struct {
-		ClientWindows []struct {
-			State  string `json:"state"`
-			X      int    `json:"x"`
-			Y      int    `json:"y"`
-			Width  int    `json:"width"`
-			Height int    `json:"height"`
-		} `json:"clientWindows"`
-	}
-	if err := json.Unmarshal(resp.Result, &getResult); err != nil {
-		return nil, fmt.Errorf("failed to parse window info: %w", err)
-	}
-	if len(getResult.ClientWindows) == 0 {
-		return nil, fmt.Errorf("no client windows available")
-	}
-
-	win := getResult.ClientWindows[0]
-	result := map[string]interface{}{
-		"state":  win.State,
-		"x":      win.X,
-		"y":      win.Y,
-		"width":  win.Width,
-		"height": win.Height,
-	}
-
-	jsonBytes, _ := json.Marshal(result)
+	jsonBytes, _ := json.Marshal(win)
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
@@ -3425,67 +3048,47 @@ func (h *Handlers) browserGetWindow(args map[string]interface{}) (*ToolsCallResu
 }
 
 // browserSetWindow sets the OS browser window size, position, or state.
-// Uses chromedriver's classic WebDriver HTTP API.
 func (h *Handlers) browserSetWindow(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
-	state, hasState := args["state"].(string)
+	state, _ := args["state"].(string)
 	width, hasWidth := args["width"].(float64)
 	height, hasHeight := args["height"].(float64)
 	x, hasX := args["x"].(float64)
 	y, hasY := args["y"].(float64)
 
-	baseURL := fmt.Sprintf("http://localhost:%d/session/%s/window", h.launchResult.Port, h.launchResult.SessionID)
-
-	// Handle named states (maximize, minimize, fullscreen) via dedicated endpoints
-	if hasState && state != "normal" {
-		endpoint := ""
-		switch state {
-		case "maximized":
-			endpoint = baseURL + "/maximize"
-		case "minimized":
-			endpoint = baseURL + "/minimize"
-		case "fullscreen":
-			endpoint = baseURL + "/fullscreen"
-		default:
-			return nil, fmt.Errorf("unsupported window state: %s", state)
-		}
-
-		if err := h.chromedriverPost(endpoint, map[string]interface{}{}); err != nil {
-			return nil, err
-		}
-		return &ToolsCallResult{
-			Content: []Content{{
-				Type: "text",
-				Text: fmt.Sprintf("Window state set to %s", state),
-			}},
-		}, nil
-	}
-
-	// For "normal" state or dimension changes, use /window/rect
-	rect := map[string]interface{}{}
+	opts := proxy.SetWindowOpts{State: state}
 	if hasWidth {
-		rect["width"] = int(width)
+		w := int(width)
+		opts.Width = &w
 	}
 	if hasHeight {
-		rect["height"] = int(height)
+		h := int(height)
+		opts.Height = &h
 	}
 	if hasX {
-		rect["x"] = int(x)
+		xv := int(x)
+		opts.X = &xv
 	}
 	if hasY {
-		rect["y"] = int(y)
+		yv := int(y)
+		opts.Y = &yv
 	}
 
-	if err := h.chromedriverPost(baseURL+"/rect", rect); err != nil {
+	if err := proxy.SetWindow(h.launchResult.Port, h.launchResult.SessionID, opts); err != nil {
 		return nil, err
 	}
 
-	msg := fmt.Sprintf("Window set to %dx%d", int(width), int(height))
-	if hasX && hasY {
-		msg += fmt.Sprintf(" at (%d, %d)", int(x), int(y))
+	msg := "Window updated"
+	if state != "" && state != "normal" {
+		msg = fmt.Sprintf("Window state set to %s", state)
+	} else if hasWidth && hasHeight {
+		msg = fmt.Sprintf("Window set to %dx%d", int(width), int(height))
+		if hasX && hasY {
+			msg += fmt.Sprintf(" at (%d, %d)", int(x), int(y))
+		}
 	}
 
 	return &ToolsCallResult{
@@ -3496,104 +3099,40 @@ func (h *Handlers) browserSetWindow(args map[string]interface{}) (*ToolsCallResu
 	}, nil
 }
 
-// chromedriverPost sends a POST request to a chromedriver classic WebDriver endpoint.
-func (h *Handlers) chromedriverPost(url string, body map[string]interface{}) error {
-	data, err := json.Marshal(body)
-	if err != nil {
-		return fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("chromedriver request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("chromedriver error (status %d): %s", resp.StatusCode, string(respBody))
-	}
-
-	return nil
-}
-
 // browserEmulateMedia overrides CSS media features.
 func (h *Handlers) browserEmulateMedia(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
-	overrides := make(map[string]string)
-	if v, ok := args["media"].(string); ok && v != "" {
-		overrides["media"] = v
+	overrides := map[string]interface{}{}
+	for _, key := range []string{"media", "colorScheme", "reducedMotion", "forcedColors", "contrast"} {
+		if v, ok := args[key].(string); ok && v != "" {
+			overrides[key] = v
+		}
 	}
-	if v, ok := args["colorScheme"].(string); ok && v != "" {
-		overrides["colorScheme"] = v
-	}
-	if v, ok := args["reducedMotion"].(string); ok && v != "" {
-		overrides["reducedMotion"] = v
-	}
-	if v, ok := args["forcedColors"].(string); ok && v != "" {
-		overrides["forcedColors"] = v
-	}
-	if v, ok := args["contrast"].(string); ok && v != "" {
-		overrides["contrast"] = v
-	}
-
 	if len(overrides) == 0 {
 		return nil, fmt.Errorf("at least one media feature override is required")
 	}
 
-	overridesJSON, _ := json.Marshal(overrides)
-	script := fmt.Sprintf(`(function() {
-		const overrides = %s;
-		if (!window.__vibiumMediaOverrides) window.__vibiumMediaOverrides = {};
-		Object.assign(window.__vibiumMediaOverrides, overrides);
-		const ov = window.__vibiumMediaOverrides;
-		if (!window.__vibiumOrigMatchMedia) {
-			window.__vibiumOrigMatchMedia = window.matchMedia.bind(window);
-			window.matchMedia = function(query) {
-				const orig = window.__vibiumOrigMatchMedia(query);
-				const featureMap = {
-					'prefers-color-scheme': ov.colorScheme,
-					'prefers-reduced-motion': ov.reducedMotion,
-					'forced-colors': ov.forcedColors,
-					'prefers-contrast': ov.contrast
-				};
-				for (const [feature, value] of Object.entries(featureMap)) {
-					if (!value) continue;
-					const re = new RegExp('\\(' + feature + '\\s*:\\s*([^)]+)\\)');
-					const m = query.match(re);
-					if (m) {
-						const requested = m[1].trim();
-						const matches = requested === value;
-						return {
-							matches: matches,
-							media: query,
-							onchange: null,
-							addEventListener: orig.addEventListener?.bind(orig) || function(){},
-							removeEventListener: orig.removeEventListener?.bind(orig) || function(){},
-							addListener: orig.addListener?.bind(orig) || function(){},
-							removeListener: orig.removeListener?.bind(orig) || function(){}
-						};
-					}
-				}
-				return orig;
-			};
-		}
-		return JSON.stringify({applied: Object.keys(overrides)});
-	})()`, string(overridesJSON))
-
-	result, err := h.client.Evaluate("", script)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := proxy.EmulateMedia(s, ctx, overrides); err != nil {
 		return nil, fmt.Errorf("failed to emulate media: %w", err)
 	}
 
+	keys := make([]string, 0, len(overrides))
+	for k := range overrides {
+		keys = append(keys, k)
+	}
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Media emulation applied: %v", result),
+			Text: fmt.Sprintf("Media emulation applied: %v", keys),
 		}},
 	}, nil
 }
@@ -3618,23 +3157,20 @@ func (h *Handlers) browserSetGeolocation(args map[string]interface{}) (*ToolsCal
 		accuracy = a
 	}
 
-	script := fmt.Sprintf(`(function() {
-		const coords = {latitude: %f, longitude: %f, accuracy: %f};
-		const position = {coords: coords, timestamp: Date.now()};
-		navigator.geolocation.getCurrentPosition = function(success) { success(position); };
-		navigator.geolocation.watchPosition = function(success) { success(position); return 0; };
-		return JSON.stringify({set: true, latitude: coords.latitude, longitude: coords.longitude});
-	})()`, latitude, longitude, accuracy)
-
-	result, err := h.client.Evaluate("", script)
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := proxy.SetGeolocation(s, ctx, latitude, longitude, accuracy); err != nil {
 		return nil, fmt.Errorf("failed to set geolocation: %w", err)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Geolocation set: %v", result),
+			Text: fmt.Sprintf("Geolocation set to (%f, %f)", latitude, longitude),
 		}},
 	}, nil
 }
@@ -3650,9 +3186,12 @@ func (h *Handlers) browserSetContent(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("html is required")
 	}
 
-	script := `(html) => { document.open(); document.write(html); document.close(); return 'ok'; }`
-	_, err := h.client.CallFunction("", script, []interface{}{html})
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
+		return nil, err
+	}
+	if err := proxy.SetContent(s, ctx, html); err != nil {
 		return nil, fmt.Errorf("failed to set content: %w", err)
 	}
 
@@ -3670,42 +3209,16 @@ func (h *Handlers) browserFrames(args map[string]interface{}) (*ToolsCallResult,
 		return nil, err
 	}
 
-	tree, err := h.client.GetTree()
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get tree: %w", err)
+		return nil, err
 	}
 
-	if len(tree.Contexts) == 0 {
-		return &ToolsCallResult{
-			Content: []Content{{
-				Type: "text",
-				Text: "No browsing contexts",
-			}},
-		}, nil
+	frames, err := proxy.ListFrames(s, ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get frames: %w", err)
 	}
-
-	// Collect all child frames from the first top-level context
-	type frameInfo struct {
-		Context string `json:"context"`
-		URL     string `json:"url"`
-		Name    string `json:"name,omitempty"`
-	}
-
-	var frames []frameInfo
-	var collectFrames func(children []bidi.BrowsingContextInfo)
-	collectFrames = func(children []bidi.BrowsingContextInfo) {
-		for _, child := range children {
-			fi := frameInfo{Context: child.Context, URL: child.URL}
-			// Try to get frame name
-			name, err := h.client.Evaluate(child.Context, "window.name")
-			if err == nil && name != nil {
-				fi.Name = fmt.Sprintf("%v", name)
-			}
-			frames = append(frames, fi)
-			collectFrames(child.Children)
-		}
-	}
-	collectFrames(tree.Contexts[0].Children)
 
 	if len(frames) == 0 {
 		return &ToolsCallResult{
@@ -3736,64 +3249,27 @@ func (h *Handlers) browserFrame(args map[string]interface{}) (*ToolsCallResult, 
 		return nil, fmt.Errorf("nameOrUrl is required")
 	}
 
-	tree, err := h.client.GetTree()
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get tree: %w", err)
+		return nil, err
 	}
 
-	if len(tree.Contexts) == 0 {
-		return nil, fmt.Errorf("no browsing contexts")
+	frame, err := proxy.FindFrame(s, ctx, nameOrURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find frame: %w", err)
+	}
+	if frame == nil {
+		return nil, fmt.Errorf("no frame matching %q", nameOrURL)
 	}
 
-	type frameInfo struct {
-		Context string `json:"context"`
-		URL     string `json:"url"`
-		Name    string `json:"name,omitempty"`
-	}
-
-	// Collect all child frames
-	var frames []frameInfo
-	var collectFrames func(children []bidi.BrowsingContextInfo)
-	collectFrames = func(children []bidi.BrowsingContextInfo) {
-		for _, child := range children {
-			fi := frameInfo{Context: child.Context, URL: child.URL}
-			name, err := h.client.Evaluate(child.Context, "window.name")
-			if err == nil && name != nil {
-				fi.Name = fmt.Sprintf("%v", name)
-			}
-			frames = append(frames, fi)
-			collectFrames(child.Children)
-		}
-	}
-	collectFrames(tree.Contexts[0].Children)
-
-	// Try exact name match first
-	for _, f := range frames {
-		if f.Name == nameOrURL {
-			result, _ := json.Marshal(f)
-			return &ToolsCallResult{
-				Content: []Content{{
-					Type: "text",
-					Text: string(result),
-				}},
-			}, nil
-		}
-	}
-
-	// Try URL substring match
-	for _, f := range frames {
-		if strings.Contains(f.URL, nameOrURL) {
-			result, _ := json.Marshal(f)
-			return &ToolsCallResult{
-				Content: []Content{{
-					Type: "text",
-					Text: string(result),
-				}},
-			}, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no frame matching %q", nameOrURL)
+	result, _ := json.Marshal(frame)
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: string(result),
+		}},
+	}, nil
 }
 
 // browserUpload sets files on an input[type=file] element.
@@ -3829,7 +3305,12 @@ func (h *Handlers) browserUpload(args map[string]interface{}) (*ToolsCallResult,
 		return nil, fmt.Errorf("at least one file path is required")
 	}
 
-	if err := h.client.SetFiles("", selector, files); err != nil {
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
+	}
+	if err := proxy.Upload(s, ctx, proxy.ElementParams{Selector: selector}, files); err != nil {
 		return nil, fmt.Errorf("failed to set files: %w", err)
 	}
 

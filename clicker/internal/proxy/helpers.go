@@ -26,22 +26,8 @@ func (r *Router) resolveContext(session *BrowserSession, params map[string]inter
 }
 
 // evalSimpleScript runs a no-argument script.callFunction and returns the string result.
-// The fn should be a JS function declaration that returns a string, e.g. "() => document.title".
 func (r *Router) evalSimpleScript(session *BrowserSession, context, fn string) (string, error) {
-	params := map[string]interface{}{
-		"functionDeclaration": fn,
-		"target":              map[string]interface{}{"context": context},
-		"arguments":           []map[string]interface{}{},
-		"awaitPromise":        false,
-		"resultOwnership":     "root",
-	}
-
-	resp, err := r.sendInternalCommand(session, "script.callFunction", params)
-	if err != nil {
-		return "", err
-	}
-
-	return parseScriptResult(resp)
+	return EvalSimpleScript(NewProxySession(r, session, context), context, fn)
 }
 
 // checkBidiError checks if a BiDi response is an error and returns it.
@@ -83,50 +69,14 @@ func parseScriptResult(resp json.RawMessage) (string, error) {
 	return result.Result.Result.Value, nil
 }
 
-// resolveElementRef finds an element and returns its BiDi sharedId (for use with input.setFiles etc.).
-// Unlike resolveElement which returns bounding box info, this returns the raw node reference.
-func (r *Router) resolveElementRef(session *BrowserSession, context string, ep elementParams) (string, error) {
-	script, args := buildRefFindScript(ep)
-	deadline := time.Now().Add(ep.Timeout)
-	interval := 100 * time.Millisecond
-
-	for {
-		params := map[string]interface{}{
-			"functionDeclaration": script,
-			"target":              map[string]interface{}{"context": context},
-			"arguments":           args,
-			"awaitPromise":        false,
-			"resultOwnership":     "root",
-		}
-
-		resp, err := r.sendInternalCommand(session, "script.callFunction", params)
-		if err == nil {
-			var result struct {
-				Result struct {
-					Result struct {
-						Type     string `json:"type"`
-						SharedID string `json:"sharedId"`
-					} `json:"result"`
-				} `json:"result"`
-			}
-			if err := json.Unmarshal(resp, &result); err == nil {
-				if result.Result.Result.Type == "node" && result.Result.Result.SharedID != "" {
-					return result.Result.Result.SharedID, nil
-				}
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return "", fmt.Errorf("timeout waiting for element: not found")
-		}
-
-		time.Sleep(interval)
-	}
+// resolveElementRef finds an element and returns its BiDi sharedId.
+func (r *Router) resolveElementRef(session *BrowserSession, context string, ep ElementParams) (string, error) {
+	return ResolveElementRef(NewProxySession(r, session, context), context, ep)
 }
 
 // buildRefFindScript builds a JS function that finds an element and returns it directly
 // (not JSON-stringified). BiDi will serialize the returned DOM node with a sharedId.
-func buildRefFindScript(ep elementParams) (string, []map[string]interface{}) {
+func buildRefFindScript(ep ElementParams) (string, []map[string]interface{}) {
 	args := []map[string]interface{}{
 		{"type": "string", "value": ep.Scope},
 		{"type": "string", "value": ep.Selector},
@@ -151,8 +101,8 @@ func buildRefFindScript(ep elementParams) (string, []map[string]interface{}) {
 	return script, args
 }
 
-// elementParams holds extracted parameters for element resolution.
-type elementParams struct {
+// ElementParams holds extracted parameters for element resolution.
+type ElementParams struct {
 	Selector    string
 	Index       int
 	HasIndex    bool
@@ -169,9 +119,9 @@ type elementParams struct {
 	Timeout     time.Duration
 }
 
-// extractElementParams extracts element parameters from command params.
-func extractElementParams(params map[string]interface{}) elementParams {
-	ep := elementParams{
+// ExtractElementParams extracts element parameters from command params.
+func ExtractElementParams(params map[string]interface{}) ElementParams {
+	ep := ElementParams{
 		Timeout: defaultTimeout,
 	}
 
@@ -201,7 +151,7 @@ func extractElementParams(params map[string]interface{}) elementParams {
 
 // buildActionFindScript builds a JS function that finds an element (by CSS or semantic selectors),
 // supports index for querySelectorAll, scrolls it into view, and returns its bounding box.
-func buildActionFindScript(ep elementParams) (string, []map[string]interface{}) {
+func buildActionFindScript(ep ElementParams) (string, []map[string]interface{}) {
 	hasSemantic := ep.Role != "" || ep.Text != "" || ep.Label != "" || ep.Placeholder != "" ||
 		ep.Alt != "" || ep.Title != "" || ep.Testid != "" || ep.Xpath != ""
 
@@ -284,7 +234,118 @@ func buildActionFindScript(ep elementParams) (string, []map[string]interface{}) 
 
 // resolveElement finds an element using the given params, polling until found or timeout.
 // It returns the element's info with updated bounding box after scrolling into view.
-func (r *Router) resolveElement(session *BrowserSession, context string, ep elementParams) (*elementInfo, error) {
+func (r *Router) resolveElement(session *BrowserSession, context string, ep ElementParams) (*ElementInfo, error) {
+	s := NewProxySession(r, session, context)
+	return ResolveElement(s, context, ep)
+}
+
+// ---------------------------------------------------------------------------
+// Exported standalone functions — usable from both proxy and MCP handlers.
+// ---------------------------------------------------------------------------
+
+// EvalSimpleScript runs a no-argument script.callFunction via the Session and
+// returns the string result.
+func EvalSimpleScript(s Session, context, fn string) (string, error) {
+	params := map[string]interface{}{
+		"functionDeclaration": fn,
+		"target":              map[string]interface{}{"context": context},
+		"arguments":           []map[string]interface{}{},
+		"awaitPromise":        false,
+		"resultOwnership":     "root",
+	}
+
+	resp, err := s.SendBidiCommand("script.callFunction", params)
+	if err != nil {
+		return "", err
+	}
+
+	return parseScriptResult(resp)
+}
+
+// CallScript runs a script.callFunction with arguments via the Session and
+// returns the raw response.
+func CallScript(s Session, context, fn string, args []map[string]interface{}) (json.RawMessage, error) {
+	params := map[string]interface{}{
+		"functionDeclaration": fn,
+		"target":              map[string]interface{}{"context": context},
+		"arguments":           args,
+		"awaitPromise":        false,
+		"resultOwnership":     "root",
+	}
+
+	return s.SendBidiCommand("script.callFunction", params)
+}
+
+// ResolveElement finds an element using the given params, polling until found or timeout.
+func ResolveElement(s Session, context string, ep ElementParams) (*ElementInfo, error) {
 	script, args := buildActionFindScript(ep)
-	return r.waitForElementWithScript(session, context, script, args, ep.Timeout)
+	return WaitForElementWithScript(s, context, script, args, ep.Timeout)
+}
+
+// ResolveElementRef finds an element and returns its BiDi sharedId.
+func ResolveElementRef(s Session, context string, ep ElementParams) (string, error) {
+	script, args := buildRefFindScript(ep)
+	deadline := time.Now().Add(ep.Timeout)
+	interval := 100 * time.Millisecond
+
+	for {
+		resp, err := CallScript(s, context, script, args)
+		if err == nil {
+			var result struct {
+				Result struct {
+					Result struct {
+						Type     string `json:"type"`
+						SharedID string `json:"sharedId"`
+					} `json:"result"`
+				} `json:"result"`
+			}
+			if err := json.Unmarshal(resp, &result); err == nil {
+				if result.Result.Result.Type == "node" && result.Result.Result.SharedID != "" {
+					return result.Result.Result.SharedID, nil
+				}
+			}
+		}
+
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("timeout waiting for element: not found")
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+// WaitForElementWithScript polls until an element is found using a custom script.
+func WaitForElementWithScript(s Session, context, script string, args []map[string]interface{}, timeout time.Duration) (*ElementInfo, error) {
+	deadline := time.Now().Add(timeout)
+	interval := 100 * time.Millisecond
+
+	desc := describeSelector(args)
+
+	for {
+		resp, err := CallScript(s, context, script, args)
+		if err == nil {
+			var result struct {
+				Result struct {
+					Result struct {
+						Type  string `json:"type"`
+						Value string `json:"value,omitempty"`
+					} `json:"result"`
+				} `json:"result"`
+			}
+			if err := json.Unmarshal(resp, &result); err == nil {
+				if result.Result.Result.Type == "string" && result.Result.Result.Value != "" {
+					var info ElementInfo
+					if err := json.Unmarshal([]byte(result.Result.Result.Value), &info); err == nil {
+						return &info, nil
+					}
+				}
+			}
+		}
+
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout after %s waiting for '%s': element not found", timeout, desc)
+		}
+
+		time.Sleep(interval)
+	}
 }

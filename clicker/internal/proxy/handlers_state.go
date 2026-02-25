@@ -3,12 +3,13 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
 // handleVibiumElText handles vibium:el.text — returns element.textContent.
 func (r *Router) handleVibiumElText(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -26,7 +27,7 @@ func (r *Router) handleVibiumElText(session *BrowserSession, cmd bidiCommand) {
 
 // handleVibiumElInnerText handles vibium:el.innerText — returns element.innerText.
 func (r *Router) handleVibiumElInnerText(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -44,7 +45,7 @@ func (r *Router) handleVibiumElInnerText(session *BrowserSession, cmd bidiComman
 
 // handleVibiumElHTML handles vibium:el.html — returns element.innerHTML.
 func (r *Router) handleVibiumElHTML(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -62,7 +63,7 @@ func (r *Router) handleVibiumElHTML(session *BrowserSession, cmd bidiCommand) {
 
 // handleVibiumElValue handles vibium:el.value — returns element.value (for inputs).
 func (r *Router) handleVibiumElValue(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -80,7 +81,7 @@ func (r *Router) handleVibiumElValue(session *BrowserSession, cmd bidiCommand) {
 
 // handleVibiumElAttr handles vibium:el.attr — returns element.getAttribute(name).
 func (r *Router) handleVibiumElAttr(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	name, _ := cmd.Params["name"].(string)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
@@ -141,7 +142,7 @@ func (r *Router) handleVibiumElAttr(session *BrowserSession, cmd bidiCommand) {
 
 // handleVibiumElBounds handles vibium:el.bounds — returns getBoundingClientRect().
 func (r *Router) handleVibiumElBounds(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -171,7 +172,7 @@ func (r *Router) handleVibiumElBounds(session *BrowserSession, cmd bidiCommand) 
 		return
 	}
 
-	var box boxInfo
+	var box BoxInfo
 	if err := json.Unmarshal([]byte(val), &box); err != nil {
 		r.sendError(session, cmd.ID, fmt.Errorf("bounds parse failed: %w", err))
 		return
@@ -183,7 +184,7 @@ func (r *Router) handleVibiumElBounds(session *BrowserSession, cmd bidiCommand) 
 
 // handleVibiumElIsVisible handles vibium:el.isVisible — checks computed visibility.
 func (r *Router) handleVibiumElIsVisible(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -209,7 +210,7 @@ func (r *Router) handleVibiumElIsVisible(session *BrowserSession, cmd bidiComman
 
 // handleVibiumElIsHidden handles vibium:el.isHidden — inverse of isVisible.
 func (r *Router) handleVibiumElIsHidden(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -235,7 +236,7 @@ func (r *Router) handleVibiumElIsHidden(session *BrowserSession, cmd bidiCommand
 
 // handleVibiumElIsEnabled handles vibium:el.isEnabled — checks !element.disabled.
 func (r *Router) handleVibiumElIsEnabled(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -253,7 +254,7 @@ func (r *Router) handleVibiumElIsEnabled(session *BrowserSession, cmd bidiComman
 
 // handleVibiumElIsChecked handles vibium:el.isChecked — returns element.checked.
 func (r *Router) handleVibiumElIsChecked(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -271,7 +272,7 @@ func (r *Router) handleVibiumElIsChecked(session *BrowserSession, cmd bidiComman
 
 // handleVibiumElIsEditable handles vibium:el.isEditable — not disabled and not readonly.
 func (r *Router) handleVibiumElIsEditable(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -289,7 +290,7 @@ func (r *Router) handleVibiumElIsEditable(session *BrowserSession, cmd bidiComma
 
 // handleVibiumElEval handles vibium:el.eval — runs script.callFunction with element.
 func (r *Router) handleVibiumElEval(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	fn, _ := cmd.Params["fn"].(string)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
@@ -351,7 +352,7 @@ func (r *Router) handleVibiumElEval(session *BrowserSession, cmd bidiCommand) {
 
 // handleVibiumElScreenshot handles vibium:el.screenshot — captures element screenshot.
 func (r *Router) handleVibiumElScreenshot(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -404,7 +405,7 @@ func (r *Router) handleVibiumElScreenshot(session *BrowserSession, cmd bidiComma
 // handleVibiumElWaitFor handles vibium:el.waitFor — waits for element state.
 // Supported states: "visible", "hidden", "attached", "detached".
 func (r *Router) handleVibiumElWaitFor(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	state, _ := cmd.Params["state"].(string)
 	if state == "" {
 		state = "visible"
@@ -484,7 +485,7 @@ func (r *Router) handleVibiumElWaitFor(session *BrowserSession, cmd bidiCommand)
 
 // handlePageWaitFor handles vibium:page.waitFor — waits for a selector to appear.
 func (r *Router) handlePageWaitFor(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -596,7 +597,7 @@ func (r *Router) handlePageWaitForFunction(session *BrowserSession, cmd bidiComm
 // --- Script builder helpers for state queries ---
 
 // buildElBaseArgs returns the standard [scope, selector, index, hasIndex] args.
-func buildElBaseArgs(ep elementParams) []map[string]interface{} {
+func buildElBaseArgs(ep ElementParams) []map[string]interface{} {
 	return []map[string]interface{}{
 		{"type": "string", "value": ep.Scope},
 		{"type": "string", "value": ep.Selector},
@@ -607,7 +608,7 @@ func buildElBaseArgs(ep elementParams) []map[string]interface{} {
 
 // buildElStateScript builds a script that finds an element and evaluates an expression.
 // The expression receives `el` as the found element and should return a string.
-func buildElStateScript(ep elementParams, expr string) (string, []map[string]interface{}) {
+func buildElStateScript(ep ElementParams, expr string) (string, []map[string]interface{}) {
 	args := buildElBaseArgs(ep)
 	script := fmt.Sprintf(`
 		(scope, selector, index, hasIndex) => {
@@ -628,7 +629,7 @@ func buildElStateScript(ep elementParams, expr string) (string, []map[string]int
 
 // buildElBoolScript builds a script that finds an element and evaluates a boolean expression.
 // The body receives `el` and should use `return true/false;`.
-func buildElBoolScript(ep elementParams, body string) (string, []map[string]interface{}) {
+func buildElBoolScript(ep ElementParams, body string) (string, []map[string]interface{}) {
 	args := buildElBaseArgs(ep)
 	script := fmt.Sprintf(`
 		(scope, selector, index, hasIndex) => {
@@ -650,7 +651,7 @@ func buildElBoolScript(ep elementParams, body string) (string, []map[string]inte
 
 // buildElJSONScript builds a script that finds an element and returns JSON.
 // The body receives `el` and should use `return JSON.stringify(...)`.
-func buildElJSONScript(ep elementParams, body string) (string, []map[string]interface{}) {
+func buildElJSONScript(ep ElementParams, body string) (string, []map[string]interface{}) {
 	args := buildElBaseArgs(ep)
 	script := fmt.Sprintf(`
 		(scope, selector, index, hasIndex) => {
@@ -671,13 +672,21 @@ func buildElJSONScript(ep elementParams, body string) (string, []map[string]inte
 
 // evalElementScript runs a state script and returns the string result.
 func (r *Router) evalElementScript(session *BrowserSession, context, script string, args []map[string]interface{}) (string, error) {
-	resp, err := r.sendInternalCommand(session, "script.callFunction", map[string]interface{}{
-		"functionDeclaration": script,
-		"target":              map[string]interface{}{"context": context},
-		"arguments":           args,
-		"awaitPromise":        false,
-		"resultOwnership":     "root",
-	})
+	return EvalElementScript(NewProxySession(r, session, context), context, script, args)
+}
+
+// evalBoolScript runs a boolean script and parses the "true"/"false" result.
+func (r *Router) evalBoolScript(session *BrowserSession, context, script string, args []map[string]interface{}) (bool, error) {
+	return EvalBoolScript(NewProxySession(r, session, context), context, script, args)
+}
+
+// ---------------------------------------------------------------------------
+// Exported standalone state helpers — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// EvalElementScript runs a state script via the Session and returns the string result.
+func EvalElementScript(s Session, context, script string, args []map[string]interface{}) (string, error) {
+	resp, err := CallScript(s, context, script, args)
 	if err != nil {
 		return "", err
 	}
@@ -689,15 +698,9 @@ func (r *Router) evalElementScript(session *BrowserSession, context, script stri
 	return val, nil
 }
 
-// evalBoolScript runs a boolean script and parses the "true"/"false" result.
-func (r *Router) evalBoolScript(session *BrowserSession, context, script string, args []map[string]interface{}) (bool, error) {
-	resp, err := r.sendInternalCommand(session, "script.callFunction", map[string]interface{}{
-		"functionDeclaration": script,
-		"target":              map[string]interface{}{"context": context},
-		"arguments":           args,
-		"awaitPromise":        false,
-		"resultOwnership":     "root",
-	})
+// EvalBoolScript runs a boolean script via the Session and parses the "true"/"false" result.
+func EvalBoolScript(s Session, context, script string, args []map[string]interface{}) (bool, error) {
+	resp, err := CallScript(s, context, script, args)
 	if err != nil {
 		return false, err
 	}
@@ -715,18 +718,142 @@ func (r *Router) evalBoolScript(session *BrowserSession, context, script string,
 }
 
 // resolveElementNoWait tries to find an element immediately without polling.
-func (r *Router) resolveElementNoWait(session *BrowserSession, context string, ep elementParams) (*elementInfo, error) {
+func (r *Router) resolveElementNoWait(session *BrowserSession, context string, ep ElementParams) (*ElementInfo, error) {
+	return ResolveElementNoWait(NewProxySession(r, session, context), context, ep)
+}
+
+// ---------------------------------------------------------------------------
+// Exported standalone state query functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// GetText returns the textContent of an element.
+func GetText(s Session, context string, ep ElementParams) (string, error) {
+	script, args := buildElStateScript(ep, `(el.textContent || '').trim()`)
+	return EvalElementScript(s, context, script, args)
+}
+
+// GetInnerText returns the innerText of an element.
+func GetInnerText(s Session, context string, ep ElementParams) (string, error) {
+	script, args := buildElStateScript(ep, `(el.innerText || '').trim()`)
+	return EvalElementScript(s, context, script, args)
+}
+
+// GetInnerHTML returns the innerHTML of an element.
+func GetInnerHTML(s Session, context string, ep ElementParams) (string, error) {
+	script, args := buildElStateScript(ep, `el.innerHTML`)
+	return EvalElementScript(s, context, script, args)
+}
+
+// GetOuterHTML returns the outerHTML of an element.
+func GetOuterHTML(s Session, context string, ep ElementParams) (string, error) {
+	script, args := buildElStateScript(ep, `el.outerHTML`)
+	return EvalElementScript(s, context, script, args)
+}
+
+// GetValue returns the value property of a form element.
+func GetValue(s Session, context string, ep ElementParams) (string, error) {
+	script, args := buildElStateScript(ep, `el.value || ''`)
+	return EvalElementScript(s, context, script, args)
+}
+
+// GetAttribute returns the value of an HTML attribute on an element.
+func GetAttribute(s Session, context string, ep ElementParams, name string) (string, error) {
+	args := buildElBaseArgs(ep)
+	args = append(args, map[string]interface{}{"type": "string", "value": name})
+	script := `
+		(scope, selector, index, hasIndex, name) => {
+			const root = scope ? document.querySelector(scope) : document;
+			if (!root) return null;
+			let el;
+			if (hasIndex) {
+				el = root.querySelectorAll(selector)[index];
+			} else {
+				el = root.querySelector(selector);
+			}
+			if (!el) return null;
+			const v = el.getAttribute(name);
+			return v === null ? '' : v;
+		}
+	`
+	return EvalElementScript(s, context, script, args)
+}
+
+// IsVisible checks if an element is visible (not hidden, not zero-size).
+func IsVisible(s Session, context string, ep ElementParams) (bool, error) {
+	script, args := buildElBoolScript(ep, `
+		const style = window.getComputedStyle(el);
+		if (style.display === 'none') return false;
+		if (style.visibility === 'hidden') return false;
+		if (parseFloat(style.opacity) === 0) return false;
+		const rect = el.getBoundingClientRect();
+		return rect.width > 0 && rect.height > 0;
+	`)
+	return EvalBoolScript(s, context, script, args)
+}
+
+// IsEnabled checks if an element is enabled (!disabled).
+func IsEnabled(s Session, context string, ep ElementParams) (bool, error) {
+	script, args := buildElBoolScript(ep, `return !el.disabled;`)
+	return EvalBoolScript(s, context, script, args)
+}
+
+// GetCount counts elements matching a CSS selector.
+func GetCount(s Session, context, selector string) (int, error) {
+	expr := fmt.Sprintf(`() => document.querySelectorAll(%q).length`, selector)
+	val, err := EvalSimpleScript(s, context, expr)
+	if err != nil {
+		return 0, err
+	}
+	var count int
+	if _, err := fmt.Sscanf(val, "%d", &count); err != nil {
+		return 0, fmt.Errorf("failed to parse count: %w", err)
+	}
+	return count, nil
+}
+
+// WaitForText waits until the page body contains the given text.
+func WaitForText(s Session, context, text string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	interval := 100 * time.Millisecond
+
+	for {
+		pageText, err := EvalSimpleScript(s, context, "() => document.body.innerText")
+		if err == nil && strings.Contains(pageText, text) {
+			return nil
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for text %q to appear", text)
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+// WaitForFunction waits until a JS expression returns a truthy value.
+func WaitForFunction(s Session, context, expression string, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	interval := 100 * time.Millisecond
+
+	for {
+		val, err := EvalSimpleScript(s, context, fmt.Sprintf("() => { const r = %s; return r ? String(r) : ''; }", expression))
+		if err == nil && val != "" {
+			return val, nil
+		}
+
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("timeout waiting for expression to return truthy: %s", expression)
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+// ResolveElementNoWait tries to find an element immediately without polling.
+func ResolveElementNoWait(s Session, context string, ep ElementParams) (*ElementInfo, error) {
 	script, args := buildActionFindScript(ep)
 
-	params := map[string]interface{}{
-		"functionDeclaration": script,
-		"target":              map[string]interface{}{"context": context},
-		"arguments":           args,
-		"awaitPromise":        false,
-		"resultOwnership":     "root",
-	}
-
-	resp, err := r.sendInternalCommand(session, "script.callFunction", params)
+	resp, err := CallScript(s, context, script, args)
 	if err != nil {
 		return nil, err
 	}
@@ -746,7 +873,7 @@ func (r *Router) resolveElementNoWait(session *BrowserSession, context string, e
 		return nil, fmt.Errorf("element not found")
 	}
 
-	var info elementInfo
+	var info ElementInfo
 	if err := json.Unmarshal([]byte(result.Result.Result.Value), &info); err != nil {
 		return nil, fmt.Errorf("failed to parse element info: %w", err)
 	}

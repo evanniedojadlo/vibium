@@ -94,32 +94,3 @@ func (c *Client) SetCookie(context string, cookie Cookie) error {
 	return err
 }
 
-// DeleteCookies deletes cookies by name in the given browsing context.
-// If name is empty, deletes all cookies.
-func (c *Client) DeleteCookies(context string, name string) error {
-	if context == "" {
-		tree, err := c.GetTree()
-		if err != nil {
-			return fmt.Errorf("failed to get browsing context: %w", err)
-		}
-		if len(tree.Contexts) == 0 {
-			return fmt.Errorf("no browsing contexts available")
-		}
-		context = tree.Contexts[0].Context
-	}
-
-	params := map[string]interface{}{
-		"partition": map[string]interface{}{
-			"type":    "context",
-			"context": context,
-		},
-	}
-	if name != "" {
-		params["filter"] = map[string]interface{}{
-			"name": name,
-		}
-	}
-
-	_, err := c.SendCommand("storage.deleteCookies", params)
-	return err
-}

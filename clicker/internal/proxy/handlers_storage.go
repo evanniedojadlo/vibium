@@ -309,6 +309,114 @@ func (r *Router) handleContextAddInitScript(session *BrowserSession, cmd bidiCom
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"script": result.Result.Script})
 }
 
+// ---------------------------------------------------------------------------
+// Exported standalone cookie functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// CookieInfo holds parsed cookie information.
+type CookieInfo struct {
+	Name     string  `json:"name"`
+	Value    string  `json:"value"`
+	Domain   string  `json:"domain"`
+	Path     string  `json:"path"`
+	Size     int     `json:"size"`
+	HTTPOnly bool    `json:"httpOnly"`
+	Secure   bool    `json:"secure"`
+	SameSite string  `json:"sameSite"`
+}
+
+// GetCookies returns cookies for the given browsing context.
+func GetCookies(s Session, context string) ([]CookieInfo, error) {
+	params := map[string]interface{}{
+		"partition": map[string]interface{}{
+			"type":    "context",
+			"context": context,
+		},
+	}
+
+	resp, err := s.SendBidiCommand("storage.getCookies", params)
+	if err != nil {
+		return nil, err
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return nil, bidiErr
+	}
+
+	var result struct {
+		Result struct {
+			Cookies []bidiCookie `json:"cookies"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse getCookies response: %w", err)
+	}
+
+	cookies := make([]CookieInfo, 0, len(result.Result.Cookies))
+	for _, c := range result.Result.Cookies {
+		cookies = append(cookies, CookieInfo{
+			Name:     c.Name,
+			Value:    c.Value.Value,
+			Domain:   c.Domain,
+			Path:     c.Path,
+			Size:     c.Size,
+			HTTPOnly: c.HTTPOnly,
+			Secure:   c.Secure,
+			SameSite: c.SameSite,
+		})
+	}
+	return cookies, nil
+}
+
+// SetCookie sets a cookie in the given browsing context.
+func SetCookie(s Session, context, name, value, domain, path string) error {
+	cookieMap := map[string]interface{}{
+		"name":  name,
+		"value": map[string]interface{}{"type": "string", "value": value},
+	}
+	if domain != "" {
+		cookieMap["domain"] = domain
+	}
+	if path != "" {
+		cookieMap["path"] = path
+	}
+
+	params := map[string]interface{}{
+		"cookie": cookieMap,
+		"partition": map[string]interface{}{
+			"type":    "context",
+			"context": context,
+		},
+	}
+
+	resp, err := s.SendBidiCommand("storage.setCookie", params)
+	if err != nil {
+		return err
+	}
+	return checkBidiError(resp)
+}
+
+// DeleteCookies deletes cookies by name in the given browsing context.
+// If name is empty, deletes all cookies.
+func DeleteCookies(s Session, context, name string) error {
+	params := map[string]interface{}{
+		"partition": map[string]interface{}{
+			"type":    "context",
+			"context": context,
+		},
+	}
+	if name != "" {
+		params["filter"] = map[string]interface{}{
+			"name": name,
+		}
+	}
+
+	resp, err := s.SendBidiCommand("storage.deleteCookies", params)
+	if err != nil {
+		return err
+	}
+	return checkBidiError(resp)
+}
+
 // --- Helper functions ---
 
 // getCookiesForContext fetches and normalizes cookies for a user context.

@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// elementInfo holds parsed element information.
-type elementInfo struct {
+// ElementInfo holds parsed element information.
+type ElementInfo struct {
 	Tag  string  `json:"tag"`
 	Text string  `json:"text"`
-	Box  boxInfo `json:"box"`
+	Box  BoxInfo `json:"box"`
 }
 
-type boxInfo struct {
+type BoxInfo struct {
 	X      float64 `json:"x"`
 	Y      float64 `json:"y"`
 	Width  float64 `json:"width"`
@@ -353,48 +353,8 @@ func buildSemanticFindAllScript() string {
 }
 
 // waitForElementWithScript polls until an element is found using a custom script.
-func (r *Router) waitForElementWithScript(session *BrowserSession, context, script string, args []map[string]interface{}, timeout time.Duration) (*elementInfo, error) {
-	deadline := time.Now().Add(timeout)
-	interval := 100 * time.Millisecond
-
-	// Build a description for the timeout error
-	desc := describeSelector(args)
-
-	for {
-		params := map[string]interface{}{
-			"functionDeclaration": script,
-			"target":              map[string]interface{}{"context": context},
-			"arguments":           args,
-			"awaitPromise":        false,
-			"resultOwnership":     "root",
-		}
-
-		resp, err := r.sendInternalCommand(session, "script.callFunction", params)
-		if err == nil {
-			var result struct {
-				Result struct {
-					Result struct {
-						Type  string `json:"type"`
-						Value string `json:"value,omitempty"`
-					} `json:"result"`
-				} `json:"result"`
-			}
-			if err := json.Unmarshal(resp, &result); err == nil {
-				if result.Result.Result.Type == "string" && result.Result.Result.Value != "" {
-					var info elementInfo
-					if err := json.Unmarshal([]byte(result.Result.Result.Value), &info); err == nil {
-						return &info, nil
-					}
-				}
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("timeout after %s waiting for '%s': element not found", timeout, desc)
-		}
-
-		time.Sleep(interval)
-	}
+func (r *Router) waitForElementWithScript(session *BrowserSession, context, script string, args []map[string]interface{}, timeout time.Duration) (*ElementInfo, error) {
+	return WaitForElementWithScript(NewProxySession(r, session, context), context, script, args, timeout)
 }
 
 // waitForElements polls until at least one matching element is found, then returns all.
@@ -468,7 +428,7 @@ func describeSelector(args []map[string]interface{}) string {
 
 // waitForElement polls until an element matching the CSS selector is found or timeout.
 // This is the legacy method used by click/type handlers.
-func (r *Router) waitForElement(session *BrowserSession, context, selector string, timeout time.Duration) (*elementInfo, error) {
+func (r *Router) waitForElement(session *BrowserSession, context, selector string, timeout time.Duration) (*ElementInfo, error) {
 	script, args := buildFindScript(map[string]interface{}{"selector": selector}, false)
 	return r.waitForElementWithScript(session, context, script, args, timeout)
 }

@@ -7,7 +7,7 @@ import (
 
 // handleVibiumElRole handles vibium:el.role — returns the element's computed ARIA role.
 func (r *Router) handleVibiumElRole(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -59,7 +59,7 @@ func (r *Router) handleVibiumElRole(session *BrowserSession, cmd bidiCommand) {
 
 // handleVibiumElLabel handles vibium:el.label — returns the element's accessible name.
 func (r *Router) handleVibiumElLabel(session *BrowserSession, cmd bidiCommand) {
-	ep := extractElementParams(cmd.Params)
+	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -120,40 +120,50 @@ func (r *Router) handleVibiumPageA11yTree(session *BrowserSession, cmd bidiComma
 		rootSelector = val
 	}
 
+	s := NewProxySession(r, session, context)
+	tree, err := A11yTree(s, context, interestingOnly, rootSelector)
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+
+	var parsed interface{}
+	if err := json.Unmarshal([]byte(tree), &parsed); err != nil {
+		r.sendError(session, cmd.ID, fmt.Errorf("a11yTree parse failed: %w", err))
+		return
+	}
+
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{"tree": parsed})
+}
+
+// A11yTree calls the a11y tree script in the browser and returns the JSON string result.
+func A11yTree(s Session, context string, interestingOnly bool, rootSelector string) (string, error) {
 	args := []map[string]interface{}{
 		{"type": "boolean", "value": interestingOnly},
 		{"type": "string", "value": rootSelector},
 	}
 
-	resp, err := r.sendInternalCommand(session, "script.callFunction", map[string]interface{}{
-		"functionDeclaration": a11yTreeScript(),
+	resp, err := s.SendBidiCommand("script.callFunction", map[string]interface{}{
+		"functionDeclaration": A11yTreeScript(),
 		"target":              map[string]interface{}{"context": context},
 		"arguments":           args,
 		"awaitPromise":        false,
 		"resultOwnership":     "root",
 	})
 	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
+		return "", fmt.Errorf("a11yTree failed: %w", err)
 	}
 
 	val, err := parseScriptResult(resp)
 	if err != nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("a11yTree failed: %w", err))
-		return
+		return "", fmt.Errorf("a11yTree failed: %w", err)
 	}
 
-	var tree interface{}
-	if err := json.Unmarshal([]byte(val), &tree); err != nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("a11yTree parse failed: %w", err))
-		return
-	}
-
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{"tree": tree})
+	return val, nil
 }
 
-// a11yTreeScript returns the JS function that builds the accessibility tree.
-func a11yTreeScript() string {
+// A11yTreeScript returns the JS function that builds the accessibility tree.
+func A11yTreeScript() string {
 	return `(interestingOnly, rootSelector) => {
 		const IMPLICIT_ROLES = {
 			A: (el) => el.hasAttribute('href') ? 'link' : '',

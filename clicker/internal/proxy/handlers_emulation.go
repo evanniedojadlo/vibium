@@ -91,9 +91,7 @@ func (r *Router) handlePageEmulateMedia(session *BrowserSession, cmd bidiCommand
 	}
 
 	// Build the overrides object from params.
-	// Each option can be a string value or null (to reset).
 	overrides := map[string]interface{}{}
-
 	for _, key := range []string{"media", "colorScheme", "reducedMotion", "forcedColors", "contrast"} {
 		if val, exists := cmd.Params[key]; exists {
 			if val == nil {
@@ -104,84 +102,86 @@ func (r *Router) handlePageEmulateMedia(session *BrowserSession, cmd bidiCommand
 		}
 	}
 
-	overridesJSON, err := json.Marshal(overrides)
-	if err != nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("failed to serialize overrides: %w", err))
+	s := NewProxySession(r, session, context)
+	if err := EmulateMedia(s, context, overrides); err != nil {
+		r.sendError(session, cmd.ID, err)
 		return
 	}
 
-	// JS function that installs/updates matchMedia overrides.
-	// The override wraps native matchMedia once (idempotent) and intercepts
-	// queries for configured CSS media features.
-	// NOTE: In Go backtick strings, characters are literal — so \( in the JS
-	// source must be written as \( here (no extra escaping).
-	script := "(overridesJSON) => {\n" +
-		"const overrides = JSON.parse(overridesJSON);\n" +
-		"if (!window.__vibiumMediaOverrides) { window.__vibiumMediaOverrides = {}; }\n" +
-		"const featureMap = {\n" +
-		"  colorScheme: 'prefers-color-scheme',\n" +
-		"  reducedMotion: 'prefers-reduced-motion',\n" +
-		"  forcedColors: 'forced-colors',\n" +
-		"  contrast: 'prefers-contrast'\n" +
-		"};\n" +
-		"for (const [key, value] of Object.entries(overrides)) {\n" +
-		"  if (value === null) { delete window.__vibiumMediaOverrides[key]; }\n" +
-		"  else { window.__vibiumMediaOverrides[key] = value; }\n" +
-		"}\n" +
-		"if (!window.__vibiumOriginalMatchMedia) {\n" +
-		"  window.__vibiumOriginalMatchMedia = window.matchMedia.bind(window);\n" +
-		"  window.matchMedia = function(query) {\n" +
-		"    const original = window.__vibiumOriginalMatchMedia(query);\n" +
-		"    const ov = window.__vibiumMediaOverrides || {};\n" +
-		"    if (ov.media !== undefined) {\n" +
-		"      const q = query.trim().toLowerCase();\n" +
-		"      if (q === 'print' || q === '(print)') return makeResult(original, ov.media === 'print', query);\n" +
-		"      if (q === 'screen' || q === '(screen)') return makeResult(original, ov.media === 'screen', query);\n" +
-		"    }\n" +
-		"    for (const [key, feature] of Object.entries(featureMap)) {\n" +
-		"      if (ov[key] !== undefined) {\n" +
-		"        const re = new RegExp('\\\\(' + feature + '\\\\s*:\\\\s*([^)]+)\\\\)');\n" +
-		"        const m = query.match(re);\n" +
-		"        if (m) { return makeResult(original, m[1].trim() === ov[key], query); }\n" +
-		"      }\n" +
-		"    }\n" +
-		"    return original;\n" +
-		"  };\n" +
-		"}\n" +
-		"function makeResult(original, matches, media) {\n" +
-		"  return {\n" +
-		"    matches: matches, media: media, onchange: original.onchange,\n" +
-		"    addListener: original.addListener.bind(original),\n" +
-		"    removeListener: original.removeListener.bind(original),\n" +
-		"    addEventListener: original.addEventListener.bind(original),\n" +
-		"    removeEventListener: original.removeEventListener.bind(original),\n" +
-		"    dispatchEvent: original.dispatchEvent.bind(original)\n" +
-		"  };\n" +
-		"}\n" +
-		"return 'ok';\n" +
-		"}"
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
+}
 
-	params := map[string]interface{}{
-		"functionDeclaration": script,
+// emulateMediaScript is the JS that installs/updates matchMedia overrides.
+// The override wraps native matchMedia once (idempotent) and intercepts
+// queries for configured CSS media features.
+const emulateMediaScript = "(overridesJSON) => {\n" +
+	"const overrides = JSON.parse(overridesJSON);\n" +
+	"if (!window.__vibiumMediaOverrides) { window.__vibiumMediaOverrides = {}; }\n" +
+	"const featureMap = {\n" +
+	"  colorScheme: 'prefers-color-scheme',\n" +
+	"  reducedMotion: 'prefers-reduced-motion',\n" +
+	"  forcedColors: 'forced-colors',\n" +
+	"  contrast: 'prefers-contrast'\n" +
+	"};\n" +
+	"for (const [key, value] of Object.entries(overrides)) {\n" +
+	"  if (value === null) { delete window.__vibiumMediaOverrides[key]; }\n" +
+	"  else { window.__vibiumMediaOverrides[key] = value; }\n" +
+	"}\n" +
+	"if (!window.__vibiumOriginalMatchMedia) {\n" +
+	"  window.__vibiumOriginalMatchMedia = window.matchMedia.bind(window);\n" +
+	"  window.matchMedia = function(query) {\n" +
+	"    const original = window.__vibiumOriginalMatchMedia(query);\n" +
+	"    const ov = window.__vibiumMediaOverrides || {};\n" +
+	"    if (ov.media !== undefined) {\n" +
+	"      const q = query.trim().toLowerCase();\n" +
+	"      if (q === 'print' || q === '(print)') return makeResult(original, ov.media === 'print', query);\n" +
+	"      if (q === 'screen' || q === '(screen)') return makeResult(original, ov.media === 'screen', query);\n" +
+	"    }\n" +
+	"    for (const [key, feature] of Object.entries(featureMap)) {\n" +
+	"      if (ov[key] !== undefined) {\n" +
+	"        const re = new RegExp('\\\\(' + feature + '\\\\s*:\\\\s*([^)]+)\\\\)');\n" +
+	"        const m = query.match(re);\n" +
+	"        if (m) { return makeResult(original, m[1].trim() === ov[key], query); }\n" +
+	"      }\n" +
+	"    }\n" +
+	"    return original;\n" +
+	"  };\n" +
+	"}\n" +
+	"function makeResult(original, matches, media) {\n" +
+	"  return {\n" +
+	"    matches: matches, media: media, onchange: original.onchange,\n" +
+	"    addListener: original.addListener.bind(original),\n" +
+	"    removeListener: original.removeListener.bind(original),\n" +
+	"    addEventListener: original.addEventListener.bind(original),\n" +
+	"    removeEventListener: original.removeEventListener.bind(original),\n" +
+	"    dispatchEvent: original.dispatchEvent.bind(original)\n" +
+	"  };\n" +
+	"}\n" +
+	"return 'ok';\n" +
+	"}"
+
+// EmulateMedia overrides CSS media features in the browser via a JS matchMedia override.
+// The overrides map can contain keys: media, colorScheme, reducedMotion, forcedColors, contrast.
+// Values can be strings (to override) or nil (to reset).
+func EmulateMedia(s Session, context string, overrides map[string]interface{}) error {
+	overridesJSON, err := json.Marshal(overrides)
+	if err != nil {
+		return fmt.Errorf("failed to serialize overrides: %w", err)
+	}
+
+	resp, err := s.SendBidiCommand("script.callFunction", map[string]interface{}{
+		"functionDeclaration": emulateMediaScript,
 		"target":              map[string]interface{}{"context": context},
 		"arguments": []map[string]interface{}{
 			{"type": "string", "value": string(overridesJSON)},
 		},
 		"awaitPromise":    false,
 		"resultOwnership": "root",
-	}
-
-	resp, err := r.sendInternalCommand(session, "script.callFunction", params)
+	})
 	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
+		return err
 	}
-	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
-		return
-	}
-
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
+	return checkBidiError(resp)
 }
 
 // handlePageSetContent handles vibium:page.setContent — replaces the page HTML.
@@ -221,65 +221,89 @@ func (r *Router) handlePageSetContent(session *BrowserSession, cmd bidiCommand) 
 }
 
 // handlePageSetWindow handles vibium:page.setWindow — sets the OS browser window size, position, or state.
-// Uses chromedriver's classic WebDriver HTTP API since BiDi browser.setClientWindowState
-// is not yet available in chromedriver 145.
 func (r *Router) handlePageSetWindow(session *BrowserSession, cmd bidiCommand) {
-	state, hasState := cmd.Params["state"].(string)
+	state, _ := cmd.Params["state"].(string)
 	width, hasWidth := cmd.Params["width"].(float64)
 	height, hasHeight := cmd.Params["height"].(float64)
 	x, hasX := cmd.Params["x"].(float64)
 	y, hasY := cmd.Params["y"].(float64)
 
-	baseURL := fmt.Sprintf("http://localhost:%d/session/%s/window", session.LaunchResult.Port, session.LaunchResult.SessionID)
-
-	// Handle named states (maximize, minimize, fullscreen) via dedicated endpoints
-	if hasState && state != "normal" {
-		endpoint := ""
-		switch state {
-		case "maximized":
-			endpoint = baseURL + "/maximize"
-		case "minimized":
-			endpoint = baseURL + "/minimize"
-		case "fullscreen":
-			endpoint = baseURL + "/fullscreen"
-		default:
-			r.sendError(session, cmd.ID, fmt.Errorf("unsupported window state: %s", state))
-			return
-		}
-
-		if err := r.chromedriverPost(endpoint, map[string]interface{}{}); err != nil {
-			r.sendError(session, cmd.ID, err)
-			return
-		}
-		r.sendSuccess(session, cmd.ID, map[string]interface{}{})
-		return
-	}
-
-	// For "normal" state or dimension changes, use /window/rect
-	rect := map[string]interface{}{}
+	opts := SetWindowOpts{State: state}
 	if hasWidth {
-		rect["width"] = int(width)
+		w := int(width)
+		opts.Width = &w
 	}
 	if hasHeight {
-		rect["height"] = int(height)
+		h := int(height)
+		opts.Height = &h
 	}
 	if hasX {
-		rect["x"] = int(x)
+		xv := int(x)
+		opts.X = &xv
 	}
 	if hasY {
-		rect["y"] = int(y)
+		yv := int(y)
+		opts.Y = &yv
 	}
 
-	if err := r.chromedriverPost(baseURL+"/rect", rect); err != nil {
+	if err := SetWindow(session.LaunchResult.Port, session.LaunchResult.SessionID, opts); err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
+}
+
+// handlePageWindow handles vibium:page.window — returns the current OS window state and dimensions.
+func (r *Router) handlePageWindow(session *BrowserSession, cmd bidiCommand) {
+	s := NewProxySession(r, session, "")
+	win, err := GetWindow(s)
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{
+		"state":  win.State,
+		"x":      win.X,
+		"y":      win.Y,
+		"width":  win.Width,
+		"height": win.Height,
+	})
+}
+
+// handlePageSetGeolocation handles vibium:page.setGeolocation — overrides geolocation.
+func (r *Router) handlePageSetGeolocation(session *BrowserSession, cmd bidiCommand) {
+	context, err := r.resolveContext(session, cmd.Params)
+	if err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
 	}
 
+	lat, hasLat := cmd.Params["latitude"].(float64)
+	lng, hasLng := cmd.Params["longitude"].(float64)
+	if !hasLat || !hasLng {
+		r.sendError(session, cmd.ID, fmt.Errorf("latitude and longitude are required"))
+		return
+	}
+
+	accuracy := float64(1)
+	if acc, ok := cmd.Params["accuracy"].(float64); ok {
+		accuracy = acc
+	}
+
+	s := NewProxySession(r, session, context)
+	if err := SetGeolocation(s, context, lat, lng, accuracy); err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
-// chromedriverPost sends a POST request to a chromedriver classic WebDriver endpoint.
-func (r *Router) chromedriverPost(url string, body map[string]interface{}) error {
+// ---------------------------------------------------------------------------
+// Exported standalone functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// ChromedriverPost sends a POST request to a chromedriver classic WebDriver endpoint.
+func ChromedriverPost(url string, body map[string]interface{}) error {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("failed to marshal request: %w", err)
@@ -300,112 +324,123 @@ func (r *Router) chromedriverPost(url string, body map[string]interface{}) error
 	return nil
 }
 
-// handlePageWindow handles vibium:page.window — returns the current OS window state and dimensions.
+// WindowInfo holds OS browser window state and dimensions.
+type WindowInfo struct {
+	State  string `json:"state"`
+	X      int    `json:"x"`
+	Y      int    `json:"y"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+}
+
+// GetWindow returns the current OS browser window state and dimensions.
 // Uses BiDi browser.getClientWindows.
-func (r *Router) handlePageWindow(session *BrowserSession, cmd bidiCommand) {
-	resp, err := r.sendInternalCommand(session, "browser.getClientWindows", map[string]interface{}{})
+func GetWindow(s Session) (*WindowInfo, error) {
+	resp, err := s.SendBidiCommand("browser.getClientWindows", map[string]interface{}{})
 	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
+		return nil, fmt.Errorf("failed to get window: %w", err)
 	}
 	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
-		return
+		return nil, bidiErr
 	}
 
 	var getResult struct {
 		Result struct {
-			ClientWindows []struct {
-				State  string `json:"state"`
-				X      int    `json:"x"`
-				Y      int    `json:"y"`
-				Width  int    `json:"width"`
-				Height int    `json:"height"`
-			} `json:"clientWindows"`
+			ClientWindows []WindowInfo `json:"clientWindows"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(resp, &getResult); err != nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("failed to parse getClientWindows: %w", err))
-		return
+		return nil, fmt.Errorf("failed to parse getClientWindows: %w", err)
 	}
 	if len(getResult.Result.ClientWindows) == 0 {
-		r.sendError(session, cmd.ID, fmt.Errorf("no client windows available"))
-		return
+		return nil, fmt.Errorf("no client windows available")
 	}
 
-	win := getResult.Result.ClientWindows[0]
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{
-		"state":  win.State,
-		"x":      win.X,
-		"y":      win.Y,
-		"width":  win.Width,
-		"height": win.Height,
-	})
+	return &getResult.Result.ClientWindows[0], nil
 }
 
-// handlePageSetGeolocation handles vibium:page.setGeolocation — overrides geolocation.
-// Uses JS override of navigator.geolocation since BiDi emulation.setGeolocationOverride
-// is not widely supported and requires granted permissions.
-func (r *Router) handlePageSetGeolocation(session *BrowserSession, cmd bidiCommand) {
-	context, err := r.resolveContext(session, cmd.Params)
-	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
+// SetWindowOpts specifies the desired window state and/or dimensions.
+type SetWindowOpts struct {
+	State  string // "maximized", "minimized", "fullscreen", "normal", or ""
+	X      *int
+	Y      *int
+	Width  *int
+	Height *int
+}
+
+// SetWindow sets the OS browser window size, position, or state.
+// Uses chromedriver's classic WebDriver HTTP API.
+func SetWindow(port int, sessionID string, opts SetWindowOpts) error {
+	baseURL := fmt.Sprintf("http://localhost:%d/session/%s/window", port, sessionID)
+
+	// Handle named states via dedicated endpoints
+	if opts.State != "" && opts.State != "normal" {
+		endpoint := ""
+		switch opts.State {
+		case "maximized":
+			endpoint = baseURL + "/maximize"
+		case "minimized":
+			endpoint = baseURL + "/minimize"
+		case "fullscreen":
+			endpoint = baseURL + "/fullscreen"
+		default:
+			return fmt.Errorf("unsupported window state: %s", opts.State)
+		}
+		return ChromedriverPost(endpoint, map[string]interface{}{})
 	}
 
-	lat, hasLat := cmd.Params["latitude"].(float64)
-	lng, hasLng := cmd.Params["longitude"].(float64)
-
-	if !hasLat || !hasLng {
-		r.sendError(session, cmd.ID, fmt.Errorf("latitude and longitude are required"))
-		return
+	// For "normal" state or dimension changes, use /window/rect
+	rect := map[string]interface{}{}
+	if opts.Width != nil {
+		rect["width"] = *opts.Width
 	}
-
-	accuracy := float64(1)
-	if acc, ok := cmd.Params["accuracy"].(float64); ok {
-		accuracy = acc
+	if opts.Height != nil {
+		rect["height"] = *opts.Height
 	}
+	if opts.X != nil {
+		rect["x"] = *opts.X
+	}
+	if opts.Y != nil {
+		rect["y"] = *opts.Y
+	}
+	return ChromedriverPost(baseURL+"/rect", rect)
+}
 
+// geolocationScript is the JS that overrides navigator.geolocation.
+const geolocationScript = "(coordsJSON) => {\n" +
+	"const coords = JSON.parse(coordsJSON);\n" +
+	"const geo = navigator.geolocation;\n" +
+	"geo.getCurrentPosition = function(success, error, options) {\n" +
+	"  success({ coords: { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy,\n" +
+	"    altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() });\n" +
+	"};\n" +
+	"geo.watchPosition = function(success, error, options) {\n" +
+	"  success({ coords: { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy,\n" +
+	"    altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() });\n" +
+	"  return 0;\n" +
+	"};\n" +
+	"return 'ok';\n" +
+	"}"
+
+// SetGeolocation overrides the browser geolocation via a JS override.
+func SetGeolocation(s Session, context string, lat, lon, accuracy float64) error {
 	coordsJSON, _ := json.Marshal(map[string]float64{
 		"latitude":  lat,
-		"longitude": lng,
+		"longitude": lon,
 		"accuracy":  accuracy,
 	})
 
-	script := "(coordsJSON) => {\n" +
-		"const coords = JSON.parse(coordsJSON);\n" +
-		"const geo = navigator.geolocation;\n" +
-		"geo.getCurrentPosition = function(success, error, options) {\n" +
-		"  success({ coords: { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy,\n" +
-		"    altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() });\n" +
-		"};\n" +
-		"geo.watchPosition = function(success, error, options) {\n" +
-		"  success({ coords: { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy,\n" +
-		"    altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() });\n" +
-		"  return 0;\n" +
-		"};\n" +
-		"return 'ok';\n" +
-		"}"
-
-	params := map[string]interface{}{
-		"functionDeclaration": script,
+	resp, err := s.SendBidiCommand("script.callFunction", map[string]interface{}{
+		"functionDeclaration": geolocationScript,
 		"target":              map[string]interface{}{"context": context},
 		"arguments": []map[string]interface{}{
 			{"type": "string", "value": string(coordsJSON)},
 		},
 		"awaitPromise":    false,
 		"resultOwnership": "root",
-	}
-
-	resp, err := r.sendInternalCommand(session, "script.callFunction", params)
+	})
 	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
+		return err
 	}
-	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
-		return
-	}
-
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
+	return checkBidiError(resp)
 }

@@ -224,6 +224,214 @@ func (r *Router) handlePageClose(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
+// ---------------------------------------------------------------------------
+// Exported standalone lifecycle functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// TabInfo holds information about a browsing context (tab).
+type TabInfo struct {
+	Context     string `json:"context"`
+	URL         string `json:"url"`
+	UserContext string `json:"userContext"`
+}
+
+// NewTab creates a new tab and returns its context ID.
+func NewTab(s Session, url string) (string, error) {
+	params := map[string]interface{}{
+		"type": "tab",
+	}
+	resp, err := s.SendBidiCommand("browsingContext.create", params)
+	if err != nil {
+		return "", err
+	}
+	context, err := parseContextFromCreate(resp)
+	if err != nil {
+		return "", err
+	}
+	if url != "" {
+		if err := Navigate(s, context, url, "complete"); err != nil {
+			return context, err
+		}
+	}
+	return context, nil
+}
+
+// ListTabs returns all browsing contexts (tabs).
+func ListTabs(s Session) ([]TabInfo, error) {
+	resp, err := s.SendBidiCommand("browsingContext.getTree", map[string]interface{}{})
+	if err != nil {
+		return nil, err
+	}
+
+	var result struct {
+		Result struct {
+			Contexts []TabInfo `json:"contexts"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse getTree response: %w", err)
+	}
+	return result.Result.Contexts, nil
+}
+
+// SwitchTab activates a browsing context (tab).
+func SwitchTab(s Session, contextID string) error {
+	_, err := s.SendBidiCommand("browsingContext.activate", map[string]interface{}{
+		"context": contextID,
+	})
+	return err
+}
+
+// CloseTab closes a browsing context (tab).
+func CloseTab(s Session, contextID string) error {
+	_, err := s.SendBidiCommand("browsingContext.close", map[string]interface{}{
+		"context": contextID,
+	})
+	return err
+}
+
+// SetViewport sets the viewport size of a browsing context.
+func SetViewport(s Session, context string, width, height int, dpr float64) error {
+	viewport := map[string]interface{}{
+		"width":  width,
+		"height": height,
+	}
+	params := map[string]interface{}{
+		"context":  context,
+		"viewport": viewport,
+	}
+	if dpr > 0 {
+		params["devicePixelRatio"] = dpr
+	}
+	resp, err := s.SendBidiCommand("browsingContext.setViewport", params)
+	if err != nil {
+		return err
+	}
+	return checkBidiError(resp)
+}
+
+// SetContent sets the page HTML content.
+func SetContent(s Session, context, html string) error {
+	script := `(html) => {
+		document.open();
+		document.write(html);
+		document.close();
+		return 'ok';
+	}`
+	args := []map[string]interface{}{
+		{"type": "string", "value": html},
+	}
+	_, err := CallScript(s, context, script, args)
+	return err
+}
+
+// Upload sets files on an <input type="file"> element.
+func Upload(s Session, context string, ep ElementParams, files []string) error {
+	sharedID, err := ResolveElementRef(s, context, ep)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.SendBidiCommand("input.setFiles", map[string]interface{}{
+		"context": context,
+		"element": map[string]interface{}{
+			"sharedId": sharedID,
+		},
+		"files": files,
+	})
+	return err
+}
+
+// MouseMove moves the mouse to the given coordinates.
+func MouseMove(s Session, context string, x, y int) error {
+	params := map[string]interface{}{
+		"context": context,
+		"actions": []map[string]interface{}{
+			{
+				"type": "pointer",
+				"id":   "mouse",
+				"parameters": map[string]interface{}{
+					"pointerType": "mouse",
+				},
+				"actions": []map[string]interface{}{
+					{"type": "pointerMove", "x": x, "y": y, "duration": 0},
+				},
+			},
+		},
+	}
+	_, err := s.SendBidiCommand("input.performActions", params)
+	return err
+}
+
+// MouseDown presses a mouse button.
+func MouseDown(s Session, context string, button int) error {
+	params := map[string]interface{}{
+		"context": context,
+		"actions": []map[string]interface{}{
+			{
+				"type": "pointer",
+				"id":   "mouse",
+				"parameters": map[string]interface{}{
+					"pointerType": "mouse",
+				},
+				"actions": []map[string]interface{}{
+					{"type": "pointerDown", "button": button},
+				},
+			},
+		},
+	}
+	_, err := s.SendBidiCommand("input.performActions", params)
+	return err
+}
+
+// MouseUp releases a mouse button.
+func MouseUp(s Session, context string, button int) error {
+	params := map[string]interface{}{
+		"context": context,
+		"actions": []map[string]interface{}{
+			{
+				"type": "pointer",
+				"id":   "mouse",
+				"parameters": map[string]interface{}{
+					"pointerType": "mouse",
+				},
+				"actions": []map[string]interface{}{
+					{"type": "pointerUp", "button": button},
+				},
+			},
+		},
+	}
+	_, err := s.SendBidiCommand("input.performActions", params)
+	return err
+}
+
+// MouseClick performs a click (move + down + up) at the given coordinates.
+func MouseClick(s Session, context string, x, y, button int) error {
+	var pointerActions []map[string]interface{}
+
+	pointerActions = append(pointerActions,
+		map[string]interface{}{"type": "pointerMove", "x": x, "y": y, "duration": 0},
+		map[string]interface{}{"type": "pointerDown", "button": button},
+		map[string]interface{}{"type": "pointerUp", "button": button},
+	)
+
+	params := map[string]interface{}{
+		"context": context,
+		"actions": []map[string]interface{}{
+			{
+				"type": "pointer",
+				"id":   "mouse",
+				"parameters": map[string]interface{}{
+					"pointerType": "mouse",
+				},
+				"actions": pointerActions,
+			},
+		},
+	}
+	_, err := s.SendBidiCommand("input.performActions", params)
+	return err
+}
+
 // parseContextFromCreate extracts the context ID from a browsingContext.create response.
 func parseContextFromCreate(resp json.RawMessage) (string, error) {
 	var result struct {

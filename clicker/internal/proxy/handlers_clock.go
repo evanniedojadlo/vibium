@@ -16,7 +16,7 @@ func (r *Router) handleClockInstall(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	// Inject into the current page immediately
-	_, err = r.evalSimpleScript(session, context, clockScript)
+	_, err = r.evalSimpleScript(session, context, ClockScript)
 	if err != nil {
 		r.sendError(session, cmd.ID, fmt.Errorf("failed to install clock: %w", err))
 		return
@@ -29,7 +29,7 @@ func (r *Router) handleClockInstall(session *BrowserSession, cmd bidiCommand) {
 
 	if needPreload {
 		resp, err := r.sendInternalCommand(session, "script.addPreloadScript", map[string]interface{}{
-			"functionDeclaration": clockScript,
+			"functionDeclaration": ClockScript,
 			"contexts":            []interface{}{context},
 		})
 		if err != nil {
@@ -240,6 +240,34 @@ func (r *Router) handleClockSetTimezone(session *BrowserSession, cmd bidiCommand
 	}
 
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
+}
+
+// ---------------------------------------------------------------------------
+// Exported standalone clock/timezone functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// SetTimezone overrides the browser timezone via BiDi emulation.setTimezoneOverride.
+func SetTimezone(s Session, context, timezone string) error {
+	resp, err := s.SendBidiCommand("emulation.setTimezoneOverride", map[string]interface{}{
+		"timezone": timezone,
+		"contexts": []interface{}{context},
+	})
+	if err != nil {
+		return err
+	}
+	return checkBidiError(resp)
+}
+
+// ClearTimezone resets the browser timezone to the system default.
+func ClearTimezone(s Session, context string) error {
+	resp, err := s.SendBidiCommand("emulation.setTimezoneOverride", map[string]interface{}{
+		"timezone": nil,
+		"contexts": []interface{}{context},
+	})
+	if err != nil {
+		return err
+	}
+	return checkBidiError(resp)
 }
 
 // setTimezoneOverride uses BiDi emulation.setTimezoneOverride to set the browser timezone.

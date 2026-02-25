@@ -78,6 +78,82 @@ func (r *Router) getFrameTree(session *BrowserSession, context string) ([]map[st
 	return frames, nil
 }
 
+// ---------------------------------------------------------------------------
+// Exported standalone frame functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// FrameInfo holds information about a child frame.
+type FrameInfo struct {
+	Context string `json:"context"`
+	URL     string `json:"url"`
+	Name    string `json:"name,omitempty"`
+}
+
+// ListFrames returns all child frames of the given browsing context.
+func ListFrames(s Session, context string) ([]FrameInfo, error) {
+	resp, err := s.SendBidiCommand("browsingContext.getTree", map[string]interface{}{
+		"root": context,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return nil, bidiErr
+	}
+
+	var result struct {
+		Result struct {
+			Contexts []contextInfo `json:"contexts"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse getTree response: %w", err)
+	}
+
+	var rawFrames []map[string]interface{}
+	if len(result.Result.Contexts) > 0 {
+		rawFrames = collectFrames(result.Result.Contexts[0].Children)
+	}
+
+	frames := make([]FrameInfo, 0, len(rawFrames))
+	for _, f := range rawFrames {
+		ctx, _ := f["context"].(string)
+		url, _ := f["url"].(string)
+		fi := FrameInfo{Context: ctx, URL: url}
+		// Resolve window.name
+		name, err := EvalSimpleScript(s, ctx, "() => window.name")
+		if err == nil {
+			fi.Name = name
+		}
+		frames = append(frames, fi)
+	}
+	return frames, nil
+}
+
+// FindFrame finds a child frame by name or URL substring.
+func FindFrame(s Session, context, nameOrURL string) (*FrameInfo, error) {
+	frames, err := ListFrames(s, context)
+	if err != nil {
+		return nil, err
+	}
+
+	// Match by name first (exact match)
+	for _, f := range frames {
+		if f.Name == nameOrURL {
+			return &f, nil
+		}
+	}
+
+	// Then match by URL substring
+	for _, f := range frames {
+		if strings.Contains(f.URL, nameOrURL) {
+			return &f, nil
+		}
+	}
+
+	return nil, nil // no match
+}
+
 // handlePageFrames handles vibium:page.frames — returns all child frames of a page.
 func (r *Router) handlePageFrames(session *BrowserSession, cmd bidiCommand) {
 	context, err := r.resolveContext(session, cmd.Params)

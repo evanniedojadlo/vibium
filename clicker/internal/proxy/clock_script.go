@@ -1,9 +1,9 @@
 package proxy
 
-// clockScript is the JavaScript that installs a fake clock on `window.__vibiumClock`.
+// ClockScript is the JavaScript that installs a fake clock on `window.__vibiumClock`.
 // It overrides Date, setTimeout, setInterval, clearTimeout, clearInterval,
 // requestAnimationFrame, cancelAnimationFrame, and performance.now.
-const clockScript = `() => {
+const ClockScript = `() => {
 	if (window.__vibiumClock) return 'already_installed';
 
 	const OrigDate = Date;

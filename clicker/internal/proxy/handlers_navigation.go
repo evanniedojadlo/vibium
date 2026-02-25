@@ -21,24 +21,9 @@ func (r *Router) handlePageNavigate(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	wait, _ := cmd.Params["wait"].(string)
-	if wait == "" {
-		wait = "complete"
-	}
-
-	params := map[string]interface{}{
-		"context": context,
-		"url":     url,
-		"wait":    wait,
-	}
-
-	resp, err := r.sendInternalCommand(session, "browsingContext.navigate", params)
-	if err != nil {
+	s := NewProxySession(r, session, context)
+	if err := Navigate(s, context, url, wait); err != nil {
 		r.sendError(session, cmd.ID, err)
-		return
-	}
-
-	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
 		return
 	}
 
@@ -53,23 +38,11 @@ func (r *Router) handlePageBack(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	params := map[string]interface{}{
-		"context": context,
-		"delta":   -1,
-	}
-
-	resp, err := r.sendInternalCommand(session, "browsingContext.traverseHistory", params)
-	if err != nil {
+	s := NewProxySession(r, session, context)
+	if err := GoBack(s, context); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
 	}
-	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
-		return
-	}
-
-	// Wait for page load after traversal
-	r.waitForReadyState(session, context, "complete", 10*time.Second)
 
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
@@ -82,23 +55,11 @@ func (r *Router) handlePageForward(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	params := map[string]interface{}{
-		"context": context,
-		"delta":   1,
-	}
-
-	resp, err := r.sendInternalCommand(session, "browsingContext.traverseHistory", params)
-	if err != nil {
+	s := NewProxySession(r, session, context)
+	if err := GoForward(s, context); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
 	}
-	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
-		return
-	}
-
-	// Wait for page load after traversal
-	r.waitForReadyState(session, context, "complete", 10*time.Second)
 
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
@@ -112,22 +73,9 @@ func (r *Router) handlePageReload(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	wait, _ := cmd.Params["wait"].(string)
-	if wait == "" {
-		wait = "complete"
-	}
-
-	params := map[string]interface{}{
-		"context": context,
-		"wait":    wait,
-	}
-
-	resp, err := r.sendInternalCommand(session, "browsingContext.reload", params)
-	if err != nil {
+	s := NewProxySession(r, session, context)
+	if err := Reload(s, context, wait); err != nil {
 		r.sendError(session, cmd.ID, err)
-		return
-	}
-	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
 		return
 	}
 
@@ -142,7 +90,8 @@ func (r *Router) handlePageURL(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	url, err := r.evalSimpleScript(session, context, "() => window.location.href")
+	s := NewProxySession(r, session, context)
+	url, err := GetURL(s, context)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -159,7 +108,8 @@ func (r *Router) handlePageTitle(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	title, err := r.evalSimpleScript(session, context, "() => document.title")
+	s := NewProxySession(r, session, context)
+	title, err := GetTitle(s, context)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -176,7 +126,8 @@ func (r *Router) handlePageContent(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	content, err := r.evalSimpleScript(session, context, "() => document.documentElement.outerHTML")
+	s := NewProxySession(r, session, context)
+	content, err := GetContent(s, context)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -205,23 +156,14 @@ func (r *Router) handlePageWaitForURL(session *BrowserSession, cmd bidiCommand) 
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
 
-	deadline := time.Now().Add(timeout)
-	interval := 100 * time.Millisecond
-
-	for {
-		url, err := r.evalSimpleScript(session, context, "() => window.location.href")
-		if err == nil && matchesPattern(url, pattern) {
-			r.sendSuccess(session, cmd.ID, map[string]interface{}{"url": url})
-			return
-		}
-
-		if time.Now().After(deadline) {
-			r.sendError(session, cmd.ID, fmt.Errorf("timeout after %s waiting for URL matching '%s'", timeout, pattern))
-			return
-		}
-
-		time.Sleep(interval)
+	s := NewProxySession(r, session, context)
+	url, err := WaitForURL(s, context, pattern, timeout)
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
 	}
+
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{"url": url})
 }
 
 // handlePageWaitForLoad handles vibium:page.waitForLoad — waits until the page reaches a load state.
@@ -233,17 +175,14 @@ func (r *Router) handlePageWaitForLoad(session *BrowserSession, cmd bidiCommand)
 	}
 
 	state, _ := cmd.Params["state"].(string)
-	if state == "" {
-		state = "complete"
-	}
-
 	timeoutMs, _ := cmd.Params["timeout"].(float64)
 	timeout := defaultTimeout
 	if timeoutMs > 0 {
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
 
-	if err := r.waitForReadyState(session, context, state, timeout); err != nil {
+	s := NewProxySession(r, session, context)
+	if err := WaitForLoad(s, context, state, timeout); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
 	}
@@ -253,11 +192,150 @@ func (r *Router) handlePageWaitForLoad(session *BrowserSession, cmd bidiCommand)
 
 // waitForReadyState polls document.readyState until it matches the target state.
 func (r *Router) waitForReadyState(session *BrowserSession, context, targetState string, timeout time.Duration) error {
+	return WaitForReadyState(NewProxySession(r, session, context), context, targetState, timeout)
+}
+
+// ---------------------------------------------------------------------------
+// Exported standalone navigation functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// Navigate navigates to a URL and waits for the given load state.
+func Navigate(s Session, context, url, wait string) error {
+	if wait == "" {
+		wait = "complete"
+	}
+
+	params := map[string]interface{}{
+		"context": context,
+		"url":     url,
+		"wait":    wait,
+	}
+
+	resp, err := s.SendBidiCommand("browsingContext.navigate", params)
+	if err != nil {
+		return err
+	}
+
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return bidiErr
+	}
+
+	return nil
+}
+
+// GoBack navigates back in history.
+func GoBack(s Session, context string) error {
+	params := map[string]interface{}{
+		"context": context,
+		"delta":   -1,
+	}
+
+	resp, err := s.SendBidiCommand("browsingContext.traverseHistory", params)
+	if err != nil {
+		return err
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return bidiErr
+	}
+
+	// Wait for page load after traversal
+	WaitForReadyState(s, context, "complete", 10*time.Second)
+
+	return nil
+}
+
+// GoForward navigates forward in history.
+func GoForward(s Session, context string) error {
+	params := map[string]interface{}{
+		"context": context,
+		"delta":   1,
+	}
+
+	resp, err := s.SendBidiCommand("browsingContext.traverseHistory", params)
+	if err != nil {
+		return err
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return bidiErr
+	}
+
+	// Wait for page load after traversal
+	WaitForReadyState(s, context, "complete", 10*time.Second)
+
+	return nil
+}
+
+// Reload reloads the current page and waits for the given load state.
+func Reload(s Session, context, wait string) error {
+	if wait == "" {
+		wait = "complete"
+	}
+
+	params := map[string]interface{}{
+		"context": context,
+		"wait":    wait,
+	}
+
+	resp, err := s.SendBidiCommand("browsingContext.reload", params)
+	if err != nil {
+		return err
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return bidiErr
+	}
+
+	return nil
+}
+
+// GetURL returns the current page URL.
+func GetURL(s Session, context string) (string, error) {
+	return EvalSimpleScript(s, context, "() => window.location.href")
+}
+
+// GetTitle returns the current page title.
+func GetTitle(s Session, context string) (string, error) {
+	return EvalSimpleScript(s, context, "() => document.title")
+}
+
+// GetContent returns the page's full HTML.
+func GetContent(s Session, context string) (string, error) {
+	return EvalSimpleScript(s, context, "() => document.documentElement.outerHTML")
+}
+
+// WaitForURL waits until the URL matches a pattern.
+func WaitForURL(s Session, context, pattern string, timeout time.Duration) (string, error) {
 	deadline := time.Now().Add(timeout)
 	interval := 100 * time.Millisecond
 
 	for {
-		state, err := r.evalSimpleScript(session, context, "() => document.readyState")
+		url, err := EvalSimpleScript(s, context, "() => window.location.href")
+		if err == nil && matchesPattern(url, pattern) {
+			return url, nil
+		}
+
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("timeout after %s waiting for URL matching '%s'", timeout, pattern)
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+// WaitForLoad waits until the page reaches a given load state.
+func WaitForLoad(s Session, context, state string, timeout time.Duration) error {
+	if state == "" {
+		state = "complete"
+	}
+	return WaitForReadyState(s, context, state, timeout)
+}
+
+// WaitForReadyState polls document.readyState until it matches the target state.
+func WaitForReadyState(s Session, context, targetState string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	interval := 100 * time.Millisecond
+
+	for {
+		state, err := EvalSimpleScript(s, context, "() => document.readyState")
 		if err == nil && readyStateReached(state, targetState) {
 			return nil
 		}

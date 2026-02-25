@@ -57,3 +57,38 @@ func (r *Router) handleDialogDismiss(session *BrowserSession, cmd bidiCommand) {
 
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
+
+// ---------------------------------------------------------------------------
+// Exported standalone dialog functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// DialogAccept accepts a user prompt (alert/confirm/prompt).
+func DialogAccept(s Session, context, userText string) error {
+	params := map[string]interface{}{
+		"context": context,
+		"accept":  true,
+	}
+	if userText != "" {
+		params["userText"] = userText
+	}
+
+	resp, err := s.SendBidiCommand("browsingContext.handleUserPrompt", params)
+	if err != nil {
+		return err
+	}
+	return checkBidiError(resp)
+}
+
+// DialogDismiss dismisses a user prompt.
+func DialogDismiss(s Session, context string) error {
+	params := map[string]interface{}{
+		"context": context,
+		"accept":  false,
+	}
+
+	resp, err := s.SendBidiCommand("browsingContext.handleUserPrompt", params)
+	if err != nil {
+		return err
+	}
+	return checkBidiError(resp)
+}

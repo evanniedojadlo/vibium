@@ -94,3 +94,58 @@ func (r *Router) handlePagePDF(session *BrowserSession, cmd bidiCommand) {
 
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"data": printResult.Result.Data})
 }
+
+// ---------------------------------------------------------------------------
+// Exported standalone capture functions — usable from both proxy and MCP.
+// ---------------------------------------------------------------------------
+
+// Screenshot captures a page screenshot and returns base64-encoded PNG data.
+func Screenshot(s Session, context string, fullPage bool) (string, error) {
+	ssParams := map[string]interface{}{
+		"context": context,
+	}
+	if fullPage {
+		ssParams["origin"] = "document"
+	}
+
+	resp, err := s.SendBidiCommand("browsingContext.captureScreenshot", ssParams)
+	if err != nil {
+		return "", err
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return "", bidiErr
+	}
+
+	var ssResult struct {
+		Result struct {
+			Data string `json:"data"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(resp, &ssResult); err != nil {
+		return "", fmt.Errorf("screenshot parse failed: %w", err)
+	}
+	return ssResult.Result.Data, nil
+}
+
+// PrintToPDF prints the page to PDF and returns base64-encoded PDF data.
+func PrintToPDF(s Session, context string) (string, error) {
+	resp, err := s.SendBidiCommand("browsingContext.print", map[string]interface{}{
+		"context": context,
+	})
+	if err != nil {
+		return "", err
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		return "", bidiErr
+	}
+
+	var printResult struct {
+		Result struct {
+			Data string `json:"data"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(resp, &printResult); err != nil {
+		return "", fmt.Errorf("pdf parse failed: %w", err)
+	}
+	return printResult.Result.Data, nil
+}

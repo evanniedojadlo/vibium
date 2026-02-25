@@ -320,7 +320,7 @@ func (r *Router) handlePageScroll(session *BrowserSession, cmd bidiCommand) {
 	x, y := 0, 0
 	if selector, ok := cmd.Params["selector"].(string); ok && selector != "" {
 		// Scroll at element center
-		info, err := r.resolveElement(session, context, elementParams{Selector: selector})
+		info, err := r.resolveElement(session, context, ElementParams{Selector: selector})
 		if err != nil {
 			r.sendError(session, cmd.ID, err)
 			return
