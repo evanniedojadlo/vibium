@@ -117,6 +117,7 @@ type ElementParams struct {
 	Xpath       string
 	Context     string
 	Timeout     time.Duration
+	Force       bool
 }
 
 // ExtractElementParams extracts element parameters from command params.
@@ -144,6 +145,10 @@ func ExtractElementParams(params map[string]interface{}) ElementParams {
 
 	if timeoutMs, ok := params["timeout"].(float64); ok && timeoutMs > 0 {
 		ep.Timeout = time.Duration(timeoutMs) * time.Millisecond
+	}
+
+	if force, ok := params["force"].(bool); ok {
+		ep.Force = force
 	}
 
 	return ep

@@ -94,10 +94,10 @@ func newTypeCmd() *cobra.Command {
 
 				doWaitOpen()
 
-				// Wait for element to be actionable (Visible, Stable, ReceivesEvents, Enabled, Editable)
-				fmt.Printf("Waiting for element to be actionable: %s\n", selector)
+				// Wait for element to exist
+				fmt.Printf("Waiting for element: %s\n", selector)
 				opts := features.WaitOptions{Timeout: timeout}
-				if err := features.WaitForType(client, "", selector, opts); err != nil {
+				if err := features.WaitForSelector(client, "", selector, opts); err != nil {
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 					os.Exit(1)
 				}

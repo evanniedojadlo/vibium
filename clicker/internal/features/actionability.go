@@ -3,19 +3,9 @@ package features
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/vibium/clicker/internal/bidi"
 )
-
-// ActionabilityResult contains all actionability check results.
-type ActionabilityResult struct {
-	Visible        bool `json:"visible"`
-	Stable         bool `json:"stable"`
-	ReceivesEvents bool `json:"receivesEvents"`
-	Enabled        bool `json:"enabled"`
-	Editable       bool `json:"editable"`
-}
 
 // CheckVisible verifies the element has a non-empty bounding box and is not hidden.
 // An element is visible if:
@@ -380,49 +370,4 @@ func callCheckFunction(client *bidi.Client, context, selector, script string) (s
 	}
 
 	return remoteValue.Value, nil
-}
-
-// getBoundingBox returns the element's bounding box coordinates.
-func getBoundingBox(client *bidi.Client, context, selector string) (*bidi.BoxInfo, error) {
-	script := `
-		(selector) => {
-			const el = document.querySelector(selector);
-			if (!el) return JSON.stringify({ error: 'not found' });
-
-			const rect = el.getBoundingClientRect();
-			return JSON.stringify({
-				x: rect.x,
-				y: rect.y,
-				width: rect.width,
-				height: rect.height
-			});
-		}
-	`
-
-	result, err := callCheckFunction(client, context, selector, script)
-	if err != nil {
-		return nil, err
-	}
-
-	var data struct {
-		X      float64 `json:"x"`
-		Y      float64 `json:"y"`
-		Width  float64 `json:"width"`
-		Height float64 `json:"height"`
-		Error  string  `json:"error,omitempty"`
-	}
-	if err := json.Unmarshal([]byte(result), &data); err != nil {
-		return nil, fmt.Errorf("failed to parse bounding box: %w", err)
-	}
-
-	if data.Error != "" {
-		return nil, fmt.Errorf("element %s", data.Error)
-	}
-
-	return &bidi.BoxInfo{
-		X:      data.X,
-		Y:      data.Y,
-		Width:  data.Width,
-		Height: data.Height,
-	}, nil
 }

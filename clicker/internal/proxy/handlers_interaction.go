@@ -279,13 +279,7 @@ func (r *Router) handleVibiumTap(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	s := NewProxySession(r, session, context)
-	info, err := ResolveElement(s, context, ep)
-	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
-	}
-
-	if err := TapAtCenter(s, context, info); err != nil {
+	if err := Tap(s, context, ep); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
 	}
@@ -572,27 +566,27 @@ func (r *Router) isChecked(session *BrowserSession, context string, ep ElementPa
 // Exported standalone composite functions — usable from both proxy and MCP.
 // ---------------------------------------------------------------------------
 
-// Click resolves an element and clicks at its center.
+// Click resolves an element with actionability checks and clicks at its center.
 func Click(s Session, context string, ep ElementParams) error {
-	info, err := ResolveElement(s, context, ep)
+	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		return err
 	}
 	return ClickAtCenter(s, context, info)
 }
 
-// DblClick resolves an element and double-clicks at its center.
+// DblClick resolves an element with actionability checks and double-clicks at its center.
 func DblClick(s Session, context string, ep ElementParams) error {
-	info, err := ResolveElement(s, context, ep)
+	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		return err
 	}
 	return DblClickAtCenter(s, context, info)
 }
 
-// Hover resolves an element and moves the mouse to its center.
+// Hover resolves an element with actionability checks and moves the mouse to its center.
 func Hover(s Session, context string, ep ElementParams) error {
-	info, err := ResolveElement(s, context, ep)
+	info, err := resolveWithActionability(s, context, ep, HoverChecks)
 	if err != nil {
 		return err
 	}
@@ -651,9 +645,9 @@ func TapAtCenter(s Session, context string, info *ElementInfo) error {
 	return err
 }
 
-// Fill resolves an element and sets its value via JS.
+// Fill resolves an element with actionability checks and sets its value via JS.
 func Fill(s Session, context string, ep ElementParams, value string) error {
-	if _, err := ResolveElement(s, context, ep); err != nil {
+	if _, err := resolveWithActionability(s, context, ep, FillChecks); err != nil {
 		return err
 	}
 	script, args := buildSetValueScript(ep, value)
@@ -671,9 +665,9 @@ func Fill(s Session, context string, ep ElementParams, value string) error {
 	return nil
 }
 
-// TypeInto resolves an element, clicks to focus, and types text.
+// TypeInto resolves an element with actionability checks, clicks to focus, and types text.
 func TypeInto(s Session, context string, ep ElementParams, text string) error {
-	info, err := ResolveElement(s, context, ep)
+	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		return err
 	}
@@ -683,9 +677,9 @@ func TypeInto(s Session, context string, ep ElementParams, text string) error {
 	return TypeText(s, context, text)
 }
 
-// PressOn resolves an element, clicks to focus, and presses a key.
+// PressOn resolves an element with actionability checks, clicks to focus, and presses a key.
 func PressOn(s Session, context string, ep ElementParams, key string) error {
-	info, err := ResolveElement(s, context, ep)
+	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		return err
 	}
@@ -695,9 +689,9 @@ func PressOn(s Session, context string, ep ElementParams, key string) error {
 	return PressKey(s, context, key)
 }
 
-// Check resolves a checkbox and clicks it only if not already checked.
+// Check resolves a checkbox with actionability checks and clicks it only if not already checked.
 func Check(s Session, context string, ep ElementParams) (bool, error) {
-	info, err := ResolveElement(s, context, ep)
+	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		return false, err
 	}
@@ -714,9 +708,9 @@ func Check(s Session, context string, ep ElementParams) (bool, error) {
 	return false, nil // already checked
 }
 
-// Uncheck resolves a checkbox and clicks it only if currently checked.
+// Uncheck resolves a checkbox with actionability checks and clicks it only if currently checked.
 func Uncheck(s Session, context string, ep ElementParams) (bool, error) {
-	info, err := ResolveElement(s, context, ep)
+	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		return false, err
 	}
@@ -747,9 +741,9 @@ func IsChecked(s Session, context string, ep ElementParams) (bool, error) {
 	return val == "true", nil
 }
 
-// SelectOption resolves a select element and sets its value.
+// SelectOption resolves a select element with actionability checks and sets its value.
 func SelectOption(s Session, context string, ep ElementParams, value string) error {
-	if _, err := ResolveElement(s, context, ep); err != nil {
+	if _, err := resolveWithActionability(s, context, ep, SelectChecks); err != nil {
 		return err
 	}
 	script, args := buildSelectOptionScript(ep, value)
@@ -777,19 +771,28 @@ func FocusElement(s Session, context string, ep ElementParams) error {
 	return err
 }
 
-// ScrollIntoView resolves an element, which auto-scrolls it into view.
+// ScrollIntoView resolves an element with stability check, which auto-scrolls it into view.
 func ScrollIntoView(s Session, context string, ep ElementParams) error {
-	_, err := ResolveElement(s, context, ep)
+	_, err := resolveWithActionability(s, context, ep, ScrollChecks)
 	return err
 }
 
-// DragTo resolves source and target elements and drags from one to the other.
+// Tap resolves an element with actionability checks and performs a touch tap at its center.
+func Tap(s Session, context string, ep ElementParams) error {
+	info, err := resolveWithActionability(s, context, ep, ClickChecks)
+	if err != nil {
+		return err
+	}
+	return TapAtCenter(s, context, info)
+}
+
+// DragTo resolves source and target elements with actionability checks and drags from one to the other.
 func DragTo(s Session, context string, source, target ElementParams) error {
-	srcInfo, err := ResolveElement(s, context, source)
+	srcInfo, err := resolveWithActionability(s, context, source, HoverChecks)
 	if err != nil {
 		return fmt.Errorf("source: %w", err)
 	}
-	targetInfo, err := ResolveElement(s, context, target)
+	targetInfo, err := resolveWithActionability(s, context, target, HoverChecks)
 	if err != nil {
 		return fmt.Errorf("target: %w", err)
 	}
