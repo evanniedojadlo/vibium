@@ -53,8 +53,6 @@ Vibium gives AI agents a browser. Install the `vibium` skill and your agent can 
 └──────────────────────────────────────┘
 ```
 
-See [internals](docs/explanation/internals.md) for component details.
-
 ---
 
 ## Agent Setup
