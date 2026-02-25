@@ -38,27 +38,26 @@ We try - `DELETE /session` tells chromedriver to quit Chrome gracefully. But thi
 - **Timeout** - DELETE request fails or Chrome doesn't exit fast enough
 - **Race** - Chromedriver dies before Chrome fully shuts down
 
-A future improvement could find Chrome's PID and kill its tree explicitly before killing chromedriver.
-
 ## The Solution
 
 Our cleanup strategy in `launcher.go:Close()`:
 
-1. **DELETE /session** - Ask chromedriver to quit Chrome gracefully (best effort)
-2. **Kill process tree** - Recursively find and kill all descendants using `pgrep -P`
+1. **DELETE /session** - Ask chromedriver to quit Chrome gracefully (best effort, skipped on Windows)
+2. **Kill process tree** - Recursively find all descendants using `pgrep -P`, then kill deepest-first
 3. **Kill orphans** - Sweep for any Chrome/chromedriver processes with parent PID 1 and kill them
+4. **Clean up temp dirs** - Remove orphaned Chrome temp directories from `os.TempDir()`
 
 ```go
 func killProcessTree(pid int) {
     descendants := getDescendants(pid)  // recursive pgrep -P
     // Kill children first (deepest first)
     for i := len(descendants) - 1; i >= 0; i-- {
-        syscall.Kill(descendants[i], syscall.SIGKILL)
+        killByPid(descendants[i])
     }
-    syscall.Kill(pid, syscall.SIGKILL)
+    killByPid(pid)
 
     // Sweep for orphans that escaped
-    killOrphanedChromeProcesses()
+    KillOrphanedChromeProcesses()
 }
 ```
 
