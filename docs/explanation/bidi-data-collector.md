@@ -199,7 +199,7 @@ await page.route('**/api/search', async (route) => {
 Verify that form data is properly encoded before it hits the server:
 
 ```javascript
-const reqPromise = page.waitForRequest('**/submit');
+const reqPromise = page.capture.request('**/submit');
 
 await page.find('#name').fill('Jane Doe');
 await page.find('#email').fill('jane@example.com');
@@ -226,7 +226,7 @@ page.onResponse(async (resp) => {
 Or with `waitForResponse`:
 
 ```javascript
-const resp = await page.waitForResponse('**/api/users');
+const resp = await page.capture.response('**/api/users');
 const body = await resp.body();    // raw string
 const data = await resp.json();    // parsed JSON
 ```
