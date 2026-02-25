@@ -31,7 +31,7 @@ func (r *Router) handleVibiumFind(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	timeoutMs, _ := cmd.Params["timeout"].(float64)
-	timeout := defaultTimeout
+	timeout := DefaultTimeout
 	if timeoutMs > 0 {
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
@@ -66,7 +66,7 @@ func (r *Router) handleVibiumFindAll(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	timeoutMs, _ := cmd.Params["timeout"].(float64)
-	timeout := defaultTimeout
+	timeout := DefaultTimeout
 	if timeoutMs > 0 {
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}

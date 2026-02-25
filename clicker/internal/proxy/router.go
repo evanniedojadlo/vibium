@@ -12,8 +12,8 @@ import (
 	"github.com/vibium/clicker/internal/browser"
 )
 
-// Default timeout for actionability checks
-const defaultTimeout = 30 * time.Second
+// DefaultTimeout is the default timeout for element resolution and actionability checks.
+const DefaultTimeout = 30 * time.Second
 
 // BrowserSession represents a browser session connected to a client.
 type BrowserSession struct {

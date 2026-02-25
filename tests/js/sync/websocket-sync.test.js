@@ -39,8 +39,12 @@ before(async () => {
   wsURL = urls[1];
 });
 
-after(() => {
-  if (serverProcess) serverProcess.kill();
+after(async () => {
+  if (serverProcess) {
+    const exited = new Promise(resolve => serverProcess.on('exit', resolve));
+    serverProcess.kill();
+    await exited;
+  }
 });
 
 // --- Tests ---

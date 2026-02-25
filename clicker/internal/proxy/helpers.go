@@ -123,7 +123,7 @@ type ElementParams struct {
 // ExtractElementParams extracts element parameters from command params.
 func ExtractElementParams(params map[string]interface{}) ElementParams {
 	ep := ElementParams{
-		Timeout: defaultTimeout,
+		Timeout: DefaultTimeout,
 	}
 
 	ep.Selector, _ = params["selector"].(string)

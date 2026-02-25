@@ -533,7 +533,7 @@ func (r *Router) handlePageWaitForFunction(session *BrowserSession, cmd bidiComm
 	}
 
 	timeoutMs, _ := cmd.Params["timeout"].(float64)
-	timeout := defaultTimeout
+	timeout := DefaultTimeout
 	if timeoutMs > 0 {
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
@@ -878,6 +878,50 @@ func ResolveElementNoWait(s Session, context string, ep ElementParams) (*Element
 		return nil, fmt.Errorf("failed to parse element info: %w", err)
 	}
 	return &info, nil
+}
+
+// WaitForVisible polls until the element exists and is visible, or times out.
+func WaitForVisible(s Session, context string, ep ElementParams) error {
+	deadline := time.Now().Add(ep.Timeout)
+	interval := 100 * time.Millisecond
+
+	for {
+		_, err := ResolveElementNoWait(s, context, ep)
+		if err == nil {
+			visible, vErr := IsVisible(s, context, ep)
+			if vErr == nil && visible {
+				return nil
+			}
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout after %s: element not visible", ep.Timeout)
+		}
+		time.Sleep(interval)
+	}
+}
+
+// WaitForHidden polls until the element is either not found or not visible.
+func WaitForHidden(s Session, context string, ep ElementParams) error {
+	deadline := time.Now().Add(ep.Timeout)
+	interval := 100 * time.Millisecond
+
+	for {
+		_, err := ResolveElementNoWait(s, context, ep)
+		if err != nil {
+			return nil // not found = hidden
+		}
+
+		visible, vErr := IsVisible(s, context, ep)
+		if vErr != nil || !visible {
+			return nil // not visible = hidden
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout after %s: element still visible", ep.Timeout)
+		}
+		time.Sleep(interval)
+	}
 }
 
 // --- Page-level evaluation handlers ---

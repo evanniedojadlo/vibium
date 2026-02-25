@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
-	"github.com/vibium/clicker/internal/features"
 	"github.com/vibium/clicker/internal/process"
+	"github.com/vibium/clicker/internal/proxy"
 )
 
 func newTypeCmd() *cobra.Command {
@@ -96,10 +97,16 @@ func newTypeCmd() *cobra.Command {
 
 				// Wait for element to exist
 				fmt.Printf("Waiting for element: %s\n", selector)
-				opts := features.WaitOptions{Timeout: timeout}
-				if err := features.WaitForSelector(client, "", selector, opts); err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+				deadline := time.Now().Add(timeout)
+				for {
+					if _, err := client.FindElement("", selector); err == nil {
+						break
+					}
+					if time.Now().After(deadline) {
+						fmt.Fprintf(os.Stderr, "Error: timeout waiting for element: %s\n", selector)
+						os.Exit(1)
+					}
+					time.Sleep(100 * time.Millisecond)
 				}
 
 				fmt.Printf("Typing into element: %s\n", selector)
@@ -120,6 +127,6 @@ func newTypeCmd() *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().Duration("timeout", features.DefaultTimeout, "Timeout for actionability checks (e.g., 5s, 30s)")
+	cmd.Flags().Duration("timeout", proxy.DefaultTimeout, "Timeout for actionability checks (e.g., 5s, 30s)")
 	return cmd
 }

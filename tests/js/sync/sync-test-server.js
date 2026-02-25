@@ -195,3 +195,11 @@ server.listen(0, '127.0.0.1', () => {
   process.stdout.write(`http://127.0.0.1:${port}\n`);
   process.stdout.write(`ws://127.0.0.1:${wsAddr.port}\n`);
 });
+
+// Clean shutdown on SIGTERM (sent by test after() hook)
+process.on('SIGTERM', () => {
+  wsServer.close();
+  server.close(() => process.exit(0));
+  // Force exit if close callbacks don't fire within 1s
+  setTimeout(() => process.exit(0), 1000).unref();
+});

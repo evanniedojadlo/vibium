@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/vibium/clicker/internal/features"
+	"github.com/vibium/clicker/internal/proxy"
 )
 
 func newWaitCmd() *cobra.Command {
@@ -49,6 +49,6 @@ func newWaitCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().String("state", "attached", "State to wait for: attached, visible, hidden")
-	cmd.Flags().Int("timeout", int(features.DefaultTimeout/time.Millisecond), "Timeout in milliseconds")
+	cmd.Flags().Int("timeout", int(proxy.DefaultTimeout/time.Millisecond), "Timeout in milliseconds")
 	return cmd
 }

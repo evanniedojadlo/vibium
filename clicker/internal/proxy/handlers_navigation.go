@@ -151,7 +151,7 @@ func (r *Router) handlePageWaitForURL(session *BrowserSession, cmd bidiCommand) 
 	}
 
 	timeoutMs, _ := cmd.Params["timeout"].(float64)
-	timeout := defaultTimeout
+	timeout := DefaultTimeout
 	if timeoutMs > 0 {
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
@@ -176,7 +176,7 @@ func (r *Router) handlePageWaitForLoad(session *BrowserSession, cmd bidiCommand)
 
 	state, _ := cmd.Params["state"].(string)
 	timeoutMs, _ := cmd.Params["timeout"].(float64)
-	timeout := defaultTimeout
+	timeout := DefaultTimeout
 	if timeoutMs > 0 {
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}

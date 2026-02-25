@@ -13,7 +13,6 @@ import (
 
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
-	"github.com/vibium/clicker/internal/features"
 	"github.com/vibium/clicker/internal/log"
 	"github.com/vibium/clicker/internal/proxy"
 )
@@ -562,7 +561,7 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 	hasSemantic := role != "" || text != "" || label != "" || placeholder != "" || testid != "" || xpath != "" || alt != "" || title != ""
 
 	if hasSemantic {
-		timeout := features.DefaultTimeout
+		timeout := proxy.DefaultTimeout
 		if t, ok := args["timeout"].(float64); ok {
 			timeout = time.Duration(t) * time.Millisecond
 		}
@@ -1341,31 +1340,31 @@ func (h *Handlers) browserWait(args map[string]interface{}) (*ToolsCallResult, e
 		state = s
 	}
 
-	timeout := features.DefaultTimeout
-	if t, ok := args["timeout"].(float64); ok {
-		timeout = time.Duration(t) * time.Millisecond
+	s := proxy.NewMCPSession(h.client)
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return nil, err
 	}
 
-	opts := features.WaitOptions{Timeout: timeout}
+	ep := proxy.ElementParams{
+		Selector: selector,
+		Timeout:  proxy.DefaultTimeout,
+	}
+	if t, ok := args["timeout"].(float64); ok {
+		ep.Timeout = time.Duration(t) * time.Millisecond
+	}
 
 	switch state {
 	case "attached":
-		if err := features.WaitForSelector(h.client, "", selector, opts); err != nil {
+		if _, err := proxy.ResolveElement(s, ctx, ep); err != nil {
 			return nil, err
 		}
 	case "visible":
-		if err := features.WaitForSelector(h.client, "", selector, opts); err != nil {
+		if err := proxy.WaitForVisible(s, ctx, ep); err != nil {
 			return nil, err
 		}
-		visible, err := features.CheckVisible(h.client, "", selector)
-		if err != nil {
-			return nil, fmt.Errorf("visibility check failed: %w", err)
-		}
-		if !visible {
-			return nil, fmt.Errorf("element %q found but not visible", selector)
-		}
 	case "hidden":
-		if err := features.WaitForHidden(h.client, "", selector, opts); err != nil {
+		if err := proxy.WaitForHidden(s, ctx, ep); err != nil {
 			return nil, err
 		}
 	default:
@@ -2050,7 +2049,7 @@ func (h *Handlers) browserWaitForURL(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("pattern is required")
 	}
 
-	timeout := features.DefaultTimeout
+	timeout := proxy.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}
@@ -2079,7 +2078,7 @@ func (h *Handlers) browserWaitForLoad(args map[string]interface{}) (*ToolsCallRe
 		return nil, err
 	}
 
-	timeout := features.DefaultTimeout
+	timeout := proxy.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}
@@ -2575,7 +2574,7 @@ func (h *Handlers) browserWaitForText(args map[string]interface{}) (*ToolsCallRe
 		return nil, fmt.Errorf("text is required")
 	}
 
-	timeout := features.DefaultTimeout
+	timeout := proxy.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}
@@ -2608,7 +2607,7 @@ func (h *Handlers) browserWaitForFn(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("expression is required")
 	}
 
-	timeout := features.DefaultTimeout
+	timeout := proxy.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}

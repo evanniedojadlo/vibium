@@ -7,8 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
-	"github.com/vibium/clicker/internal/features"
 	"github.com/vibium/clicker/internal/process"
+	"github.com/vibium/clicker/internal/proxy"
 )
 
 func newClickCmd() *cobra.Command {
@@ -86,9 +86,15 @@ func newClickCmd() *cobra.Command {
 
 				// Wait for element to exist
 				fmt.Printf("Waiting for element: %s\n", selector)
-				opts := features.WaitOptions{Timeout: timeout}
-				if err := features.WaitForSelector(client, "", selector, opts); err != nil {
-					fatalExit("Error: %v", err)
+				deadline := time.Now().Add(timeout)
+				for {
+					if _, err := client.FindElement("", selector); err == nil {
+						break
+					}
+					if time.Now().After(deadline) {
+						fatalExit("Error: timeout waiting for element: %s", selector)
+					}
+					time.Sleep(100 * time.Millisecond)
 				}
 
 				// Get URL before click so we can detect navigation
@@ -106,8 +112,8 @@ func newClickCmd() *cobra.Command {
 				// waiting. This polling approach is a stopgap for oneshot mode.
 				fmt.Println("Waiting for navigation...")
 				currentURL := urlBefore
-				deadline := time.Now().Add(2 * time.Second)
-				for time.Now().Before(deadline) {
+				navDeadline := time.Now().Add(2 * time.Second)
+				for time.Now().Before(navDeadline) {
 					time.Sleep(100 * time.Millisecond)
 					u, err := client.GetCurrentURL()
 					if err != nil {
@@ -123,6 +129,6 @@ func newClickCmd() *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().Duration("timeout", features.DefaultTimeout, "Timeout for actionability checks (e.g., 5s, 30s)")
+	cmd.Flags().Duration("timeout", proxy.DefaultTimeout, "Timeout for actionability checks (e.g., 5s, 30s)")
 	return cmd
 }

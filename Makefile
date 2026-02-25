@@ -137,8 +137,10 @@ test-js: build
 	node --test --test-concurrency=1 tests/js/async/input-eval.test.js
 	@echo "━━━ JS Network & Dialog Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async/network-dialog.test.js tests/js/sync/network-events.test.js
-	@echo "━━━ JS WebSocket Monitoring Tests ━━━"
-	node --test --test-concurrency=1 tests/js/async/websocket.test.js tests/js/sync/websocket-sync.test.js
+	@echo "━━━ JS WebSocket Monitoring Tests (async) ━━━"
+	node --test --test-concurrency=1 tests/js/async/websocket.test.js
+	@echo "━━━ JS WebSocket Monitoring Tests (sync) ━━━"
+	node --test --test-concurrency=1 tests/js/sync/websocket-sync.test.js
 	@echo "━━━ JS Console & Error Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async/console-error.test.js tests/js/sync/console-error.test.js
 	@echo "━━━ JS Download & File Tests ━━━"
