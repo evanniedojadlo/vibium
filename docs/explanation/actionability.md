@@ -2,297 +2,212 @@
 
 When you tell Vibium to click a button, you expect it to actually click the button. But web pages are dynamic—elements load asynchronously, animations play, overlays appear and disappear. A naive automation tool might try to click before the button exists, or click coordinates where a loading spinner is covering the target.
 
-Vibium solves this with **actionability checks**: a set of conditions that must all be true before an action is performed. This concept comes from Playwright, and Vibium implements it server-side in the Go vibium binary so that client libraries don't need to worry about timing issues.
+Vibium solves this with **actionability checks**: a set of conditions that must all be true before an action is performed. This concept comes from [Playwright](https://playwright.dev/docs/actionability), and Vibium implements it server-side in the Go binary so that client libraries don't need to worry about timing issues.
 
 ## The Five Checks
 
-Before performing an action, Vibium verifies these conditions:
+Before performing an action, Vibium verifies a subset of these conditions:
 
 | Check | What it means | Why it matters |
 |-------|--------------|----------------|
-| **Visible** | Element has size and isn't hidden | Can't click invisible things |
-| **Stable** | Element isn't moving | Clicking a moving target misses |
-| **ReceivesEvents** | Element isn't covered | Clicks go to the covering element |
-| **Enabled** | Element isn't disabled | Disabled buttons don't respond |
-| **Editable** | Element accepts text input | Only checked for `type()` |
+| **Visible** | Element has non-zero size and isn't hidden by CSS (`display: none`, `visibility: hidden`) | Can't interact with invisible things |
+| **Stable** | Element's bounding box hasn't changed over 50ms | Clicking a moving target misses |
+| **ReceivesEvents** | `elementFromPoint()` at the element's center returns the element itself (or a descendant) | Clicks would go to the covering element instead |
+| **Enabled** | Element isn't `disabled`, `aria-disabled="true"`, or inside a disabled `<fieldset>` | Disabled controls don't respond to input |
+| **Editable** | Element accepts text input (text-type `<input>`, `<textarea>`, or `contentEditable`), and isn't `readOnly` or `aria-readonly` | Only checked for fill actions |
 
-Different actions require different checks:
+## Which Actions Run Which Checks
 
-- **Click**: Visible + Stable + ReceivesEvents + Enabled
-- **Type**: Visible + Stable + ReceivesEvents + Enabled + Editable
+Different actions require different check sets. These are defined as Go slices in `actionability.go`:
 
-## How Each Check Works
+| Check set | Checks | Used by |
+|-----------|--------|---------|
+| **ClickChecks** | Visible + Stable + ReceivesEvents + Enabled | `Click`, `DblClick`, `Tap`, `Check`, `Uncheck`, `TypeInto`, `PressOn` |
+| **HoverChecks** | Visible + Stable + ReceivesEvents | `Hover`, `DragTo` (both source and target) |
+| **FillChecks** | Visible + Enabled + Editable | `Fill` (clear uses Fill with empty string) |
+| **SelectChecks** | Visible + Enabled | `SelectOption` |
+| **ScrollChecks** | Stable | `ScrollIntoView` |
 
-Every check runs JavaScript in the browser via WebDriver BiDi's `script.callFunction`. Here's the actual code.
+`TypeInto` and `PressOn` use `ClickChecks` (they click to focus first, then type). `Fill` uses its own set because it sets the value via JavaScript rather than simulating keystrokes—it doesn't need the element to receive pointer events, but it does need the element to be editable.
 
-### Visible
+## How It Works
 
-An element is visible if it has non-zero dimensions and isn't hidden by CSS:
+### Single-Script Architecture
 
-```javascript
-(selector) => {
-  const el = document.querySelector(selector);
-  if (!el) return JSON.stringify({ error: 'not found' });
+Vibium runs all JS-side checks in **one BiDi round-trip** per poll attempt. The function `buildActionableScript()` produces a single JavaScript function with boolean flags controlling which checks to run:
 
-  const rect = el.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) {
-    return JSON.stringify({ visible: false, reason: 'zero size' });
-  }
-
-  const style = window.getComputedStyle(el);
-  if (style.visibility === 'hidden') {
-    return JSON.stringify({ visible: false, reason: 'visibility hidden' });
-  }
-  if (style.display === 'none') {
-    return JSON.stringify({ visible: false, reason: 'display none' });
-  }
-
-  return JSON.stringify({ visible: true });
-}
+```go
+// actionability.go — check set definitions
+var (
+    ClickChecks  = []ActionCheck{CheckVisible, CheckStable, CheckReceivesEvents, CheckEnabled}
+    HoverChecks  = []ActionCheck{CheckVisible, CheckStable, CheckReceivesEvents}
+    FillChecks   = []ActionCheck{CheckVisible, CheckEnabled, CheckEditable}
+    SelectChecks = []ActionCheck{CheckVisible, CheckEnabled}
+    ScrollChecks = []ActionCheck{CheckStable}
+)
 ```
-<sub>[`actionability.go#L26`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/features/actionability.go#L26)</sub>
 
-### Stable
-
-An element is stable if its position hasn't changed over 50ms. This catches CSS animations and transitions:
+The generated JS function receives flags like `chkVisible`, `chkEvents`, `chkEnabled`, `chkEditable` and conditionally runs each check inline. The core check body looks like this:
 
 ```javascript
-// At time T:
-(selector) => {
-  const el = document.querySelector(selector);
-  const rect = el.getBoundingClientRect();
-  return JSON.stringify({
-    x: rect.x, y: rect.y,
-    width: rect.width, height: rect.height
-  });
+// From actionabilityCheckBody() — shared across CSS and semantic scripts
+if (chkVisible) {
+    if (rect.width === 0 || rect.height === 0)
+        return JSON.stringify({status:'failed', check:'visible', reason:'zero size'});
+    const style = window.getComputedStyle(el);
+    if (style.visibility === 'hidden')
+        return JSON.stringify({status:'failed', check:'visible', reason:'visibility: hidden'});
+    if (style.display === 'none')
+        return JSON.stringify({status:'failed', check:'visible', reason:'display: none'});
 }
-
-// Wait 50ms, then check again
-// Stable = (position at T) equals (position at T+50ms)
-```
-<sub>[`CheckStable#L70`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/features/actionability.go#L70) · [`getBoundingBox#L366`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/features/actionability.go#L366)</sub>
-
-The Go code runs `getBoundingClientRect()` twice with a 50ms gap and compares the results.
-
-### ReceivesEvents
-
-This is the most subtle check. An element might be visible but covered by another element (a modal, tooltip, or sticky header). Vibium uses `elementFromPoint()` at the element's center:
-
-```javascript
-(selector) => {
-  const el = document.querySelector(selector);
-  if (!el) return JSON.stringify({ error: 'not found' });
-
-  const rect = el.getBoundingClientRect();
-  const centerX = rect.x + rect.width / 2;
-  const centerY = rect.y + rect.height / 2;
-
-  // What element is actually at this point?
-  const hitTarget = document.elementFromPoint(centerX, centerY);
-  if (!hitTarget) {
-    return JSON.stringify({ receivesEvents: false, reason: 'no element at point' });
-  }
-
-  // Is it our element, or a child of our element?
-  if (el === hitTarget || el.contains(hitTarget)) {
-    return JSON.stringify({ receivesEvents: true });
-  }
-
-  // Something else is covering it
-  return JSON.stringify({
-    receivesEvents: false,
-    reason: 'obscured by ' + hitTarget.tagName.toLowerCase()
-  });
-}
-```
-<sub>[`actionability.go#L98`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/features/actionability.go#L98)</sub>
-
-### Enabled
-
-An element is disabled if it has the `disabled` attribute, `aria-disabled="true"`, or is inside a disabled `<fieldset>`:
-
-```javascript
-(selector) => {
-  const el = document.querySelector(selector);
-  if (!el) return JSON.stringify({ error: 'not found' });
-
-  if (el.disabled === true) {
-    return JSON.stringify({ enabled: false, reason: 'disabled attribute' });
-  }
-
-  if (el.getAttribute('aria-disabled') === 'true') {
-    return JSON.stringify({ enabled: false, reason: 'aria-disabled' });
-  }
-
-  // Check if inside disabled fieldset
-  const fieldset = el.closest('fieldset[disabled]');
-  if (fieldset) {
-    // Exception: elements in the first legend are not disabled
-    const legend = fieldset.querySelector('legend');
-    if (!legend || !legend.contains(el)) {
-      return JSON.stringify({ enabled: false, reason: 'inside disabled fieldset' });
+if (chkEnabled) {
+    if (el.disabled === true)
+        return JSON.stringify({status:'failed', check:'enabled', reason:'disabled attribute'});
+    if (el.getAttribute('aria-disabled') === 'true')
+        return JSON.stringify({status:'failed', check:'enabled', reason:'aria-disabled'});
+    const fs = el.closest('fieldset[disabled]');
+    if (fs) {
+        const legend = fs.querySelector('legend');
+        if (!legend || !legend.contains(el))
+            return JSON.stringify({status:'failed', check:'enabled', reason:'inside disabled fieldset'});
     }
-  }
-
-  return JSON.stringify({ enabled: true });
+}
+if (chkEditable) { /* readOnly, aria-readonly, input type checks */ }
+if (chkEvents) {
+    const cx = rect.x + rect.width/2, cy = rect.y + rect.height/2;
+    const hit = document.elementFromPoint(cx, cy);
+    if (!hit || (el !== hit && !el.contains(hit)))
+        return JSON.stringify({status:'failed', check:'receivesEvents', reason:'element is obscured'});
 }
 ```
-<sub>[`actionability.go#L152`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/features/actionability.go#L152)</sub>
 
-### Editable
+If all checks pass, the script returns `{status: "ok"}` along with the element's tag, text, and bounding box.
 
-For typing, the element must also accept text input:
+### Stability: Go-Side Check
 
-```javascript
-(selector) => {
-  const el = document.querySelector(selector);
-  if (!el) return JSON.stringify({ error: 'not found' });
+Stability is the one check that *doesn't* run in JavaScript. Because it requires a time delay (comparing two bounding boxes 50ms apart), running it in JS would require `awaitPromise: true` and a `setTimeout`. Instead, `WaitForActionable()` handles it on the Go side:
 
-  if (el.readOnly === true) {
-    return JSON.stringify({ editable: false, reason: 'readonly attribute' });
-  }
+1. Run the actionability script (all JS-side checks pass, returns bbox)
+2. Sleep 50ms
+3. Run the same script again
+4. Compare bounding boxes — if they match, the element is stable
 
-  if (el.getAttribute('aria-readonly') === 'true') {
-    return JSON.stringify({ editable: false, reason: 'aria-readonly' });
-  }
+### The Polling Loop
 
-  // For <input>, check if it's a type that accepts text
-  const tag = el.tagName.toLowerCase();
-  if (tag === 'input') {
-    const type = (el.type || 'text').toLowerCase();
-    const textTypes = ['text', 'password', 'email', 'number', 'search', 'tel', 'url'];
-    if (!textTypes.includes(type)) {
-      return JSON.stringify({ editable: false, reason: 'input type ' + type + ' not editable' });
-    }
-  }
-
-  if (el.isContentEditable) {
-    return JSON.stringify({ editable: true });
-  }
-
-  if (tag === 'input' || tag === 'textarea') {
-    return JSON.stringify({ editable: true });
-  }
-
-  return JSON.stringify({ editable: false, reason: 'not a form element or contenteditable' });
-}
-```
-<sub>[`actionability.go#L217`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/features/actionability.go#L217)</sub>
-
-## The Autowait Loop
-
-Vibium doesn't just check once—it polls repeatedly until all checks pass or timeout is reached:
+`WaitForActionable()` polls until all checks pass or the timeout is reached:
 
 ```
 deadline = now + timeout (default 30s)
 
 loop:
-    for each check in required_checks:
-        if check fails:
-            if now > deadline:
-                return TimeoutError
-            sleep 100ms
-            continue loop
+    run actionability script
+    if failed or not found:
+        if past deadline: return TimeoutError
+        sleep 100ms
+        continue
 
-    // All checks passed
-    perform action
+    if stability check needed:
+        sleep 50ms
+        run script again
+        if bboxes differ:
+            if past deadline: return TimeoutError
+            sleep 100ms
+            continue
+
+    return element info (tag, text, box)
 ```
-<sub>[`autowait.go#L126`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/features/autowait.go#L126)</sub>
 
 This means your code doesn't need retry logic. When you write:
 
 ```javascript
-await element.click();
+await page.find('#submit').click();
 ```
 
-Vibium will automatically wait up to 30 seconds for the element to become clickable. You can customize this per-action:
+Vibium will automatically wait up to 30 seconds for the element to become clickable. You can customize the timeout per-action:
 
 ```javascript
-await element.click({ timeout: 5000 }); // 5 seconds
+await page.find('#submit').click({ timeout: 5000 }); // 5 seconds
 ```
 
-## WebDriver BiDi Extension Commands
+## Element Finding
 
-The WebDriver BiDi specification allows implementations to define extension modules. From the spec:
+Before actionability checks can run, Vibium needs to locate the element. It supports two strategies.
 
-> An implementation may define extension modules. These must have a module name that contains a single colon ":" character.
+### CSS Selectors
 
-Vibium defines three extension commands:
+The simplest case — pass a CSS selector string:
 
-| Command | Parameters | Description |
-|---------|------------|-------------|
-| `vibium:find` | `context`, `selector`, `timeout` | Wait for element to exist |
-| `vibium:click` | `context`, `selector`, `timeout` | Wait for actionable, then click |
-| `vibium:type` | `context`, `selector`, `text`, `timeout` | Wait for actionable, then type |
+```javascript
+await page.find('button.submit').click();
+await page.find('#login-form input[type="email"]').fill('user@example.com');
+```
 
-These commands are handled by the vibium proxy, not forwarded to the browser. When the proxy receives a `vibium:click` command:
+Internally this uses `document.querySelector()` (or `querySelectorAll()` with an `index` param).
 
-1. Parse selector and timeout from params
-2. Poll until element exists (`vibium:find` behavior)
-3. Poll until all click checks pass
-4. Get element's bounding box
-5. Calculate center coordinates
-6. Send `input.performActions` to browser with pointer move + click
+### Semantic Selectors
 
-The response follows standard BiDi format:
+Vibium also supports Playwright-style semantic selectors that match elements by their accessible role, text content, labels, and other attributes:
 
-```json
-{
-  "id": 1,
-  "type": "success",
-  "result": { "clicked": true }
+| Parameter | Matches against |
+|-----------|----------------|
+| `role` | ARIA role (explicit or implicit from tag, e.g. `<button>` → `"button"`) |
+| `text` | `textContent` (substring match) |
+| `label` | `aria-label`, `aria-labelledby`, or associated `<label>` element |
+| `placeholder` | `placeholder` attribute |
+| `alt` | `alt` attribute |
+| `title` | `title` attribute |
+| `testid` | `data-testid` attribute |
+| `xpath` | XPath expression |
+
+Semantic selectors can be combined with each other and with a CSS selector for precise targeting:
+
+```javascript
+await page.find({ role: 'button', text: 'Submit' }).click();
+await page.find({ label: 'Email' }).fill('user@example.com');
+await page.find({ selector: 'nav', role: 'link', text: 'Home' }).click();
+```
+
+### The `pickBest()` Heuristic
+
+When a `text` param is provided and multiple elements match, Vibium picks the element with the **shortest `textContent`**. This prefers a `<button>Submit</button>` over a `<div>` that happens to contain "Submit" buried in a paragraph. If an explicit `index` param is provided, it uses that instead of the heuristic.
+
+### Scope
+
+The `scope` parameter restricts element finding to descendants of a container element (matched by CSS selector). This is useful for pages with repeated structures like card grids or table rows.
+
+## Scroll Into View
+
+Before running any checks, the actionability script automatically scrolls the element into the viewport:
+
+```javascript
+if (el.scrollIntoViewIfNeeded) {
+    el.scrollIntoViewIfNeeded(true);
+} else {
+    el.scrollIntoView({ block: 'center', inline: 'nearest' });
 }
 ```
 
-Or on timeout:
-
-```json
-{
-  "id": 1,
-  "type": "error",
-  "error": {
-    "error": "timeout",
-    "message": "timeout after 30s waiting for 'button.submit': check 'ReceivesEvents' failed"
-  }
-}
-```
-
-## Code References
-
-If you want to implement your own extension commands, here's where to look:
-
-**Client side** (sending the command):
-- [`clients/javascript/src/vibe.ts#L69`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clients/javascript/src/vibe.ts#L69) — calls `client.send('vibium:find', { ... })`
-
-**Server side** (handling the command):
-- [`clicker/internal/proxy/router.go#L150`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/proxy/router.go#L150) — switch case routes `vibium:find` to handler
-- [`clicker/internal/proxy/router.go#L303`](https://github.com/VibiumDev/vibium/blob/66b5bc3/clicker/internal/proxy/router.go#L303) — `handleVibiumFind()` implements the logic
-
-The pattern is:
-1. Client sends a JSON message with `method: "yourprefix:commandname"`
-2. Router's `OnClientMessage` parses and dispatches to your handler
-3. Handler does work (possibly sending internal BiDi commands to browser)
-4. Handler calls `sendSuccess()` or `sendError()` to respond to client
+This uses Chrome's non-standard `scrollIntoViewIfNeeded` when available (which only scrolls if the element isn't already visible), falling back to `scrollIntoView`. This happens before visibility and hit-testing checks, ensuring that off-screen elements get a chance to pass.
 
 ## Why Server-Side?
 
 Vibium implements actionability in Go rather than in client libraries because:
 
-1. **Single implementation**: The logic is written once, not duplicated across JavaScript, Python, Ruby, etc.
-2. **Reduced latency**: Polling happens over a local WebSocket, not client→proxy→browser round trips.
+1. **Single implementation**: The logic is written once, not duplicated across JavaScript, Python, and future clients.
+2. **Reduced latency**: Polling happens over a local WebSocket (proxy to browser), not client → proxy → browser round trips.
 3. **Simpler clients**: Client libraries just send a command and wait for success/error.
 4. **Consistent behavior**: All clients get identical timing behavior.
 
-The client code becomes trivial:
+The client code becomes trivial — send a command, get back success or a timeout error. All the complexity lives in the vibium binary where it can be tested once and shared everywhere.
 
-```javascript
-async click(options?: { timeout?: number }): Promise<void> {
-  await this.client.send('vibium:click', {
-    context: this.context,
-    selector: this.selector,
-    timeout: options?.timeout,
-  });
-}
-```
+## Code References
 
-All the complexity lives in the vibium binary where it can be tested once and shared everywhere.
+The actionability implementation lives in `clicker/internal/proxy/`:
+
+| File | What's there |
+|------|-------------|
+| `actionability.go` | Check definitions, `buildActionableScript()`, `actionabilityCheckBody()`, `WaitForActionable()`, `resolveWithActionability()` |
+| `handlers_interaction.go` | Exported action functions (`Click`, `Hover`, `Fill`, `TypeInto`, `SelectOption`, `DragTo`, `Tap`, `ScrollIntoView`, etc.) and their proxy command handlers |
+| `handlers_elements.go` | Element finding (`buildFindScript`, `semanticMatchesHelper`, `pickBest`, CSS and semantic find scripts) |
+| `helpers.go` | `ElementParams` struct, `ExtractElementParams()` |
+| `router.go` | `DefaultTimeout` (30s), command routing |
