@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -20,18 +17,12 @@ func newDblClickCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			selector := args[0]
 
-			if !oneshot {
-				result, err := daemonCall("browser_dblclick", map[string]interface{}{"selector": selector})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_dblclick", map[string]interface{}{"selector": selector})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: dblclick command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 }

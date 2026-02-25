@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -20,23 +17,17 @@ func newA11yTreeCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			everything, _ := cmd.Flags().GetBool("everything")
 
-			if !oneshot {
-				toolArgs := map[string]interface{}{}
-				if everything {
-					toolArgs["everything"] = true
-				}
-
-				result, err := daemonCall("browser_a11y_tree", toolArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
-				return
+			toolArgs := map[string]interface{}{}
+			if everything {
+				toolArgs["everything"] = true
 			}
 
-			fmt.Fprintf(os.Stderr, "Error: a11y-tree command requires daemon mode\n")
-			os.Exit(1)
+			result, err := daemonCall("browser_a11y_tree", toolArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
 		},
 	}
 	cmd.Flags().Bool("everything", false, "Show all nodes including generic containers")

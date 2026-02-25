@@ -27,18 +27,12 @@ func newMouseMoveCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_mouse_move", map[string]interface{}{"x": x, "y": y})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_mouse_move", map[string]interface{}{"x": x, "y": y})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: mouse-move command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 }

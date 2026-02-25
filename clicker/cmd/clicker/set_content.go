@@ -36,18 +36,12 @@ func newSetContentCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_set_content", map[string]interface{}{"html": html})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_set_content", map[string]interface{}{"html": html})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: set-content command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().Bool("stdin", false, "Read HTML from stdin")

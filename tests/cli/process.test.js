@@ -49,24 +49,37 @@ function sleep(ms) {
 }
 
 describe('CLI: Process Cleanup', () => {
-  test('go command cleans up Chrome on completion', async () => {
-    const pidsBefore = getClickerChromePids();
+  test('daemon stop cleans up Chrome', async () => {
+    // Ensure clean state: stop any existing daemon and wait
+    try { execSync(`${VIBIUM} daemon stop`, { encoding: 'utf-8', timeout: 10000 }); } catch {}
+    await sleep(2000);
 
+    // Start a fresh daemon and let it stabilize
+    execSync(`${VIBIUM} daemon start -d --headless`, { encoding: 'utf-8', timeout: 30000 });
+    await sleep(2000);
+
+    // Navigate to launch the browser
     execSync(`${VIBIUM} go https://example.com`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
 
+    const pidsBefore = getClickerChromePids();
+
+    // Stop daemon — should clean up Chrome
+    execSync(`${VIBIUM} daemon stop`, { encoding: 'utf-8', timeout: 10000 });
+
     // Give processes time to exit
     await sleep(2000);
 
     const pidsAfter = getClickerChromePids();
-    const newPids = getNewPids(pidsBefore, pidsAfter);
 
+    // All Chrome processes that existed before stop should be gone
+    const remainingOldPids = [...pidsBefore].filter(pid => pidsAfter.has(pid));
     assert.strictEqual(
-      newPids.length,
+      remainingOldPids.length,
       0,
-      `Chrome processes should be cleaned up. New PIDs remaining: ${newPids.join(', ')}`
+      `Chrome processes should be cleaned up after daemon stop. Remaining PIDs: ${remainingOldPids.join(', ')}`
     );
   });
 

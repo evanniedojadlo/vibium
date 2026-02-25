@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -14,7 +12,7 @@ func newWaitCmd() *cobra.Command {
 		Use:   "wait [selector]",
 		Short: "Wait for an element to reach a specified state",
 		Example: `  vibium wait "div.loaded"
-  # Wait for element to exist in DOM (daemon mode)
+  # Wait for element to exist in DOM
 
   vibium wait "div.loaded" --state visible
   # Wait for element to be visible
@@ -27,25 +25,18 @@ func newWaitCmd() *cobra.Command {
 			state, _ := cmd.Flags().GetString("state")
 			timeoutMs, _ := cmd.Flags().GetInt("timeout")
 
-			if !oneshot {
-				toolArgs := map[string]interface{}{
-					"selector": selector,
-					"state":    state,
-					"timeout":  float64(timeoutMs),
-				}
-
-				result, err := daemonCall("browser_wait", toolArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
-				return
+			toolArgs := map[string]interface{}{
+				"selector": selector,
+				"state":    state,
+				"timeout":  float64(timeoutMs),
 			}
 
-			// Oneshot mode — not very useful without navigation, but support it
-			fmt.Fprintf(os.Stderr, "Error: wait command requires daemon mode\n")
-			os.Exit(1)
+			result, err := daemonCall("browser_wait", toolArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
 		},
 	}
 	cmd.Flags().String("state", "attached", "State to wait for: attached, visible, hidden")

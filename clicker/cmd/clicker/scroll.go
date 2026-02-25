@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +9,7 @@ func newScrollCmd() *cobra.Command {
 		Use:   "scroll [direction]",
 		Short: "Scroll the page or an element",
 		Example: `  vibium scroll
-  # Scroll down by default (daemon mode)
+  # Scroll down by default
 
   vibium scroll up
   # Scroll up
@@ -31,26 +28,20 @@ func newScrollCmd() *cobra.Command {
 			amount, _ := cmd.Flags().GetInt("amount")
 			selector, _ := cmd.Flags().GetString("selector")
 
-			if !oneshot {
-				toolArgs := map[string]interface{}{
-					"direction": direction,
-					"amount":    float64(amount),
-				}
-				if selector != "" {
-					toolArgs["selector"] = selector
-				}
-
-				result, err := daemonCall("browser_scroll", toolArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
-				return
+			toolArgs := map[string]interface{}{
+				"direction": direction,
+				"amount":    float64(amount),
+			}
+			if selector != "" {
+				toolArgs["selector"] = selector
 			}
 
-			fmt.Fprintf(os.Stderr, "Error: scroll command requires daemon mode\n")
-			os.Exit(1)
+			result, err := daemonCall("browser_scroll", toolArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
 		},
 	}
 	cmd.Flags().Int("amount", 3, "Number of scroll increments")

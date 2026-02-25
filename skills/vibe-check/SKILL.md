@@ -329,16 +329,7 @@ Refs (`@e1`, `@e2`) are invalidated when the page changes. Always re-map after:
 |------|-------------|
 | `--headless` | Hide browser window |
 | `--json` | Output as JSON |
-| `--oneshot` | One-shot mode (no daemon) |
 | `-v, --verbose` | Debug logging |
-| `--wait-open N` | Wait N seconds after navigation |
-| `--wait-close N` | Keep browser open N seconds before closing |
-
-## Daemon vs Oneshot
-
-By default, commands connect to a **daemon** — a background process that keeps the browser alive between commands. This is fast and lets you chain commands against the same page.
-
-Use `--oneshot` (or `VIBIUM_ONESHOT=1`) to launch a fresh browser for each command, then tear it down. Useful for CI or one-off scripts.
 
 ## Tips
 

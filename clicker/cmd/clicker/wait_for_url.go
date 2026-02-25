@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -21,23 +18,17 @@ func newWaitForURLCmd() *cobra.Command {
 			pattern := args[0]
 			timeout, _ := cmd.Flags().GetInt("timeout")
 
-			if !oneshot {
-				toolArgs := map[string]interface{}{"pattern": pattern}
-				if cmd.Flags().Changed("timeout") {
-					toolArgs["timeout"] = float64(timeout)
-				}
-
-				result, err := daemonCall("browser_wait_for_url", toolArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
-				return
+			toolArgs := map[string]interface{}{"pattern": pattern}
+			if cmd.Flags().Changed("timeout") {
+				toolArgs["timeout"] = float64(timeout)
 			}
 
-			fmt.Fprintf(os.Stderr, "Error: wait-for-url command requires daemon mode\n")
-			os.Exit(1)
+			result, err := daemonCall("browser_wait_for_url", toolArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
 		},
 	}
 	cmd.Flags().Int("timeout", 30000, "Timeout in milliseconds")

@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -40,37 +37,31 @@ func newTraceCmd() *cobra.Command {
 			format, _ := cmd.Flags().GetString("format")
 			quality, _ := cmd.Flags().GetFloat64("quality")
 
-			if !oneshot {
-				callArgs := map[string]interface{}{}
-				if name != "" {
-					callArgs["name"] = name
-				}
-				if screenshots {
-					callArgs["screenshots"] = true
-				}
-				if snapshots {
-					callArgs["snapshots"] = true
-				}
-				if bidi {
-					callArgs["bidi"] = true
-				}
-				if format != "jpeg" {
-					callArgs["format"] = format
-				}
-				if quality != 0.8 {
-					callArgs["quality"] = quality
-				}
-				result, err := daemonCall("browser_trace_start", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			callArgs := map[string]interface{}{}
+			if name != "" {
+				callArgs["name"] = name
+			}
+			if screenshots {
+				callArgs["screenshots"] = true
+			}
+			if snapshots {
+				callArgs["snapshots"] = true
+			}
+			if bidi {
+				callArgs["bidi"] = true
+			}
+			if format != "jpeg" {
+				callArgs["format"] = format
+			}
+			if quality != 0.8 {
+				callArgs["quality"] = quality
+			}
+			result, err := daemonCall("browser_trace_start", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: trace command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	startCmd.Flags().Bool("screenshots", false, "Capture screenshots periodically")
@@ -92,22 +83,16 @@ func newTraceCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			output, _ := cmd.Flags().GetString("output")
 
-			if !oneshot {
-				callArgs := map[string]interface{}{}
-				if output != "" {
-					callArgs["path"] = output
-				}
-				result, err := daemonCall("browser_trace_stop", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			callArgs := map[string]interface{}{}
+			if output != "" {
+				callArgs["path"] = output
+			}
+			result, err := daemonCall("browser_trace_stop", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: trace command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	stopCmd.Flags().StringP("output", "o", "", "Output file path (default: trace.zip)")

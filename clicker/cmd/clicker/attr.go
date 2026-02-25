@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -21,21 +18,15 @@ func newAttrCmd() *cobra.Command {
 			selector := args[0]
 			attribute := args[1]
 
-			if !oneshot {
-				result, err := daemonCall("browser_get_attribute", map[string]interface{}{
-					"selector":  selector,
-					"attribute": attribute,
-				})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_get_attribute", map[string]interface{}{
+				"selector":  selector,
+				"attribute": attribute,
+			})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: attr command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 }

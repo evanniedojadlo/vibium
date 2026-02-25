@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -21,22 +18,16 @@ func newWaitForFnCmd() *cobra.Command {
 			expression := args[0]
 			timeout, _ := cmd.Flags().GetFloat64("timeout")
 
-			if !oneshot {
-				callArgs := map[string]interface{}{"expression": expression}
-				if timeout > 0 {
-					callArgs["timeout"] = timeout
-				}
-				result, err := daemonCall("browser_wait_for_fn", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			callArgs := map[string]interface{}{"expression": expression}
+			if timeout > 0 {
+				callArgs["timeout"] = timeout
+			}
+			result, err := daemonCall("browser_wait_for_fn", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: wait-for-fn command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().Float64("timeout", 30000, "Timeout in milliseconds")

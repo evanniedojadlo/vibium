@@ -261,20 +261,12 @@ vibium find https://example.com "a"
 vibium screenshot https://example.com -o shot.png
 ```
 
-Use `--oneshot` to launch a fresh browser for each command (the old behavior):
-
-```bash
-vibium go https://example.com --oneshot
-```
-
 ### Useful Flags
 
 ```bash
 --headless        # Hide the browser window (visible by default)
---oneshot          # Launch a fresh browser per command (no daemon)
 --json             # Output results as JSON
---wait-open 5     # Wait 5 seconds after navigation for page to load
---wait-close 3    # Keep browser open 3 seconds before closing (oneshot only)
+-v, --verbose     # Enable debug logging
 ```
 
 ### Daemon Management

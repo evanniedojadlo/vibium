@@ -33,21 +33,15 @@ func newUploadCmd() *cobra.Command {
 				absFiles[i] = abs
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_upload", map[string]interface{}{
-					"selector": selector,
-					"files":    absFiles,
-				})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_upload", map[string]interface{}{
+				"selector": selector,
+				"files":    absFiles,
+			})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: upload command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 }

@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -23,23 +20,17 @@ func newPressCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			key := args[0]
 
-			if !oneshot {
-				toolArgs := map[string]interface{}{"key": key}
-				if len(args) == 2 {
-					toolArgs["selector"] = args[1]
-				}
-
-				result, err := daemonCall("browser_press", toolArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
-				return
+			toolArgs := map[string]interface{}{"key": key}
+			if len(args) == 2 {
+				toolArgs["selector"] = args[1]
 			}
 
-			fmt.Fprintf(os.Stderr, "Error: press command requires daemon mode\n")
-			os.Exit(1)
+			result, err := daemonCall("browser_press", toolArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
 		},
 	}
 }

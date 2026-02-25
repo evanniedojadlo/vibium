@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -20,18 +17,12 @@ func newMouseDownCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			button, _ := cmd.Flags().GetInt("button")
 
-			if !oneshot {
-				result, err := daemonCall("browser_mouse_down", map[string]interface{}{"button": float64(button)})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_mouse_down", map[string]interface{}{"button": float64(button)})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: mouse-down command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().Int("button", 0, "Mouse button (0=left, 1=middle, 2=right)")

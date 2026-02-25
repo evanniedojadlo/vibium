@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -21,21 +18,15 @@ func newDragCmd() *cobra.Command {
 			source := args[0]
 			target := args[1]
 
-			if !oneshot {
-				result, err := daemonCall("browser_drag", map[string]interface{}{
-					"source": source,
-					"target": target,
-				})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_drag", map[string]interface{}{
+				"source": source,
+				"target": target,
+			})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: drag command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 }

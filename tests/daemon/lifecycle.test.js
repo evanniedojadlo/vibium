@@ -1,6 +1,6 @@
 /**
  * Daemon Lifecycle Tests
- * Tests daemon start/stop, navigate+find across commands, auto-start, --oneshot bypass
+ * Tests daemon start/stop, navigate+find across commands, auto-start
  */
 
 const { test, describe, before, after } = require('node:test');
@@ -127,32 +127,3 @@ describe('Daemon: Auto-start', () => {
   });
 });
 
-describe('Daemon: --oneshot bypass', () => {
-  before(() => {
-    stopDaemon();
-  });
-
-  after(() => {
-    stopDaemon();
-  });
-
-  test('--oneshot flag uses one-shot mode', () => {
-    const result = clicker('go https://example.com --oneshot');
-    // One-shot mode prints verbose output (Launching browser..., etc.)
-    assert.match(result, /launching|navigat/i, 'Should use one-shot mode with verbose output');
-
-    // Daemon should NOT have been started
-    const status = clicker('daemon status');
-    assert.match(status, /not running/i, 'Daemon should not be running after --oneshot');
-  });
-
-  test('VIBIUM_ONESHOT=1 env var forces oneshot mode', () => {
-    const result = clicker('go https://example.com', {
-      env: { VIBIUM_ONESHOT: '1' },
-    });
-    assert.match(result, /launching|navigat/i, 'Should use one-shot mode');
-
-    const status = clicker('daemon status');
-    assert.match(status, /not running/i, 'Daemon should not be running');
-  });
-});

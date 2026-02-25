@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -19,22 +16,16 @@ func newMapCmd() *cobra.Command {
   # Only map elements inside the <nav> element`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !oneshot {
-				toolArgs := map[string]interface{}{}
-				if sel, _ := cmd.Flags().GetString("selector"); sel != "" {
-					toolArgs["selector"] = sel
-				}
-				result, err := daemonCall("browser_map", toolArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			toolArgs := map[string]interface{}{}
+			if sel, _ := cmd.Flags().GetString("selector"); sel != "" {
+				toolArgs["selector"] = sel
+			}
+			result, err := daemonCall("browser_map", toolArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: map command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 

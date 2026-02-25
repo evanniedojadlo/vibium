@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -27,22 +24,16 @@ func newDialogCmd() *cobra.Command {
   # Accept a prompt dialog with text`,
 		Args: cobra.RangeArgs(0, 1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if !oneshot {
-				callArgs := map[string]interface{}{}
-				if len(args) == 1 {
-					callArgs["text"] = args[0]
-				}
-				result, err := daemonCall("browser_dialog_accept", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			callArgs := map[string]interface{}{}
+			if len(args) == 1 {
+				callArgs["text"] = args[0]
+			}
+			result, err := daemonCall("browser_dialog_accept", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: dialog command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 
@@ -53,18 +44,12 @@ func newDialogCmd() *cobra.Command {
   # Dismiss/cancel a dialog`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !oneshot {
-				result, err := daemonCall("browser_dialog_dismiss", map[string]interface{}{})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_dialog_dismiss", map[string]interface{}{})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: dialog command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 

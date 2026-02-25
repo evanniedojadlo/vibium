@@ -21,27 +21,33 @@ describe('CLI: Navigation', () => {
   });
 
   test('screenshot command creates valid PNG', () => {
-    const outFile = path.join(os.tmpdir(), `vibium-test-${Date.now()}.png`);
+    const filename = `vibium-test-${Date.now()}.png`;
+    let savedPath;
     try {
-      execSync(`${VIBIUM} screenshot https://example.com -o ${outFile}`, {
+      const result = execSync(`${VIBIUM} screenshot https://example.com -o ${filename}`, {
         encoding: 'utf-8',
         timeout: 30000,
       });
 
-      assert.ok(fs.existsSync(outFile), 'Screenshot file should exist');
+      // Daemon saves to its screenshot directory — extract path from output
+      const match = result.match(/saved to (.+\.png)/i);
+      assert.ok(match, 'Should print saved path');
+      savedPath = match[1].trim();
 
-      const stats = fs.statSync(outFile);
+      assert.ok(fs.existsSync(savedPath), 'Screenshot file should exist');
+
+      const stats = fs.statSync(savedPath);
       assert.ok(stats.size > 1000, 'Screenshot should be a reasonable size');
 
       // Check PNG magic bytes
-      const buffer = fs.readFileSync(outFile);
+      const buffer = fs.readFileSync(savedPath);
       assert.strictEqual(buffer[0], 0x89, 'Should be valid PNG (byte 0)');
       assert.strictEqual(buffer[1], 0x50, 'Should be valid PNG (byte 1)');
       assert.strictEqual(buffer[2], 0x4E, 'Should be valid PNG (byte 2)');
       assert.strictEqual(buffer[3], 0x47, 'Should be valid PNG (byte 3)');
     } finally {
-      if (fs.existsSync(outFile)) {
-        fs.unlinkSync(outFile);
+      if (savedPath && fs.existsSync(savedPath)) {
+        fs.unlinkSync(savedPath);
       }
     }
   });

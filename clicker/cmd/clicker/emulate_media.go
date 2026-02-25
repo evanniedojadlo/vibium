@@ -49,18 +49,12 @@ func newEmulateMediaCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_emulate_media", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_emulate_media", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: emulate-media command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().String("color-scheme", "", "Color scheme: light, dark, no-preference")

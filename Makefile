@@ -114,12 +114,16 @@ test: build install-browser test-cli test-js test-mcp test-python
 
 # Run CLI tests (tests the vibium binary directly)
 # Process tests run separately with --test-concurrency=1 to avoid interference
-# VIBIUM_ONESHOT=1 ensures tests use one-shot mode (no daemon)
 test-cli: build-go
 	@echo "━━━ CLI Tests ━━━"
-	VIBIUM_ONESHOT=1 node --test tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js tests/cli/page-reading.test.js tests/cli/input-tools.test.js tests/cli/tabs.test.js tests/cli/find-refs.test.js
+	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon stop 2>/dev/null || true
+	@sleep 1
+	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon start -d --headless
+	@sleep 1
+	node --test --test-concurrency=1 tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js tests/cli/page-reading.test.js tests/cli/input-tools.test.js tests/cli/tabs.test.js tests/cli/find-refs.test.js
+	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon stop 2>/dev/null || true
 	@echo "━━━ CLI Process Tests (sequential) ━━━"
-	VIBIUM_ONESHOT=1 node --test --test-concurrency=1 tests/cli/process.test.js
+	node --test --test-concurrency=1 tests/cli/process.test.js
 
 # Run JS library tests (sequential to avoid resource exhaustion)
 test-js: build

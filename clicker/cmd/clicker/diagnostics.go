@@ -147,7 +147,7 @@ func newBiDiTestCmd() *cobra.Command {
 				fmt.Fprintf(os.Stderr, "Error launching browser: %v\n", err)
 				os.Exit(1)
 			}
-			defer waitAndClose(launchResult)
+			defer launchResult.Close()
 			fmt.Printf("       Chromedriver started on port %d\n", launchResult.Port)
 			fmt.Printf("       Session ID: %s\n", launchResult.SessionID)
 

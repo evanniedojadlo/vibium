@@ -1,6 +1,6 @@
 /**
  * CLI Tests: Page Reading Tools
- * Tests text, html, find-all commands in oneshot mode
+ * Tests text, html, find-all commands
  */
 
 const { test, describe } = require('node:test');

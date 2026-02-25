@@ -22,18 +22,12 @@ func newRestoreStorageCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_restore_storage", map[string]interface{}{"path": path})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_restore_storage", map[string]interface{}{"path": path})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: restore-storage command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 }

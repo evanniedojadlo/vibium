@@ -31,18 +31,12 @@ func newDownloadCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_download_set_dir", map[string]interface{}{"path": dir})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_download_set_dir", map[string]interface{}{"path": dir})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: download command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 

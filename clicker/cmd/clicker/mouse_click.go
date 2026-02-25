@@ -51,18 +51,12 @@ func newMouseClickCmd() *cobra.Command {
 				params["y"] = y
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_mouse_click", params)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_mouse_click", params)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: mouse-click command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().Int("button", 0, "Mouse button (0=left, 1=middle, 2=right)")

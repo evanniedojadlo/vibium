@@ -32,25 +32,19 @@ func newSetGeolocationCmd() *cobra.Command {
 
 			accuracy, _ := cmd.Flags().GetFloat64("accuracy")
 
-			if !oneshot {
-				callArgs := map[string]interface{}{
-					"latitude":  lat,
-					"longitude": lng,
-				}
-				if accuracy > 0 {
-					callArgs["accuracy"] = accuracy
-				}
-				result, err := daemonCall("browser_set_geolocation", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			callArgs := map[string]interface{}{
+				"latitude":  lat,
+				"longitude": lng,
+			}
+			if accuracy > 0 {
+				callArgs["accuracy"] = accuracy
+			}
+			result, err := daemonCall("browser_set_geolocation", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: set-geolocation command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().Float64("accuracy", 0, "Accuracy in meters (default: 1)")

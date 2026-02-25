@@ -5,10 +5,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/vibium/clicker/internal/bidi"
-	"github.com/vibium/clicker/internal/browser"
-	"github.com/vibium/clicker/internal/mcp"
-	"github.com/vibium/clicker/internal/process"
 )
 
 func newFindCmd() *cobra.Command {
@@ -61,108 +57,50 @@ func newFindCmd() *cobra.Command {
 				}
 			}
 
-			// Daemon mode
-			if !oneshot {
-				toolArgs := map[string]interface{}{}
+			toolArgs := map[string]interface{}{}
 
-				if hasSemantic {
-					// Semantic find — no positional selector required
-					// But allow optional URL as first positional arg
-					if len(args) >= 1 {
-						// Check if first arg looks like a URL
-						if isURL(args[0]) {
-							_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
-							if err != nil {
-								printError(err)
-								return
-							}
-						}
-					}
-					for key, val := range semanticFlags {
-						if val != "" {
-							toolArgs[key] = val
-						}
-					}
-				} else {
-					// CSS selector find (original behavior)
-					if len(args) == 0 {
-						fmt.Fprintf(os.Stderr, "Error: requires a CSS selector or semantic flag (--text, --label, etc.)\n")
-						os.Exit(1)
-					}
-					if len(args) == 2 {
+			if hasSemantic {
+				// Semantic find — no positional selector required
+				// But allow optional URL as first positional arg
+				if len(args) >= 1 {
+					// Check if first arg looks like a URL
+					if isURL(args[0]) {
 						_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
 						if err != nil {
 							printError(err)
 							return
 						}
-						toolArgs["selector"] = args[1]
-					} else {
-						toolArgs["selector"] = args[0]
 					}
 				}
-
-				result, err := daemonCall("browser_find", toolArgs)
-				if err != nil {
-					printError(err)
-					return
+				for key, val := range semanticFlags {
+					if val != "" {
+						toolArgs[key] = val
+					}
 				}
-				printResult(result)
+			} else {
+				// CSS selector find (original behavior)
+				if len(args) == 0 {
+					fmt.Fprintf(os.Stderr, "Error: requires a CSS selector or semantic flag (--text, --label, etc.)\n")
+					os.Exit(1)
+				}
+				if len(args) == 2 {
+					_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
+					if err != nil {
+						printError(err)
+						return
+					}
+					toolArgs["selector"] = args[1]
+				} else {
+					toolArgs["selector"] = args[0]
+				}
+			}
+
+			result, err := daemonCall("browser_find", toolArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			// Oneshot mode (original behavior) — requires URL + selector
-			if len(args) < 2 {
-				fmt.Fprintf(os.Stderr, "Error: requires [url] [selector] in oneshot mode\n")
-				os.Exit(1)
-			}
-			url := args[0]
-			selector := args[1]
-			process.WithCleanup(func() {
-				fmt.Println("Launching browser...")
-				launchResult, err := browser.Launch(browser.LaunchOptions{Headless: headless})
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error launching browser: %v\n", err)
-					os.Exit(1)
-				}
-				defer waitAndClose(launchResult)
-
-				fmt.Println("Connecting to BiDi...")
-				conn, err := bidi.Connect(launchResult.WebSocketURL)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error connecting: %v\n", err)
-					os.Exit(1)
-				}
-				defer conn.Close()
-
-				client := bidi.NewClient(conn)
-
-				fmt.Printf("Navigating to %s...\n", url)
-				_, err = client.Navigate("", url)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error navigating: %v\n", err)
-					os.Exit(1)
-				}
-
-				doWaitOpen()
-
-				fmt.Printf("Finding element: %s\n", selector)
-				labelScript := `(selector) => {
-					` + mcp.GetLabelJS() + `
-					const el = document.querySelector(selector);
-					if (!el) return null;
-					return getLabel(el);
-				}`
-				labelResult, err := client.CallFunction("", labelScript, []interface{}{selector})
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error finding element: %v\n", err)
-					os.Exit(1)
-				}
-				if labelResult == nil {
-					fmt.Fprintf(os.Stderr, "Error: element not found: %s\n", selector)
-					os.Exit(1)
-				}
-				fmt.Printf("@e1 %v\n", labelResult)
-			})
+			printResult(result)
 		},
 	}
 

@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -25,18 +22,12 @@ func newDiffCmd() *cobra.Command {
   vibium diff map      # see what changed`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !oneshot {
-				result, err := daemonCall("browser_diff_map", map[string]interface{}{})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_diff_map", map[string]interface{}{})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: diff command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 

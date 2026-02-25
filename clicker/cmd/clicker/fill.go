@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -21,21 +18,15 @@ func newFillCmd() *cobra.Command {
 			selector := args[0]
 			text := args[1]
 
-			if !oneshot {
-				result, err := daemonCall("browser_fill", map[string]interface{}{
-					"selector": selector,
-					"text":     text,
-				})
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_fill", map[string]interface{}{
+				"selector": selector,
+				"text":     text,
+			})
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: fill command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 }

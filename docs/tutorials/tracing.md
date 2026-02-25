@@ -200,7 +200,7 @@ vibium trace stop -o trace.zip
 # View it at https://trace.vibium.dev
 ```
 
-CLI tracing requires the daemon to be running (the default mode). It is not available with `--oneshot`.
+CLI tracing uses the daemon, which is automatically started when needed.
 
 ---
 

@@ -70,18 +70,12 @@ func newSetWindowCmd() *cobra.Command {
 				callArgs["state"] = state
 			}
 
-			if !oneshot {
-				result, err := daemonCall("browser_set_window", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			result, err := daemonCall("browser_set_window", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: set-window command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().String("state", "", "Window state: normal, maximized, minimized, fullscreen")

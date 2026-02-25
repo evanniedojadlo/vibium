@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -19,27 +17,21 @@ func newTabSwitchCmd() *cobra.Command {
   # Switch to tab containing "google.com" in URL`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if !oneshot {
-				toolArgs := map[string]interface{}{}
+			toolArgs := map[string]interface{}{}
 
-				// Try to parse as integer index
-				if idx, err := strconv.Atoi(args[0]); err == nil {
-					toolArgs["index"] = float64(idx)
-				} else {
-					toolArgs["url"] = args[0]
-				}
-
-				result, err := daemonCall("browser_switch_tab", toolArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
-				return
+			// Try to parse as integer index
+			if idx, err := strconv.Atoi(args[0]); err == nil {
+				toolArgs["index"] = float64(idx)
+			} else {
+				toolArgs["url"] = args[0]
 			}
 
-			fmt.Fprintf(os.Stderr, "Error: tab-switch command requires daemon mode\n")
-			os.Exit(1)
+			result, err := daemonCall("browser_switch_tab", toolArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
 		},
 	}
 }

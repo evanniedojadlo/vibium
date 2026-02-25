@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -20,27 +17,21 @@ func newPDFCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			output, _ := cmd.Flags().GetString("output")
 
-			if !oneshot {
-				// Navigate first if URL provided
-				if len(args) == 1 {
-					_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
-					if err != nil {
-						printError(err)
-						return
-					}
-				}
-
-				result, err := daemonCall("browser_pdf", map[string]interface{}{"filename": output})
+			// Navigate first if URL provided
+			if len(args) == 1 {
+				_, err := daemonCall("browser_navigate", map[string]interface{}{"url": args[0]})
 				if err != nil {
 					printError(err)
 					return
 				}
-				printResult(result)
-				return
 			}
 
-			fmt.Fprintf(os.Stderr, "Error: pdf command requires daemon mode\n")
-			os.Exit(1)
+			result, err := daemonCall("browser_pdf", map[string]interface{}{"filename": output})
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
 		},
 	}
 	cmd.Flags().StringP("output", "o", "page.pdf", "Output file path")

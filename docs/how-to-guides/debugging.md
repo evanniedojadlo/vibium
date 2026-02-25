@@ -98,7 +98,7 @@ If tests hang indefinitely:
 
 1. Run with verbose: `./clicker/bin/vibium go https://example.com -v`
 2. Check for zombie processes: `make double-tap`
-3. Try with `--wait-close 5` to keep browser open and inspect state
+3. Check daemon status: `./clicker/bin/vibium daemon status`
 
 ## Inspecting BiDi Traffic
 

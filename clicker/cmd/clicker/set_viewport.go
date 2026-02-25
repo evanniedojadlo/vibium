@@ -32,25 +32,19 @@ func newSetViewportCmd() *cobra.Command {
 
 			dpr, _ := cmd.Flags().GetFloat64("dpr")
 
-			if !oneshot {
-				callArgs := map[string]interface{}{
-					"width":  float64(width),
-					"height": float64(height),
-				}
-				if dpr > 0 {
-					callArgs["devicePixelRatio"] = dpr
-				}
-				result, err := daemonCall("browser_set_viewport", callArgs)
-				if err != nil {
-					printError(err)
-					return
-				}
-				printResult(result)
+			callArgs := map[string]interface{}{
+				"width":  float64(width),
+				"height": float64(height),
+			}
+			if dpr > 0 {
+				callArgs["devicePixelRatio"] = dpr
+			}
+			result, err := daemonCall("browser_set_viewport", callArgs)
+			if err != nil {
+				printError(err)
 				return
 			}
-
-			fmt.Fprintf(os.Stderr, "Error: set-viewport command requires daemon mode\n")
-			os.Exit(1)
+			printResult(result)
 		},
 	}
 	cmd.Flags().Float64("dpr", 0, "Device pixel ratio (e.g., 2 for Retina)")
