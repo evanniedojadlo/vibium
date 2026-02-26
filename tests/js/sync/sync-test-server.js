@@ -136,6 +136,16 @@ const WS_PAGE_HTML = `<html><head><title>WebSocket</title></head><body>
   </script>
 </body></html>`;
 
+const SELECTORS_HTML = `<html><head><title>Selectors</title></head><body>
+  <h1>Selector Strategies Test</h1>
+  <input type="text" id="search" placeholder="Search..." data-testid="search-input" title="Search field" />
+  <label for="username">Username</label>
+  <input type="text" id="username" name="username" />
+  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Logo image" />
+  <button data-testid="submit-btn">Submit</button>
+  <div class="container"><span class="inner-text">Hello from span</span></div>
+</body></html>`;
+
 const routes = {
   '/': HOME_HTML,
   '/subpage': SUBPAGE_HTML,
@@ -151,6 +161,7 @@ const routes = {
   '/page2': PAGE2_HTML,
   '/download': DOWNLOAD_HTML,
   '/ws-page': WS_PAGE_HTML,
+  '/selectors': SELECTORS_HTML,
 };
 
 const server = http.createServer((req, res) => {

@@ -120,6 +120,16 @@ const ADD_REMOVE_HTML = `<html><head><title>The Internet - Add/Remove</title></h
   </script>
 </body></html>`;
 
+const SELECTORS_HTML = `<html><head><title>Selectors</title></head><body>
+  <h1>Selector Strategies Test</h1>
+  <input type="text" id="search" placeholder="Search..." data-testid="search-input" title="Search field" />
+  <label for="username">Username</label>
+  <input type="text" id="username" name="username" />
+  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Logo image" />
+  <button data-testid="submit-btn">Submit</button>
+  <div class="container"><span class="inner-text">Hello from span</span></div>
+</body></html>`;
+
 const routes = {
   '/': HOME_HTML,
   '/login': LOGIN_HTML,
@@ -130,6 +140,7 @@ const routes = {
   '/inputs': INPUTS_HTML,
   '/dynamic_loading/1': DYNAMIC_LOADING_HTML,
   '/add_remove_elements/': ADD_REMOVE_HTML,
+  '/selectors': SELECTORS_HTML,
 };
 
 function handleRequest(req, res) {

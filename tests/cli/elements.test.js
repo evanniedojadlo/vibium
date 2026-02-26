@@ -38,6 +38,15 @@ describe('CLI: Elements', () => {
     assert.match(result, /(More information|Learn more)/i, 'Should show link text');
   });
 
+  test('find command supports --xpath locator', () => {
+    const result = execSync(`${VIBIUM} find ${baseURL}/inputs --xpath "//input"`, {
+      encoding: 'utf-8',
+      timeout: 30000,
+    });
+    assert.match(result, /@e\d+/, 'Should return an element ref');
+    assert.match(result, /\[input/, 'Should show [input] tag label');
+  });
+
   test('click command navigates via link', () => {
     const result = execSync(`${VIBIUM} click https://example.com "a"`, {
       encoding: 'utf-8',

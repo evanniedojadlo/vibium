@@ -187,6 +187,16 @@ TEXT_PAGE = "hello world"
 JSON_DATA = {"name": "vibium", "version": 1}
 API_DATA = {"message": "real data", "count": 42}
 
+SELECTORS_HTML = """<html><head><title>Selectors</title></head><body>
+  <h1>Selector Strategies Test</h1>
+  <input type="text" id="search" placeholder="Search..." data-testid="search-input" title="Search field" />
+  <label for="username">Username</label>
+  <input type="text" id="username" name="username" />
+  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Logo image" />
+  <button data-testid="submit-btn">Submit</button>
+  <div class="container"><span class="inner-text">Hello from span</span></div>
+</body></html>"""
+
 HTML_ROUTES = {
     "/": HOME_HTML,
     "/subpage": SUBPAGE_HTML,
@@ -207,6 +217,7 @@ HTML_ROUTES = {
     "/nav-test": NAV_TEST_HTML,
     "/page2": PAGE2_HTML,
     "/a11y": A11Y_HTML,
+    "/selectors": SELECTORS_HTML,
 }
 
 
