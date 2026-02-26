@@ -110,7 +110,21 @@ serve: build-go
 	./clicker/bin/vibium$(EXE) serve
 
 # Build everything and run all tests: make test
-test: build install-browser test-cli test-js test-mcp test-python test-cleanup
+test: build install-browser
+	@START_TIME=$$(date +%s); \
+	$(MAKE) test-cli test-js test-mcp test-python test-cleanup; \
+	EXIT=$$?; \
+	END_TIME=$$(date +%s); \
+	ELAPSED=$$((END_TIME - START_TIME)); \
+	MINS=$$((ELAPSED / 60)); \
+	SECS=$$((ELAPSED % 60)); \
+	echo ""; \
+	if [ $$EXIT -eq 0 ]; then \
+		echo "━━━ All tests passed in $${MINS}m$${SECS}s ━━━"; \
+	else \
+		echo "━━━ Tests failed after $${MINS}m$${SECS}s ━━━"; \
+		exit $$EXIT; \
+	fi
 
 # Kill any Chrome/chromedriver processes left over from tests
 test-cleanup:

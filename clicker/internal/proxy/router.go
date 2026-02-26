@@ -124,24 +124,30 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 	// Start routing messages from browser to client
 	go r.routeBrowserToClient(session)
 
-	// Subscribe to events for onPage/onPopup, network interception, dialog handling, and downloads.
-	// Events are forwarded to the JS client by routeBrowserToClient.
-	go func() {
-		r.sendInternalCommand(session, "session.subscribe", map[string]interface{}{
-			"events": []string{
-				"browsingContext.contextCreated",
-				"network.beforeRequestSent",
-				"network.responseCompleted",
-				"browsingContext.userPromptOpened",
-				"log.entryAdded",
-				"browsingContext.downloadWillBegin",
-				"browsingContext.downloadEnd",
-				"browsingContext.load",
-				"browsingContext.fragmentNavigated",
-			},
-		})
-		r.setupDownloads(session)
-	}()
+	// Subscribe to events synchronously — must complete before client commands
+	// so Chrome delivers events (contextCreated, beforeRequestSent, etc.) from
+	// the very first navigation. Without this, a fast client could send commands
+	// before Chrome knows to forward events, causing missed events or hangs.
+	_, err = r.sendInternalCommand(session, "session.subscribe", map[string]interface{}{
+		"events": []string{
+			"browsingContext.contextCreated",
+			"network.beforeRequestSent",
+			"network.responseCompleted",
+			"browsingContext.userPromptOpened",
+			"log.entryAdded",
+			"browsingContext.downloadWillBegin",
+			"browsingContext.downloadEnd",
+			"browsingContext.load",
+			"browsingContext.fragmentNavigated",
+		},
+	})
+	if err != nil {
+		fmt.Printf("[router] Failed to subscribe to events for client %d: %v\n", client.ID, err)
+	}
+
+	// Download setup is non-critical — run in background so it doesn't
+	// block client commands if Chrome is slow to respond.
+	go r.setupDownloads(session)
 }
 
 // vibiumHandler is the signature for vibium: extension command handlers.
@@ -694,8 +700,11 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 
 			if !closed {
 				fmt.Printf("[router] Browser connection closed for client %d: %v\n", session.Client.ID, err)
-				// Browser died, close the client
-				session.Client.Close()
+				// Browser died — close the full session so any pending
+				// sendInternalCommand calls fail immediately with "session closed"
+				// instead of waiting for the 60-second timeout.
+				r.sessions.Delete(session.Client.ID)
+				r.closeSession(session)
 			}
 			return
 		}

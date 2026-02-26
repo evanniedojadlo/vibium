@@ -22,6 +22,15 @@ export class BiDiClient {
         this.handleEvent(msg);
       }
     });
+
+    // Reject pending commands immediately when connection drops unexpectedly,
+    // instead of leaving them hanging until caller-side timeouts fire.
+    connection.onClose(() => {
+      for (const [id, pending] of this.pendingCommands) {
+        pending.reject(new Error('Connection closed unexpectedly'));
+        this.pendingCommands.delete(id);
+      }
+    });
   }
 
   static async connect(url: string): Promise<BiDiClient> {

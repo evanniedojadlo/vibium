@@ -76,7 +76,10 @@ class Browser:
 
     async def close(self) -> None:
         """Close the browser and clean up."""
-        await self._client.send("vibium:browser.close", {})
+        try:
+            await self._client.send("vibium:browser.close", {})
+        except Exception:
+            pass  # Browser or connection may already be closed
         await self._client.close()
         if self._process:
             await self._process.stop()

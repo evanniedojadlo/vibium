@@ -95,7 +95,12 @@ export class BrowserSync {
 export const browser = {
   launch(options: LaunchOptions = {}): BrowserSync {
     const bridge = SyncBridge.create();
-    bridge.call('browser.launch', [options]);
+    try {
+      bridge.call('browser.launch', [options]);
+    } catch (e) {
+      bridge.terminate();
+      throw e;
+    }
     return new BrowserSync(bridge);
   },
 };

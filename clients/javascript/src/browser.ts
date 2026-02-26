@@ -93,7 +93,11 @@ export class Browser {
 
   /** Close the browser and clean up. */
   async close(): Promise<void> {
-    await this.client.send('vibium:browser.close', {});
+    try {
+      await this.client.send('vibium:browser.close', {});
+    } catch {
+      // Browser or connection may already be closed
+    }
     await this.client.close();
     if (this.process) {
       await this.process.stop();
@@ -115,7 +119,13 @@ export const browser = {
     debug('vibium started', { port: process.port });
 
     // Connect to the proxy
-    const client = await BiDiClient.connect(`ws://localhost:${process.port}`);
+    let client: BiDiClient;
+    try {
+      client = await BiDiClient.connect(`ws://localhost:${process.port}`);
+    } catch (e) {
+      await process.stop();
+      throw e;
+    }
     info('browser launched', { port: process.port });
 
     return new Browser(client, process);

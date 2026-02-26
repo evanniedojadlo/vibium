@@ -7,6 +7,7 @@ export type MessageHandler = (msg: BiDiMessage) => void;
 export class BiDiConnection {
   private ws: WebSocket;
   private messageHandler: MessageHandler | null = null;
+  private closeHandler: (() => void) | null = null;
   private closePromise: Promise<void>;
   private _closed: boolean = false;
 
@@ -16,6 +17,7 @@ export class BiDiConnection {
     this.closePromise = new Promise((resolve) => {
       ws.on('close', () => {
         this._closed = true;
+        if (this.closeHandler) this.closeHandler();
         resolve();
       });
     });
@@ -52,6 +54,11 @@ export class BiDiConnection {
 
   onMessage(handler: MessageHandler): void {
     this.messageHandler = handler;
+  }
+
+  /** Register a handler called when the connection closes unexpectedly. */
+  onClose(handler: () => void): void {
+    this.closeHandler = handler;
   }
 
   send(message: string): void {
