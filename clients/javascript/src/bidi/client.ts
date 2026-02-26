@@ -1,41 +1,60 @@
-import { BiDiConnection } from './connection';
-import { BiDiCommand, BiDiResponse, BiDiEvent, isResponse, isEvent } from './types';
+import WebSocket from 'ws';
+import { BiDiCommand, BiDiResponse, BiDiEvent, BiDiMessage, isResponse, isEvent } from './types';
+import { ConnectionError } from '../utils/errors';
 
 export type EventHandler = (event: BiDiEvent) => void;
 
 export class BiDiClient {
-  private connection: BiDiConnection;
+  private ws: WebSocket;
   private nextId: number = 1;
   private pendingCommands: Map<number, {
     resolve: (result: unknown) => void;
     reject: (error: Error) => void;
   }> = new Map();
   private eventHandlers: EventHandler[] = [];
+  private _closed: boolean = false;
+  private closePromise: Promise<void>;
 
-  private constructor(connection: BiDiConnection) {
-    this.connection = connection;
+  private constructor(ws: WebSocket) {
+    this.ws = ws;
 
-    connection.onMessage((msg) => {
-      if (isResponse(msg)) {
-        this.handleResponse(msg);
-      } else if (isEvent(msg)) {
-        this.handleEvent(msg);
-      }
+    this.closePromise = new Promise((resolve) => {
+      ws.on('close', () => {
+        this._closed = true;
+        for (const [id, pending] of this.pendingCommands) {
+          pending.reject(new Error('Connection closed unexpectedly'));
+          this.pendingCommands.delete(id);
+        }
+        resolve();
+      });
     });
 
-    // Reject pending commands immediately when connection drops unexpectedly,
-    // instead of leaving them hanging until caller-side timeouts fire.
-    connection.onClose(() => {
-      for (const [id, pending] of this.pendingCommands) {
-        pending.reject(new Error('Connection closed unexpectedly'));
-        this.pendingCommands.delete(id);
+    ws.on('message', (data: WebSocket.Data) => {
+      try {
+        const msg = JSON.parse(data.toString()) as BiDiMessage;
+        if (isResponse(msg)) {
+          this.handleResponse(msg);
+        } else if (isEvent(msg)) {
+          this.handleEvent(msg);
+        }
+      } catch (err) {
+        console.error('Failed to parse BiDi message:', err);
       }
     });
   }
 
-  static async connect(url: string): Promise<BiDiClient> {
-    const connection = await BiDiConnection.connect(url);
-    return new BiDiClient(connection);
+  static connect(url: string): Promise<BiDiClient> {
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(url);
+
+      ws.on('open', () => {
+        resolve(new BiDiClient(ws));
+      });
+
+      ws.on('error', (err) => {
+        reject(new ConnectionError(url, err as Error));
+      });
+    });
   }
 
   private handleResponse(response: BiDiResponse): void {
@@ -79,7 +98,10 @@ export class BiDiClient {
       });
 
       try {
-        this.connection.send(JSON.stringify(command));
+        if (this._closed) {
+          throw new Error('Connection closed');
+        }
+        this.ws.send(JSON.stringify(command));
       } catch (err) {
         this.pendingCommands.delete(id);
         reject(err);
@@ -88,12 +110,16 @@ export class BiDiClient {
   }
 
   async close(): Promise<void> {
+    if (this._closed) {
+      return;
+    }
     // Reject all pending commands
     for (const [id, pending] of this.pendingCommands) {
       pending.reject(new Error('Connection closed'));
       this.pendingCommands.delete(id);
     }
 
-    await this.connection.close();
+    this.ws.close();
+    await this.closePromise;
   }
 }

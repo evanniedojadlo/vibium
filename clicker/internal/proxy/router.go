@@ -705,6 +705,9 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 				// instead of waiting for the 60-second timeout.
 				r.sessions.Delete(session.Client.ID)
 				r.closeSession(session)
+				// Close the client WebSocket so JS/Python clients see the
+				// disconnect and can reject their pending commands.
+				session.Client.Close()
 			}
 			return
 		}

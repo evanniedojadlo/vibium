@@ -4,6 +4,7 @@
  * page.capture.request/response, page.onDialog, dialog.accept/dismiss.
  *
  * Uses a local HTTP server — no external network dependencies.
+ * Each test uses bro.newPage() for route/dialog handler isolation.
  */
 
 const { test, describe, before, after } = require('node:test');
@@ -16,6 +17,7 @@ const { browser } = require('../../../clients/javascript/dist');
 
 let server;
 let baseURL;
+let bro;
 
 before(async () => {
   server = http.createServer((req, res) => {
@@ -53,9 +55,12 @@ before(async () => {
       resolve();
     });
   });
+
+  bro = await browser.launch({ headless: true });
 });
 
-after(() => {
+after(async () => {
+  await bro.close();
   if (server) server.close();
 });
 
@@ -63,126 +68,101 @@ after(() => {
 
 describe('Network Interception: page.route', () => {
   test('route.abort() blocks a request', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
+    const vibe = await bro.newPage();
 
-      // Block all .png requests
-      await vibe.route('**/*.png', (route) => {
-        route.abort();
-      });
+    // Block all .png requests
+    await vibe.route('**/*.png', (route) => {
+      route.abort();
+    });
 
-      await vibe.go(baseURL);
+    await vibe.go(baseURL);
 
-      // Verify the page loaded (route didn't break navigation)
-      const title = await vibe.title();
-      assert.strictEqual(title, 'Test Page');
-    } finally {
-      await bro.close();
-    }
+    // Verify the page loaded (route didn't break navigation)
+    const title = await vibe.title();
+    assert.strictEqual(title, 'Test Page');
   });
 
   test('route.fulfill() returns a mock response', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      await vibe.route('**/json', (route) => {
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({ mocked: true }),
-          contentType: 'application/json',
-        });
+    await vibe.route('**/json', (route) => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({ mocked: true }),
+        contentType: 'application/json',
       });
+    });
 
-      const result = await vibe.evaluate(`
-        fetch('${baseURL}/json')
-          .then(r => r.json())
-      `);
+    const result = await vibe.evaluate(`
+      fetch('${baseURL}/json')
+        .then(r => r.json())
+    `);
 
-      assert.deepStrictEqual(result, { mocked: true });
-    } finally {
-      await bro.close();
-    }
+    assert.deepStrictEqual(result, { mocked: true });
   });
 
   test('route.fulfill() with custom headers', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      await vibe.route('**/text', (route) => {
-        route.fulfill({
-          status: 201,
-          headers: { 'X-Custom': 'test-value', 'Content-Type': 'text/plain' },
-          body: 'custom body',
-        });
+    await vibe.route('**/text', (route) => {
+      route.fulfill({
+        status: 201,
+        headers: { 'X-Custom': 'test-value', 'Content-Type': 'text/plain' },
+        body: 'custom body',
       });
+    });
 
-      const result = await vibe.evaluate(`
-        fetch('${baseURL}/text')
-          .then(r => r.text().then(body => ({ status: r.status, body, custom: r.headers.get('X-Custom') })))
-      `);
+    const result = await vibe.evaluate(`
+      fetch('${baseURL}/text')
+        .then(r => r.text().then(body => ({ status: r.status, body, custom: r.headers.get('X-Custom') })))
+    `);
 
-      assert.strictEqual(result.status, 201);
-      assert.strictEqual(result.body, 'custom body');
-      assert.strictEqual(result.custom, 'test-value');
-    } finally {
-      await bro.close();
-    }
+    assert.strictEqual(result.status, 201);
+    assert.strictEqual(result.body, 'custom body');
+    assert.strictEqual(result.custom, 'test-value');
   });
 
   test('route.continue() lets request through', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      let intercepted = false;
-      await vibe.route('**', (route) => {
-        intercepted = true;
-        route.continue();
-      });
+    let intercepted = false;
+    await vibe.route('**', (route) => {
+      intercepted = true;
+      route.continue();
+    });
 
-      // Fetch triggers the intercept
-      await vibe.evaluate(`fetch('${baseURL}/text')`);
-      await vibe.wait(200);
+    // Fetch triggers the intercept
+    await vibe.evaluate(`fetch('${baseURL}/text')`);
+    await vibe.wait(200);
 
-      assert.ok(intercepted, 'Route handler should have been called');
-    } finally {
-      await bro.close();
-    }
+    assert.ok(intercepted, 'Route handler should have been called');
   });
 
   test('unroute() removes a route', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      let callCount = 0;
-      await vibe.route('**/text', (route) => {
-        callCount++;
-        route.continue();
-      });
+    let callCount = 0;
+    await vibe.route('**/text', (route) => {
+      callCount++;
+      route.continue();
+    });
 
-      // First fetch — should be intercepted
-      await vibe.evaluate(`fetch('${baseURL}/text')`);
-      await vibe.wait(200);
-      assert.ok(callCount > 0, 'Route handler should have been called');
+    // First fetch — should be intercepted
+    await vibe.evaluate(`fetch('${baseURL}/text')`);
+    await vibe.wait(200);
+    assert.ok(callCount > 0, 'Route handler should have been called');
 
-      const countBefore = callCount;
-      await vibe.unroute('**/text');
+    const countBefore = callCount;
+    await vibe.unroute('**/text');
 
-      // Second fetch — should NOT be intercepted
-      await vibe.evaluate(`fetch('${baseURL}/text')`);
-      await vibe.wait(200);
-      assert.strictEqual(callCount, countBefore, 'Route should not fire after unroute');
-    } finally {
-      await bro.close();
-    }
+    // Second fetch — should NOT be intercepted
+    await vibe.evaluate(`fetch('${baseURL}/text')`);
+    await vibe.wait(200);
+    assert.strictEqual(callCount, countBefore, 'Route should not fire after unroute');
   });
 });
 
@@ -190,124 +170,94 @@ describe('Network Interception: page.route', () => {
 
 describe('Network Events: onRequest/onResponse', () => {
   test('onRequest() fires for page navigation', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
+    const vibe = await bro.newPage();
 
-      const urls = [];
-      vibe.onRequest((req) => {
-        urls.push(req.url());
-      });
+    const urls = [];
+    vibe.onRequest((req) => {
+      urls.push(req.url());
+    });
 
-      await vibe.go(baseURL);
-      await vibe.wait(200);
+    await vibe.go(baseURL);
+    await vibe.wait(200);
 
-      assert.ok(urls.length > 0, 'Should have captured at least one request');
-      assert.ok(
-        urls.some(u => u.includes('127.0.0.1')),
-        `Should have a request to local server, got: ${urls.join(', ')}`
-      );
-    } finally {
-      await bro.close();
-    }
+    assert.ok(urls.length > 0, 'Should have captured at least one request');
+    assert.ok(
+      urls.some(u => u.includes('127.0.0.1')),
+      `Should have a request to local server, got: ${urls.join(', ')}`
+    );
   });
 
   test('onResponse() fires for page navigation', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
+    const vibe = await bro.newPage();
 
-      const statuses = [];
-      vibe.onResponse((resp) => {
-        statuses.push(resp.status());
-      });
+    const statuses = [];
+    vibe.onResponse((resp) => {
+      statuses.push(resp.status());
+    });
 
-      await vibe.go(baseURL);
-      await vibe.wait(200);
+    await vibe.go(baseURL);
+    await vibe.wait(200);
 
-      assert.ok(statuses.length > 0, 'Should have captured at least one response');
-      assert.ok(statuses.includes(200), `Should have a 200 response, got: ${statuses.join(', ')}`);
-    } finally {
-      await bro.close();
-    }
+    assert.ok(statuses.length > 0, 'Should have captured at least one response');
+    assert.ok(statuses.includes(200), `Should have a 200 response, got: ${statuses.join(', ')}`);
   });
 
   test('request.method() and request.headers() work', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
+    const vibe = await bro.newPage();
 
-      let capturedMethod = '';
-      let capturedHeaders = {};
-      vibe.onRequest((req) => {
-        if (req.url().includes('127.0.0.1') && !capturedMethod) {
-          capturedMethod = req.method();
-          capturedHeaders = req.headers();
-        }
-      });
+    let capturedMethod = '';
+    let capturedHeaders = {};
+    vibe.onRequest((req) => {
+      if (req.url().includes('127.0.0.1') && !capturedMethod) {
+        capturedMethod = req.method();
+        capturedHeaders = req.headers();
+      }
+    });
 
-      await vibe.go(baseURL);
-      await vibe.wait(200);
+    await vibe.go(baseURL);
+    await vibe.wait(200);
 
-      assert.strictEqual(capturedMethod, 'GET');
-      assert.ok(typeof capturedHeaders === 'object');
-    } finally {
-      await bro.close();
-    }
+    assert.strictEqual(capturedMethod, 'GET');
+    assert.ok(typeof capturedHeaders === 'object');
   });
 
   test('response.url() and response.status() work', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      const responsePromise = vibe.capture.response('**/json');
-      await vibe.evaluate(`fetch('${baseURL}/json')`);
-      const resp = await responsePromise;
+    const responsePromise = vibe.capture.response('**/json');
+    await vibe.evaluate(`fetch('${baseURL}/json')`);
+    const resp = await responsePromise;
 
-      assert.ok(resp.url().includes('/json'));
-      assert.strictEqual(resp.status(), 200);
-      assert.ok(typeof resp.headers() === 'object');
-    } finally {
-      await bro.close();
-    }
+    assert.ok(resp.url().includes('/json'));
+    assert.strictEqual(resp.status(), 200);
+    assert.ok(typeof resp.headers() === 'object');
   });
 });
 
 describe('Network Waiters: capture.request/capture.response', () => {
   test('capture.response() resolves on matching response', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      const responsePromise = vibe.capture.response('**/json');
-      await vibe.evaluate(`fetch('${baseURL}/json')`);
+    const responsePromise = vibe.capture.response('**/json');
+    await vibe.evaluate(`fetch('${baseURL}/json')`);
 
-      const resp = await responsePromise;
-      assert.ok(resp.url().includes('/json'), `Response URL should include /json, got: ${resp.url()}`);
-      assert.strictEqual(resp.status(), 200);
-    } finally {
-      await bro.close();
-    }
+    const resp = await responsePromise;
+    assert.ok(resp.url().includes('/json'), `Response URL should include /json, got: ${resp.url()}`);
+    assert.strictEqual(resp.status(), 200);
   });
 
   test('capture.request() resolves on matching request', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      const requestPromise = vibe.capture.request('**/text');
-      await vibe.evaluate(`fetch('${baseURL}/text')`);
+    const requestPromise = vibe.capture.request('**/text');
+    await vibe.evaluate(`fetch('${baseURL}/text')`);
 
-      const req = await requestPromise;
-      assert.ok(req.url().includes('/text'), `Request URL should include /text, got: ${req.url()}`);
-      assert.strictEqual(req.method(), 'GET');
-    } finally {
-      await bro.close();
-    }
+    const req = await requestPromise;
+    assert.ok(req.url().includes('/text'), `Request URL should include /text, got: ${req.url()}`);
+    assert.strictEqual(req.method(), 'GET');
   });
 });
 
@@ -315,85 +265,65 @@ describe('Network Waiters: capture.request/capture.response', () => {
 
 describe('Response Body: response.body() and response.json()', () => {
   test('response.body() returns text content via onResponse', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      let captured = null;
-      vibe.onResponse((resp) => {
-        if (resp.url().includes('/text')) {
-          captured = resp;
-        }
-      });
+    let captured = null;
+    vibe.onResponse((resp) => {
+      if (resp.url().includes('/text')) {
+        captured = resp;
+      }
+    });
 
-      await vibe.evaluate(`fetch('${baseURL}/text')`);
-      await vibe.wait(500);
+    await vibe.evaluate(`fetch('${baseURL}/text')`);
+    await vibe.wait(500);
 
-      assert.ok(captured, 'Should have captured the /text response');
-      const body = await captured.body();
-      assert.strictEqual(body, 'hello world');
-    } finally {
-      await bro.close();
-    }
+    assert.ok(captured, 'Should have captured the /text response');
+    const body = await captured.body();
+    assert.strictEqual(body, 'hello world');
   });
 
   test('response.json() parses JSON content via onResponse', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      let captured = null;
-      vibe.onResponse((resp) => {
-        if (resp.url().includes('/json')) {
-          captured = resp;
-        }
-      });
+    let captured = null;
+    vibe.onResponse((resp) => {
+      if (resp.url().includes('/json')) {
+        captured = resp;
+      }
+    });
 
-      await vibe.evaluate(`fetch('${baseURL}/json')`);
-      await vibe.wait(500);
+    await vibe.evaluate(`fetch('${baseURL}/json')`);
+    await vibe.wait(500);
 
-      assert.ok(captured, 'Should have captured the /json response');
-      const data = await captured.json();
-      assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
-    } finally {
-      await bro.close();
-    }
+    assert.ok(captured, 'Should have captured the /json response');
+    const data = await captured.json();
+    assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
   });
 
   test('response.body() works with capture.response', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      const responsePromise = vibe.capture.response('**/text');
-      await vibe.evaluate(`fetch('${baseURL}/text')`);
-      const resp = await responsePromise;
+    const responsePromise = vibe.capture.response('**/text');
+    await vibe.evaluate(`fetch('${baseURL}/text')`);
+    const resp = await responsePromise;
 
-      const body = await resp.body();
-      assert.strictEqual(body, 'hello world');
-    } finally {
-      await bro.close();
-    }
+    const body = await resp.body();
+    assert.strictEqual(body, 'hello world');
   });
 
   test('response.json() works with capture.response', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      const responsePromise = vibe.capture.response('**/json');
-      await vibe.evaluate(`fetch('${baseURL}/json')`);
-      const resp = await responsePromise;
+    const responsePromise = vibe.capture.response('**/json');
+    await vibe.evaluate(`fetch('${baseURL}/json')`);
+    const resp = await responsePromise;
 
-      const data = await resp.json();
-      assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
-    } finally {
-      await bro.close();
-    }
+    const data = await resp.json();
+    assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
   });
 });
 
@@ -401,92 +331,67 @@ describe('Response Body: response.body() and response.json()', () => {
 
 describe('Dialogs: page.onDialog', () => {
   test('onDialog() handles alert', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      let dialogMessage = '';
-      let dialogType = '';
-      vibe.onDialog((dialog) => {
-        dialogMessage = dialog.message();
-        dialogType = dialog.type();
-        dialog.accept();
-      });
+    let dialogMessage = '';
+    let dialogType = '';
+    vibe.onDialog((dialog) => {
+      dialogMessage = dialog.message();
+      dialogType = dialog.type();
+      dialog.accept();
+    });
 
-      await vibe.evaluate('alert("Hello from test")');
+    await vibe.evaluate('alert("Hello from test")');
 
-      assert.strictEqual(dialogMessage, 'Hello from test');
-      assert.strictEqual(dialogType, 'alert');
-    } finally {
-      await bro.close();
-    }
+    assert.strictEqual(dialogMessage, 'Hello from test');
+    assert.strictEqual(dialogType, 'alert');
   });
 
   test('onDialog() handles confirm with accept', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      vibe.onDialog((dialog) => {
-        dialog.accept();
-      });
+    vibe.onDialog((dialog) => {
+      dialog.accept();
+    });
 
-      const result = await vibe.evaluate('confirm("Are you sure?")');
-      assert.strictEqual(result, true);
-    } finally {
-      await bro.close();
-    }
+    const result = await vibe.evaluate('confirm("Are you sure?")');
+    assert.strictEqual(result, true);
   });
 
   test('onDialog() handles confirm with dismiss', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      vibe.onDialog((dialog) => {
-        dialog.dismiss();
-      });
+    vibe.onDialog((dialog) => {
+      dialog.dismiss();
+    });
 
-      const result = await vibe.evaluate('confirm("Are you sure?")');
-      assert.strictEqual(result, false);
-    } finally {
-      await bro.close();
-    }
+    const result = await vibe.evaluate('confirm("Are you sure?")');
+    assert.strictEqual(result, false);
   });
 
   test('onDialog() handles prompt with text', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      vibe.onDialog((dialog) => {
-        assert.strictEqual(dialog.type(), 'prompt');
-        dialog.accept('my answer');
-      });
+    vibe.onDialog((dialog) => {
+      assert.strictEqual(dialog.type(), 'prompt');
+      dialog.accept('my answer');
+    });
 
-      const result = await vibe.evaluate('prompt("Enter name:")');
-      assert.strictEqual(result, 'my answer');
-    } finally {
-      await bro.close();
-    }
+    const result = await vibe.evaluate('prompt("Enter name:")');
+    assert.strictEqual(result, 'my answer');
   });
 
   test('dialogs are auto-dismissed when no handler registered', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      // No onDialog handler — should auto-dismiss
-      const result = await vibe.evaluate('confirm("Auto dismiss?")');
-      assert.strictEqual(result, false);
-    } finally {
-      await bro.close();
-    }
+    // No onDialog handler — should auto-dismiss
+    const result = await vibe.evaluate('confirm("Auto dismiss?")');
+    assert.strictEqual(result, false);
   });
 });
 
@@ -494,20 +399,15 @@ describe('Dialogs: page.onDialog', () => {
 
 describe('Capture: navigation', () => {
   test('capture.navigation() resolves with URL on link click', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(`${baseURL}/nav-test`);
+    const vibe = await bro.newPage();
+    await vibe.go(`${baseURL}/nav-test`);
 
-      const link = await vibe.find('#link');
-      const url = await vibe.capture.navigation(async () => {
-        await link.click();
-      });
+    const link = await vibe.find('#link');
+    const url = await vibe.capture.navigation(async () => {
+      await link.click();
+    });
 
-      assert.ok(url.includes('/page2'), `Navigation URL should include /page2, got: ${url}`);
-    } finally {
-      await bro.close();
-    }
+    assert.ok(url.includes('/page2'), `Navigation URL should include /page2, got: ${url}`);
   });
 });
 
@@ -515,22 +415,17 @@ describe('Capture: navigation', () => {
 
 describe('Capture: download', () => {
   test('capture.download() resolves with Download object', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(`${baseURL}/download`);
+    const vibe = await bro.newPage();
+    await vibe.go(`${baseURL}/download`);
 
-      const link = await vibe.find('#download-link');
-      const download = await vibe.capture.download(async () => {
-        await link.click();
-      });
+    const link = await vibe.find('#download-link');
+    const download = await vibe.capture.download(async () => {
+      await link.click();
+    });
 
-      assert.ok(download, 'Should resolve with a Download object');
-      assert.ok(download.url().includes('/download-file'), `Download URL should include /download-file, got: ${download.url()}`);
-      assert.strictEqual(download.suggestedFilename(), 'test.txt');
-    } finally {
-      await bro.close();
-    }
+    assert.ok(download, 'Should resolve with a Download object');
+    assert.ok(download.url().includes('/download-file'), `Download URL should include /download-file, got: ${download.url()}`);
+    assert.strictEqual(download.suggestedFilename(), 'test.txt');
   });
 });
 
@@ -538,23 +433,18 @@ describe('Capture: download', () => {
 
 describe('Capture: dialog', () => {
   test('capture.dialog() resolves with Dialog object', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      // Use setTimeout because alert() blocks eval — the dialog must fire
-      // asynchronously so capture.dialog can capture it.
-      await vibe.evaluate('setTimeout(() => alert("Hello from expect"), 50)');
-      const dialog = await vibe.capture.dialog();
+    // Use setTimeout because alert() blocks eval — the dialog must fire
+    // asynchronously so capture.dialog can capture it.
+    await vibe.evaluate('setTimeout(() => alert("Hello from expect"), 50)');
+    const dialog = await vibe.capture.dialog();
 
-      assert.ok(dialog, 'Should resolve with a Dialog object');
-      assert.strictEqual(dialog.type(), 'alert');
-      assert.strictEqual(dialog.message(), 'Hello from expect');
-      await dialog.accept();
-    } finally {
-      await bro.close();
-    }
+    assert.ok(dialog, 'Should resolve with a Dialog object');
+    assert.strictEqual(dialog.type(), 'alert');
+    assert.strictEqual(dialog.message(), 'Hello from expect');
+    await dialog.accept();
   });
 });
 
@@ -562,20 +452,15 @@ describe('Capture: dialog', () => {
 
 describe('Capture: event', () => {
   test('capture.event("response") resolves on fetch', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go(baseURL);
+    const vibe = await bro.newPage();
+    await vibe.go(baseURL);
 
-      const result = await vibe.capture.event('response', async () => {
-        await vibe.evaluate(`fetch('${baseURL}/json')`);
-      });
+    const result = await vibe.capture.event('response', async () => {
+      await vibe.evaluate(`fetch('${baseURL}/json')`);
+    });
 
-      assert.ok(result, 'Should resolve with event data');
-      assert.ok(typeof result.url === 'function', 'Should be a Response object with url()');
-    } finally {
-      await bro.close();
-    }
+    assert.ok(result, 'Should resolve with event data');
+    assert.ok(typeof result.url === 'function', 'Should be a Response object with url()');
   });
 });
 
@@ -583,17 +468,12 @@ describe('Capture: event', () => {
 
 describe('Stubs: WebSocket methods', () => {
   test('routeWebSocket() throws not implemented', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
+    const vibe = await bro.newPage();
 
-      assert.throws(
-        () => vibe.routeWebSocket('**', () => {}),
-        /Not implemented/
-      );
-    } finally {
-      await bro.close();
-    }
+    assert.throws(
+      () => vibe.routeWebSocket('**', () => {}),
+      /Not implemented/
+    );
   });
 });
 
@@ -601,40 +481,35 @@ describe('Stubs: WebSocket methods', () => {
 
 describe('Network & Dialog Checkpoint', () => {
   test('route.continue, onResponse, and onDialog work together', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
+    const vibe = await bro.newPage();
 
-      // Set up route that intercepts and continues
-      let intercepted = false;
-      await vibe.route('**', (route) => {
-        intercepted = true;
-        route.continue();
-      });
+    // Set up route that intercepts and continues
+    let intercepted = false;
+    await vibe.route('**', (route) => {
+      intercepted = true;
+      route.continue();
+    });
 
-      // Track responses
-      const responseUrls = [];
-      vibe.onResponse((resp) => {
-        responseUrls.push(resp.url());
-      });
+    // Track responses
+    const responseUrls = [];
+    vibe.onResponse((resp) => {
+      responseUrls.push(resp.url());
+    });
 
-      await vibe.go(baseURL);
-      await vibe.wait(200);
+    await vibe.go(baseURL);
+    await vibe.wait(200);
 
-      assert.ok(intercepted, 'Route should have intercepted');
-      assert.ok(responseUrls.length > 0, 'Should have captured responses');
+    assert.ok(intercepted, 'Route should have intercepted');
+    assert.ok(responseUrls.length > 0, 'Should have captured responses');
 
-      // Set up dialog handler and trigger a dialog
-      let dialogHandled = false;
-      vibe.onDialog((dialog) => {
-        dialogHandled = true;
-        dialog.accept();
-      });
+    // Set up dialog handler and trigger a dialog
+    let dialogHandled = false;
+    vibe.onDialog((dialog) => {
+      dialogHandled = true;
+      dialog.accept();
+    });
 
-      await vibe.evaluate('alert("checkpoint")');
-      assert.ok(dialogHandled);
-    } finally {
-      await bro.close();
-    }
+    await vibe.evaluate('alert("checkpoint")');
+    assert.ok(dialogHandled);
   });
 });
