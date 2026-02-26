@@ -17,6 +17,7 @@ const { browser } = require('../../../clients/javascript/dist/sync');
 
 let serverProcess;
 let baseURL;
+let bro;
 
 before(async () => {
   serverProcess = fork(path.join(__dirname, 'sync-test-server.js'), [], { silent: true });
@@ -31,9 +32,12 @@ before(async () => {
     serverProcess.on('error', reject);
     setTimeout(() => reject(new Error('Server startup timeout')), 5000);
   });
+
+  bro = browser.launch({ headless: true });
 });
 
 after(() => {
+  bro.close();
   if (serverProcess) serverProcess.kill();
 });
 
@@ -41,41 +45,31 @@ after(() => {
 
 describe('Sync API: Console collection', () => {
   test('onConsole("collect") + consoleMessages() captures console.log', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const vibe = bro.page();
-      vibe.go(baseURL);
+    const vibe = bro.page();
+    vibe.go(baseURL);
 
-      vibe.onConsole('collect');
-      vibe.evaluate('console.log("sync hello")');
-      vibe.wait(300);
+    vibe.onConsole('collect');
+    vibe.evaluate('console.log("sync hello")');
+    vibe.wait(300);
 
-      const messages = vibe.consoleMessages();
-      const match = messages.find(m => m.text.includes('sync hello'));
-      assert.ok(match, `Should find console.log message, got: ${JSON.stringify(messages)}`);
-      assert.strictEqual(match.type, 'log');
-    } finally {
-      bro.close();
-    }
+    const messages = vibe.consoleMessages();
+    const match = messages.find(m => m.text.includes('sync hello'));
+    assert.ok(match, `Should find console.log message, got: ${JSON.stringify(messages)}`);
+    assert.strictEqual(match.type, 'log');
   });
 
   test('onConsole("collect") + consoleMessages() captures console.warn', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const vibe = bro.page();
-      vibe.go(baseURL);
+    const vibe = bro.page();
+    vibe.go(baseURL);
 
-      vibe.onConsole('collect');
-      vibe.evaluate('console.warn("sync warning")');
-      vibe.wait(300);
+    vibe.onConsole('collect');
+    vibe.evaluate('console.warn("sync warning")');
+    vibe.wait(300);
 
-      const messages = vibe.consoleMessages();
-      const match = messages.find(m => m.text.includes('sync warning'));
-      assert.ok(match, `Should find console.warn message, got: ${JSON.stringify(messages)}`);
-      assert.strictEqual(match.type, 'warn');
-    } finally {
-      bro.close();
-    }
+    const messages = vibe.consoleMessages();
+    const match = messages.find(m => m.text.includes('sync warning'));
+    assert.ok(match, `Should find console.warn message, got: ${JSON.stringify(messages)}`);
+    assert.strictEqual(match.type, 'warn');
   });
 });
 
@@ -83,21 +77,16 @@ describe('Sync API: Console collection', () => {
 
 describe('Sync API: Error collection', () => {
   test('onError("collect") + errors() captures uncaught exception', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const vibe = bro.page();
-      vibe.go(baseURL);
+    const vibe = bro.page();
+    vibe.go(baseURL);
 
-      vibe.onError('collect');
-      vibe.evaluate('setTimeout(() => { throw new Error("sync boom") }, 0)');
-      vibe.wait(500);
+    vibe.onError('collect');
+    vibe.evaluate('setTimeout(() => { throw new Error("sync boom") }, 0)');
+    vibe.wait(500);
 
-      const errs = vibe.errors();
-      const match = errs.find(e => e.message.includes('sync boom'));
-      assert.ok(match, `Should capture uncaught exception, got: ${JSON.stringify(errs)}`);
-    } finally {
-      bro.close();
-    }
+    const errs = vibe.errors();
+    const match = errs.find(e => e.message.includes('sync boom'));
+    assert.ok(match, `Should capture uncaught exception, got: ${JSON.stringify(errs)}`);
   });
 });
 
@@ -105,47 +94,37 @@ describe('Sync API: Error collection', () => {
 
 describe('Sync API: removeAllListeners for console/error', () => {
   test('removeAllListeners("console") stops collection', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const vibe = bro.page();
-      vibe.go(baseURL);
+    const vibe = bro.page();
+    vibe.go(baseURL);
 
-      vibe.onConsole('collect');
-      vibe.evaluate('console.log("before clear")');
-      vibe.wait(300);
+    vibe.onConsole('collect');
+    vibe.evaluate('console.log("before clear")');
+    vibe.wait(300);
 
-      const msgsBefore = vibe.consoleMessages();
-      assert.ok(msgsBefore.length >= 1, 'Should have captured message before clear');
+    const msgsBefore = vibe.consoleMessages();
+    assert.ok(msgsBefore.length >= 1, 'Should have captured message before clear');
 
-      vibe.removeAllListeners('console');
-      vibe.evaluate('console.log("after clear")');
-      vibe.wait(300);
+    vibe.removeAllListeners('console');
+    vibe.evaluate('console.log("after clear")');
+    vibe.wait(300);
 
-      const msgsAfter = vibe.consoleMessages();
-      const afterMsg = msgsAfter.find(m => m.text.includes('after clear'));
-      assert.ok(!afterMsg, 'Should not capture messages after removeAllListeners');
-    } finally {
-      bro.close();
-    }
+    const msgsAfter = vibe.consoleMessages();
+    const afterMsg = msgsAfter.find(m => m.text.includes('after clear'));
+    assert.ok(!afterMsg, 'Should not capture messages after removeAllListeners');
   });
 
   test('removeAllListeners("error") stops collection', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const vibe = bro.page();
-      vibe.go(baseURL);
+    const vibe = bro.page();
+    vibe.go(baseURL);
 
-      vibe.onError('collect');
-      vibe.removeAllListeners('error');
+    vibe.onError('collect');
+    vibe.removeAllListeners('error');
 
-      vibe.evaluate('setTimeout(() => { throw new Error("should not capture") }, 0)');
-      vibe.wait(500);
+    vibe.evaluate('setTimeout(() => { throw new Error("should not capture") }, 0)');
+    vibe.wait(500);
 
-      const errs = vibe.errors();
-      const match = errs.find(e => e.message.includes('should not capture'));
-      assert.ok(!match, 'Should not capture errors after removeAllListeners');
-    } finally {
-      bro.close();
-    }
+    const errs = vibe.errors();
+    const match = errs.find(e => e.message.includes('should not capture'));
+    assert.ok(!match, 'Should not capture errors after removeAllListeners');
   });
 });

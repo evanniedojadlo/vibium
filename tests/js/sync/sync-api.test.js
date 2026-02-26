@@ -17,6 +17,7 @@ const { browser } = require('../../../clients/javascript/dist/sync');
 
 let serverProcess;
 let baseURL;
+let bro;
 
 before(async () => {
   // Start the HTTP server in a child process
@@ -33,9 +34,12 @@ before(async () => {
     serverProcess.on('error', reject);
     setTimeout(() => reject(new Error('Server startup timeout')), 5000);
   });
+
+  bro = browser.launch({ headless: true });
 });
 
 after(() => {
+  bro.close();
   if (serverProcess) serverProcess.kill();
 });
 
@@ -49,35 +53,22 @@ describe('Sync API: Browser lifecycle', () => {
   });
 
   test('browser.page() returns default page', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const vibe = bro.page();
-      assert.ok(vibe, 'Should return a PageSync');
-    } finally {
-      bro.close();
-    }
+    const vibe = bro.page();
+    assert.ok(vibe, 'Should return a PageSync');
   });
 });
 
 describe('Sync API: Multi-page', () => {
   test('newPage() creates a new tab', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const page1 = bro.page();
-      const page2 = bro.newPage();
-      assert.ok(page2, 'Should return a new PageSync');
-      const allPages = bro.pages();
-      assert.ok(allPages.length >= 2, 'Should have at least 2 pages');
-    } finally {
-      bro.close();
-    }
+    const page1 = bro.page();
+    const page2 = bro.newPage();
+    assert.ok(page2, 'Should return a new PageSync');
+    const allPages = bro.pages();
+    assert.ok(allPages.length >= 2, 'Should have at least 2 pages');
   });
 });
 
 describe('Sync API: Navigation', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('go() navigates to URL', () => {
     const vibe = bro.page();
@@ -128,9 +119,6 @@ describe('Sync API: Navigation', () => {
 });
 
 describe('Sync API: Screenshots & PDF', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('screenshot() returns PNG buffer', () => {
     const vibe = bro.page();
@@ -156,9 +144,6 @@ describe('Sync API: Screenshots & PDF', () => {
 });
 
 describe('Sync API: Evaluation', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('evaluate() executes JavaScript', () => {
     const vibe = bro.page();
@@ -184,9 +169,6 @@ describe('Sync API: Evaluation', () => {
 });
 
 describe('Sync API: Element finding', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('find() locates element by CSS selector', () => {
     const vibe = bro.page();
@@ -222,9 +204,6 @@ describe('Sync API: Element finding', () => {
 });
 
 describe('Sync API: ElementListSync', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('count(), first(), last(), nth()', () => {
     const vibe = bro.page();
@@ -265,9 +244,6 @@ describe('Sync API: ElementListSync', () => {
 });
 
 describe('Sync API: Element interaction', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('click() navigates via link', () => {
     const vibe = bro.page();
@@ -333,9 +309,6 @@ describe('Sync API: Element interaction', () => {
 });
 
 describe('Sync API: Element state', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('text() returns textContent', () => {
     const vibe = bro.page();
@@ -402,9 +375,6 @@ describe('Sync API: Element state', () => {
 });
 
 describe('Sync API: Scoped find', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('element.find() scoped to parent', () => {
     const vibe = bro.page();
@@ -424,9 +394,6 @@ describe('Sync API: Scoped find', () => {
 });
 
 describe('Sync API: Keyboard, Mouse, Touch', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('keyboard.type() types text', () => {
     const vibe = bro.page();
@@ -454,9 +421,6 @@ describe('Sync API: Keyboard, Mouse, Touch', () => {
 });
 
 describe('Sync API: Clock control', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('clock.install() and setFixedTime()', () => {
     const vibe = bro.page();
@@ -478,9 +442,6 @@ describe('Sync API: Clock control', () => {
 });
 
 describe('Sync API: Viewport & emulation', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('setViewport() and viewport()', () => {
     const vibe = bro.page();
@@ -516,41 +477,28 @@ describe('Sync API: Viewport & emulation', () => {
 
 describe('Sync API: Context isolation', () => {
   test('newContext() creates isolated context', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const ctx = bro.newContext();
-      const vibe = ctx.newPage();
-      vibe.go(baseURL);
-      assert.strictEqual(vibe.title(), 'Test App');
-      ctx.close();
-    } finally {
-      bro.close();
-    }
+    const ctx = bro.newContext();
+    const vibe = ctx.newPage();
+    vibe.go(baseURL);
+    assert.strictEqual(vibe.title(), 'Test App');
+    ctx.close();
   });
 
   test('cookies in context', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const ctx = bro.newContext();
-      const vibe = ctx.newPage();
-      vibe.go(baseURL);
-      ctx.setCookies([{ name: 'test', value: 'val', url: baseURL }]);
-      const cookies = ctx.cookies();
-      assert.ok(cookies.some(c => c.name === 'test'), 'Should have the test cookie');
-      ctx.clearCookies();
-      const cleared = ctx.cookies();
-      assert.ok(!cleared.some(c => c.name === 'test'), 'Cookie should be cleared');
-      ctx.close();
-    } finally {
-      bro.close();
-    }
+    const ctx = bro.newContext();
+    const vibe = ctx.newPage();
+    vibe.go(baseURL);
+    ctx.setCookies([{ name: 'test', value: 'val', url: baseURL }]);
+    const cookies = ctx.cookies();
+    assert.ok(cookies.some(c => c.name === 'test'), 'Should have the test cookie');
+    ctx.clearCookies();
+    const cleared = ctx.cookies();
+    assert.ok(!cleared.some(c => c.name === 'test'), 'Cookie should be cleared');
+    ctx.close();
   });
 });
 
 describe('Sync API: Dialog auto-handling', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('onDialog("accept") auto-accepts alerts', () => {
     const vibe = bro.page();
@@ -562,9 +510,6 @@ describe('Sync API: Dialog auto-handling', () => {
 });
 
 describe('Sync API: Route handler callback', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('route handler can fulfill with custom response', () => {
     const vibe = bro.newPage();
@@ -654,9 +599,6 @@ describe('Sync API: Route handler callback', () => {
 });
 
 describe('Sync API: Dialog handler callback', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('dialog handler can accept alerts', () => {
     const vibe = bro.newPage();
@@ -789,9 +731,6 @@ describe('Sync API: onPage/onPopup', () => {
 });
 
 describe('Sync API: Capture navigation', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('capture.navigation() returns URL on link click', () => {
     const vibe = bro.newPage();
@@ -804,9 +743,6 @@ describe('Sync API: Capture navigation', () => {
 });
 
 describe('Sync API: Capture download', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('capture.download() returns download info', () => {
     const vibe = bro.newPage();
@@ -820,9 +756,6 @@ describe('Sync API: Capture download', () => {
 });
 
 describe('Sync API: Capture dialog', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('capture.dialog() returns dialog info', () => {
     const vibe = bro.newPage();
@@ -837,9 +770,6 @@ describe('Sync API: Capture dialog', () => {
 });
 
 describe('Sync API: Capture event', () => {
-  let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
 
   test('capture.event("navigation") returns URL', () => {
     const vibe = bro.newPage();
@@ -853,25 +783,20 @@ describe('Sync API: Capture event', () => {
 
 describe('Sync API: Full checkpoint', () => {
   test('Phase 8 checkpoint', () => {
-    const bro = browser.launch({ headless: true });
-    try {
-      const vibe = bro.newPage();
-      vibe.go(baseURL);
-      assert.strictEqual(vibe.title(), 'Test App');
-      assert.ok(vibe.url().includes('127.0.0.1'));
+    const vibe = bro.newPage();
+    vibe.go(baseURL);
+    assert.strictEqual(vibe.title(), 'Test App');
+    assert.ok(vibe.url().includes('127.0.0.1'));
 
-      const link = vibe.find('a[href="/subpage"]');
-      link.click();
-      vibe.find('h3'); // wait for subpage to load
-      assert.strictEqual(vibe.title(), 'Subpage');
+    const link = vibe.find('a[href="/subpage"]');
+    link.click();
+    vibe.find('h3'); // wait for subpage to load
+    assert.strictEqual(vibe.title(), 'Subpage');
 
-      const png = vibe.screenshot();
-      assert.ok(png.length > 100, 'Screenshot should have data');
+    const png = vibe.screenshot();
+    assert.ok(png.length > 100, 'Screenshot should have data');
 
-      const year = vibe.evaluate('new Date().getFullYear()');
-      assert.strictEqual(typeof year, 'number');
-    } finally {
-      bro.close();
-    }
+    const year = vibe.evaluate('new Date().getFullYear()');
+    assert.strictEqual(typeof year, 'number');
   });
 });
