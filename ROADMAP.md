@@ -63,19 +63,6 @@ Vibium's architecture follows the classic robotics control loop:
 
 ---
 
-## Python Client ✅
-
-**Status:** shipped 2025-12-31
-
-```bash
-pip install vibium
-```
-
-- [getting started (Python)](docs/tutorials/getting-started-python.md)
-- [release update](docs/updates/2025-12-31-python-client.md)
-
----
-
 ## .NET Client
 
 **What:** NuGet package with idiomatic C# API.
@@ -199,13 +186,13 @@ const el = await vibe.find("the blue submit button");
 
 ---
 
-## Firefox & Edge Support
+## Firefox, Edge, Safari, and Brave Support
 
 **What:** Support browsers beyond Chrome.
 
 **Why deferred:** Chrome covers 90%+ of use cases. BiDi implementations vary across browsers.
 
-**When to build:** When users explicitly need Firefox (privacy testing) or Edge (enterprise).
+**When to build:** When users explicitly need Firefox, Edge, Safari, or Brave.
 
 **Estimated effort:** 1 week per browser
 
@@ -233,15 +220,14 @@ const el = await vibe.find("the blue submit button");
 
 Based on likely user demand:
 
-1. ~~**Python client**~~ ✅ shipped
-2. **Video recording** — Debugging value, moderate effort
+1. **Java client** — Enterprise demand
+2. **More browsers**
 3. **Network tracing** — DevTools parity
-4. **Cortex** — If agents need persistent memory
+4. **Video recording** — Debugging value, moderate effort
 5. **Retina** — If recording human sessions matters
-6. **AI locators** — High value but high uncertainty
-7. **Java client** — Enterprise demand
+6. **Cortex** — If agents need persistent memory
+7. **AI locators** — High value but high uncertainty
 8. **Cortex UI** — Nice to have
-9. **Firefox/Edge** — Edge cases
 
 ---
 
