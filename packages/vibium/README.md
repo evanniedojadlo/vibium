@@ -169,63 +169,10 @@ const box = await element.boundingBox()
 Add Vibium to Claude Code:
 
 ```bash
-claude mcp add vibium -- npx vibium
+claude mcp add vibium -- npx vibium mcp
 ```
 
-### MCP Tools
-
-#### browser_launch
-
-Start a browser session.
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `headless` | boolean | `false` | Run without visible window |
-
-#### browser_navigate
-
-Navigate to a URL.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | yes | The URL to navigate to |
-
-#### browser_click
-
-Click an element. Waits for element to be visible, stable, and enabled.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `selector` | string | yes | CSS selector |
-
-#### browser_type
-
-Type text into an element. Waits for element to be visible, stable, enabled, and editable.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `selector` | string | yes | CSS selector |
-| `text` | string | yes | Text to type |
-
-#### browser_screenshot
-
-Capture a screenshot.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `filename` | string | no | Save to file (e.g., screenshot.png) |
-
-#### browser_find
-
-Find an element and return its info (tag, text, bounding box).
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `selector` | string | yes | CSS selector |
-
-#### browser_quit
-
-Close the browser session.
+Vibium exposes 70+ browser automation tools (navigation, clicking, typing, screenshots, accessibility tree, and more). Your AI assistant discovers them automatically via MCP.
 
 ## Links
 
