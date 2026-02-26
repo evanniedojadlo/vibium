@@ -245,9 +245,9 @@ After building, the binary is at `./clicker/bin/vibium`.
 
 ```bash
 cd clicker/bin
-vibium install   # Download Chrome for Testing + chromedriver
-vibium paths     # Show browser and cache paths
-vibium version   # Show version
+./vibium install   # Download Chrome for Testing + chromedriver
+./vibium paths     # Show browser and cache paths
+./vibium version   # Show version
 ```
 
 ### Browser Commands
@@ -258,18 +258,18 @@ By default, vibium runs in **daemon mode** — the browser stays open between co
 cd clicker/bin
 
 # Navigate to a URL
-vibium go https://example.com
+./vibium go https://example.com
 
 # Interact with the current page (no URL needed)
-vibium find "h1"
-vibium click "a"
-vibium type "input" "hello"
-vibium eval "document.title"
-vibium screenshot -o shot.png
+./vibium find "h1"
+./vibium click "a"
+./vibium type "input" "hello"
+./vibium eval "document.title"
+./vibium screenshot -o shot.png
 
 # You can also provide a URL to navigate first
-vibium find https://example.com "a"
-vibium screenshot https://example.com -o shot.png
+./vibium find https://example.com "a"
+./vibium screenshot https://example.com -o shot.png
 ```
 
 ### Useful Flags
@@ -284,10 +284,10 @@ vibium screenshot https://example.com -o shot.png
 
 ```bash
 cd clicker/bin
-vibium daemon start    # Start daemon in foreground
-vibium daemon start -d # Start daemon in background
-vibium daemon status   # Show daemon status
-vibium daemon stop     # Stop the daemon
+./vibium daemon start    # Start daemon in foreground
+./vibium daemon start -d # Start daemon in background
+./vibium daemon status   # Show daemon status
+./vibium daemon stop     # Stop the daemon
 ```
 
 The daemon auto-starts on the first command, so you rarely need to manage it manually.
@@ -331,13 +331,13 @@ The vibium binary includes an MCP (Model Context Protocol) server for AI agent i
 cd clicker/bin
 
 # Run directly (for testing)
-vibium mcp
+./vibium mcp
 
 # With custom screenshot directory
-vibium mcp --screenshot-dir ./screenshots
+./vibium mcp --screenshot-dir ./screenshots
 
 # Disable screenshot file saving (inline base64 only)
-vibium mcp --screenshot-dir ""
+./vibium mcp --screenshot-dir ""
 ```
 
 ### Configuring with Claude Code
