@@ -97,25 +97,26 @@ make clean-all             # Clean everything
 After building, you can test the JS client in a Node REPL:
 
 ```bash
-cd clients/javascript && node --experimental-repl-await
+cd clients/javascript && node
 ```
 
 ```javascript
-// Option 1: require (REPL-friendly)
-const { browserSync } = require('./dist')
+// Option 1: require sync API (REPL-friendly)
+const { browser } = require('./dist/sync')
 
-// Option 2: dynamic import (REPL with --experimental-repl-await)
+// Option 2: dynamic import async API
 const { browser } = await import('./dist/index.mjs')
 
-// Option 3: static import (in .mjs files)
+// Option 3: static import async API (in .mjs files)
 import { browser } from './dist/index.mjs'
 ```
 
 Sync example:
 
 ```javascript
-const { browserSync } = require('./dist')
-const vibe = browserSync.launch()
+const { browser } = require('./dist/sync')
+const bro = browser.launch()
+const vibe = bro.page()
 vibe.go('https://example.com')
 
 const el = vibe.find('h1')
@@ -127,14 +128,15 @@ console.log('Page title:', title)
 
 const shot = vibe.screenshot()
 require('fs').writeFileSync('test.png', shot)
-vibe.quit()
+bro.close()
 ```
 
 Async example:
 
 ```javascript
 const { browser } = await import('./dist/index.mjs')
-const vibe = await browser.launch()
+const bro = await browser.launch()
+const vibe = await bro.page()
 await vibe.go('https://example.com')
 
 const el = await vibe.find('h1')
@@ -146,7 +148,7 @@ console.log('Page title:', title)
 
 const shot = await vibe.screenshot()
 require('fs').writeFileSync('test.png', shot)
-await vibe.quit()
+await bro.close()
 ```
 
 ---
@@ -157,16 +159,23 @@ The Python client provides both sync and async APIs.
 
 ### Setup
 
-For local development, use a virtual environment:
+For local development, build the Go binary first (if you haven't already), then set up a virtual environment:
 
 ```bash
+# From the repo root
+make build-go
+
+# Set up the Python client
 cd clients/python
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .           # Editable install - code changes take effect immediately
+
+# Point the client to the locally-built binary
+export VIBIUM_BIN_PATH=../../clicker/bin/vibium
 ```
 
-Or install from PyPI:
+Or install from PyPI (binary is bundled automatically):
 
 ```bash
 pip install vibium
@@ -175,9 +184,10 @@ pip install vibium
 ### Sync Example
 
 ```python
-from vibium import browser_sync
+from vibium import browser
 
-vibe = browser_sync.launch()
+bro = browser.launch()
+vibe = bro.page()
 vibe.go("https://example.com")
 
 el = vibe.find("h1")
@@ -190,17 +200,18 @@ print(f"Page title: {title}")
 with open("screenshot.png", "wb") as f:
     f.write(vibe.screenshot())
 
-vibe.quit()
+bro.close()
 ```
 
 ### Async Example
 
 ```python
 import asyncio
-from vibium import browser
+from vibium.async_api import browser
 
 async def main():
-    vibe = await browser.launch()
+    bro = await browser.launch()
+    vibe = await bro.page()
     await vibe.go("https://example.com")
 
     el = await vibe.find("h1")
@@ -213,7 +224,7 @@ async def main():
     with open("screenshot.png", "wb") as f:
         f.write(await vibe.screenshot())
 
-    await vibe.quit()
+    await bro.close()
 
 asyncio.run(main())
 ```

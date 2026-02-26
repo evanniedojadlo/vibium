@@ -52,6 +52,16 @@ def get_cache_dir() -> Path:
         return Path(xdg_cache) / "vibium"
 
 
+def _is_python_script(path: str) -> bool:
+    """Check if a file is a Python wrapper script (has a #!...python shebang)."""
+    try:
+        with open(path, "rb") as f:
+            first_line = f.readline(128)
+            return first_line.startswith(b"#!") and b"python" in first_line
+    except (OSError, IOError):
+        return False
+
+
 def find_vibium_bin() -> str:
     """Find the vibium binary.
 
@@ -86,9 +96,9 @@ def find_vibium_bin() -> str:
     except (ImportError, ModuleNotFoundError):
         pass
 
-    # 3. Check PATH
+    # 3. Check PATH (skip Python wrapper scripts to avoid infinite recursion)
     path_binary = shutil.which(binary_name)
-    if path_binary:
+    if path_binary and not _is_python_script(path_binary):
         return path_binary
 
     # 4. Check cache directory
