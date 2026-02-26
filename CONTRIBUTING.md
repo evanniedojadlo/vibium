@@ -296,34 +296,7 @@ The daemon auto-starts on the first command, so you rarely need to manage it man
 
 ## Using the MCP Server
 
-The vibium binary includes an MCP (Model Context Protocol) server for AI agent integration.
-
-### Available Tools
-
-| Tool | Description |
-|------|-------------|
-| `browser_launch` | Start a browser session |
-| `browser_navigate` | Go to a URL |
-| `browser_click` | Click an element by CSS selector |
-| `browser_type` | Type into an element |
-| `browser_screenshot` | Capture the page |
-| `browser_find` | Find element info |
-| `browser_evaluate` | Execute JavaScript to extract data or inspect page state |
-| `browser_quit` | Close the browser |
-| `browser_get_text` | Get text content of page or element |
-| `browser_get_url` | Get the current page URL |
-| `browser_get_title` | Get the current page title |
-| `browser_get_html` | Get HTML content of page or element |
-| `browser_find_all` | Find all elements matching a CSS selector |
-| `browser_wait` | Wait for element to reach a state (attached/visible/hidden) |
-| `browser_hover` | Hover over an element |
-| `browser_select` | Select an option in a `<select>` element |
-| `browser_scroll` | Scroll the page or an element |
-| `browser_keys` | Press a key or key combination |
-| `browser_new_tab` | Open a new browser tab |
-| `browser_list_tabs` | List all open browser tabs |
-| `browser_switch_tab` | Switch to a tab by index or URL |
-| `browser_close_tab` | Close a browser tab |
+The vibium binary includes an MCP (Model Context Protocol) server for AI agent integration. For end-user setup instructions and the full list of tools, see [Getting Started with MCP](docs/tutorials/getting-started-mcp.md).
 
 ### Running the MCP Server
 
