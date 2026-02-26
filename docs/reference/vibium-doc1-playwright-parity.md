@@ -259,7 +259,7 @@ vibe.find(placeholder='Search...')
 | `el.scrollIntoView()` | `locator.scrollIntoViewIfNeeded()` | JS: `element.scrollIntoViewIfNeeded()` | Explicit scroll (auto-scroll is separate behavior) |
 | `el.dispatchEvent(type)` | `locator.dispatchEvent()` | JS: `element.dispatchEvent(new Event(type))` | Fire custom DOM events |
 
-### 6. Element State (14 commands)
+### 6. Element State (13 commands)
 
 | Vibium | Playwright equiv | Implementation | Notes |
 |--------|-----------------|----------------|-------|
@@ -274,7 +274,6 @@ vibe.find(placeholder='Search...')
 | `el.isEnabled()` | `locator.isEnabled()` | JS: `!element.disabled` | |
 | `el.isChecked()` | `locator.isChecked()` | JS: `element.checked` | |
 | `el.isEditable()` | `locator.isEditable()` | JS: not disabled, not readonly | |
-| `el.eval(fn)` | `locator.evaluate()` | BiDi: `script.callFunction` with element ref | |
 | `el.screenshot()` | `locator.screenshot()` | BiDi: `browsingContext.captureScreenshot` with clip | |
 | `el.waitFor({state})` | `locator.waitFor()` | BiDi: poll locateNodes + state check | Wait for visible/hidden/attached/detached |
 
@@ -430,12 +429,11 @@ vibe.find(placeholder='Search...')
 | `context.tracing.startGroup(name)` | `tracing.group()` | Add group-start marker to trace | Renamed for start/stop consistency |
 | `context.tracing.stopGroup()` | `tracing.groupEnd()` | Add group-end marker to trace | Renamed for start/stop consistency |
 
-### 21. Evaluation (5 commands)
+### 21. Evaluation (4 commands)
 
 | Vibium | Playwright equiv | Implementation | Notes |
 |--------|-----------------|----------------|-------|
-| `page.eval(expression)` | `page.evaluate()` | BiDi: `script.evaluate` | Returns serialized result |
-| `page.evalHandle(expression)` | `page.evaluateHandle()` | BiDi: `script.evaluate` (return remote ref) | Returns handle, not value |
+| `page.evaluate(expression)` | `page.evaluate()` | BiDi: `script.evaluate` | Returns serialized result |
 | `page.addScript(url_or_content)` | `page.addScriptTag()` | JS: create `<script>` element | |
 | `page.addStyle(url_or_content)` | `page.addStyleTag()` | JS: create `<link>` or `<style>` element | |
 | `page.expose(name, fn)` | `page.exposeFunction()` | BiDi: `script.addPreloadScript` + `script.callFunction` callback | Bridge page→Node |
@@ -558,7 +556,7 @@ These all wrap the same BiDi protocol layer — the per-language work is API sur
 
 ### Tier 1 — Core (ship first)
 
-Page object model (`browser.newPage()`, `page.close()`), navigation (`go`, `back`, `forward`, `reload`, `url`, `title`), element finding (`find`, `findAll`, CSS/semantic selectors), basic interaction (`click`, `fill`, `type`, `press`), element state (`text`, `html`, `value`, `attr`, `isVisible`), evaluation (`eval`), screenshots, basic waiting (`waitFor`, `waitForLoad`).
+Page object model (`browser.newPage()`, `page.close()`), navigation (`go`, `back`, `forward`, `reload`, `url`, `title`), element finding (`find`, `findAll`, CSS/semantic selectors), basic interaction (`click`, `fill`, `type`, `press`), element state (`text`, `html`, `value`, `attr`, `isVisible`), evaluation (`evaluate`), screenshots, basic waiting (`waitFor`, `waitForLoad`).
 
 ~13 commands. Enough to be useful.
 
@@ -576,7 +574,7 @@ Network interception (`route`, `fulfill`, `abort`), `addInitScript`, accessibili
 
 ### Tier 4 — Extras
 
-Clock mocking, tracing, storage state serialization, touch input, `evalHandle`, `expose`.
+Clock mocking, tracing, storage state serialization, touch input, `expose`.
 
 ~5 command groups. Nice-to-have, not blockers.
 

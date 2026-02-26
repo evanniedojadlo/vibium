@@ -130,7 +130,7 @@ async def test_network_traces(fresh_async_browser, test_server):
         vibe = await ctx.new_page()
         await ctx.tracing.start()
         await vibe.go(test_server)
-        await vibe.eval("fetch('/json')")
+        await vibe.evaluate("fetch('/json')")
         await vibe.wait(500)
         data = await ctx.tracing.stop()
         assert len(data) > 0

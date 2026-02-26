@@ -105,7 +105,7 @@ async def test_add_init_script(fresh_async_browser, test_server):
         await ctx.add_init_script("window.__initFlag = 'set'")
         vibe = await ctx.new_page()
         await vibe.go(test_server)
-        result = await vibe.eval("window.__initFlag")
+        result = await vibe.evaluate("window.__initFlag")
         assert result == "set"
     finally:
         await ctx.close()
@@ -117,9 +117,9 @@ async def test_init_script_persists(fresh_async_browser, test_server):
         await ctx.add_init_script("window.__persistent = true")
         vibe = await ctx.new_page()
         await vibe.go(test_server)
-        assert await vibe.eval("window.__persistent") is True
+        assert await vibe.evaluate("window.__persistent") is True
         await vibe.go(test_server + "/subpage")
-        assert await vibe.eval("window.__persistent") is True
+        assert await vibe.evaluate("window.__persistent") is True
     finally:
         await ctx.close()
 

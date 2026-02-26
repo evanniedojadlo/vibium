@@ -532,38 +532,13 @@ export class Page {
 
   // --- Evaluation ---
 
-  /** Execute JavaScript in the page context (legacy — uses script.callFunction directly). */
-  async evaluate<T = unknown>(script: string): Promise<T> {
-    const result = await this.client.send<{
-      type: string;
-      result: { type: string; value?: T };
-    }>('script.callFunction', {
-      functionDeclaration: `() => { ${script} }`,
-      target: { context: this.contextId },
-      arguments: [],
-      awaitPromise: true,
-      resultOwnership: 'root',
-    });
-
-    return result.result.value as T;
-  }
-
   /** Evaluate a JS expression and return the deserialized value. */
-  async eval<T = unknown>(expression: string): Promise<T> {
+  async evaluate<T = unknown>(expression: string): Promise<T> {
     const result = await this.client.send<{ value: T }>('vibium:page.eval', {
       context: this.contextId,
       expression,
     });
     return result.value;
-  }
-
-  /** Evaluate a JS expression and return a handle ID for the result. */
-  async evalHandle(expression: string): Promise<string> {
-    const result = await this.client.send<{ handle: string }>('vibium:page.evalHandle', {
-      context: this.contextId,
-      expression,
-    });
-    return result.handle;
   }
 
   /** Inject a script into the page. Pass a URL or inline JavaScript. */

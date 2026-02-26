@@ -124,10 +124,10 @@ const vibe = await bro.newPage()       // default context, new page
 |-------------------|-----------|--------|-------|
 | Is Element Selected | `el.isChecked()` | ⬜ | JS |
 | Get Element Attribute | `el.attr(name)` | ⬜ | JS |
-| Get Element Property | `el.eval(e => e[prop])` | ⬜ | script.callFunction |
-| Get Element CSS Value | `el.eval(e => getComputedStyle(e)[p])` | ⬜ | JS |
+| Get Element Property | `page.evaluate(e => e[prop], el)` | ⬜ | script.callFunction |
+| Get Element CSS Value | `page.evaluate(e => getComputedStyle(e)[p], el)` | ⬜ | JS |
 | Get Element Text | `el.text()` | ⬜ | JS |
-| Get Element Tag Name | `el.eval(e => e.tagName)` | ⬜ | JS |
+| Get Element Tag Name | `page.evaluate(e => e.tagName, el)` | ⬜ | JS |
 | Get Element Rect | `el.bounds()` | ⬜ | JS |
 | Is Element Enabled | `el.isEnabled()` | ⬜ | JS |
 | Get Computed Role | `el.role()` | ⬜ | JS |
@@ -137,9 +137,9 @@ const vibe = await bro.newPage()       // default context, new page
 
 | WebDriver Command | Vibium API | Status | Notes |
 |-------------------|-----------|--------|-------|
-| Get Page Source | `page.eval(() => document.documentElement.outerHTML)` | ⬜ | script.evaluate |
-| Execute Script | `page.eval(expr)` | ⬜ | script.evaluate |
-| Execute Async Script | `page.eval(asyncExpr)` | ⬜ | script.evaluate with await |
+| Get Page Source | `page.evaluate(() => document.documentElement.outerHTML)` | ⬜ | script.evaluate |
+| Execute Script | `page.evaluate(expr)` | ⬜ | script.evaluate |
+| Execute Async Script | `page.evaluate(asyncExpr)` | ⬜ | script.evaluate with await |
 
 ### Cookies
 
@@ -189,7 +189,7 @@ const vibe = await bro.newPage()       // default context, new page
 | session | `browser.launch()`, `browser.close()` | Core |
 | browser | `browser.newContext()` (createUserContext) | Core |
 | browsingContext | Pages, navigation, frames, screenshots | Core |
-| script | `page.eval()`, `expose()`, `addInitScript()` | Core |
+| script | `page.evaluate()`, `expose()`, `addInitScript()` | Core |
 | input | keyboard, mouse, touch APIs | Core |
 | network | `page.route()`, events | Tier 3 |
 | storage | `context.cookies()` | Tier 2 |

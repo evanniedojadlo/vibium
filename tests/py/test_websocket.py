@@ -14,7 +14,7 @@ async def test_fires(fresh_async_browser, test_server, ws_echo_server):
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     await asyncio.sleep(0.5)  # Wait for subscription to be processed
 
-    await vibe.eval(f"createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"createWS('{ws_echo_server}')")
     await vibe.wait(1000)
     assert len(ws_connections) >= 1
 
@@ -28,7 +28,7 @@ async def test_url(fresh_async_browser, test_server, ws_echo_server):
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     await asyncio.sleep(0.5)
 
-    await vibe.eval(f"createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"createWS('{ws_echo_server}')")
     await vibe.wait(1000)
     assert len(ws_connections) >= 1
     assert ws_echo_server.replace("ws://", "") in ws_connections[0].url()
@@ -43,14 +43,14 @@ async def test_on_message_sent(fresh_async_browser, test_server, ws_echo_server)
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     await asyncio.sleep(0.5)
 
-    await vibe.eval(f"window.__ws = createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"window.__ws = createWS('{ws_echo_server}')")
     await vibe.wait(1000)
 
     messages = []
     if ws_connections:
         ws_connections[0].on_message(lambda data, info: messages.append({"data": data, "direction": info["direction"]}))
 
-    await vibe.eval("window.__ws.send('hello')")
+    await vibe.evaluate("window.__ws.send('hello')")
     await vibe.wait(500)
     sent = [m for m in messages if m["direction"] == "sent"]
     assert len(sent) >= 1
@@ -66,14 +66,14 @@ async def test_on_message_received(fresh_async_browser, test_server, ws_echo_ser
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     await asyncio.sleep(0.5)
 
-    await vibe.eval(f"window.__ws = createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"window.__ws = createWS('{ws_echo_server}')")
     await vibe.wait(1000)
 
     messages = []
     if ws_connections:
         ws_connections[0].on_message(lambda data, info: messages.append({"data": data, "direction": info["direction"]}))
 
-    await vibe.eval("window.__ws.send('echo-me')")
+    await vibe.evaluate("window.__ws.send('echo-me')")
     await vibe.wait(500)
     received = [m for m in messages if m["direction"] == "received"]
     assert len(received) >= 1
@@ -89,14 +89,14 @@ async def test_on_close(fresh_async_browser, test_server, ws_echo_server):
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     await asyncio.sleep(0.5)
 
-    await vibe.eval(f"window.__ws = createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"window.__ws = createWS('{ws_echo_server}')")
     await vibe.wait(1000)
 
     closed = []
     if ws_connections:
         ws_connections[0].on_close(lambda code, reason: closed.append({"code": code, "reason": reason}))
 
-    await vibe.eval("window.__ws.close()")
+    await vibe.evaluate("window.__ws.close()")
     await vibe.wait(500)
     assert len(closed) >= 1
 
@@ -110,12 +110,12 @@ async def test_is_closed(fresh_async_browser, test_server, ws_echo_server):
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     await asyncio.sleep(0.5)
 
-    await vibe.eval(f"window.__ws = createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"window.__ws = createWS('{ws_echo_server}')")
     await vibe.wait(1000)
     assert len(ws_connections) >= 1
     assert not ws_connections[0].is_closed()
 
-    await vibe.eval("window.__ws.close()")
+    await vibe.evaluate("window.__ws.close()")
     await vibe.wait(500)
     assert ws_connections[0].is_closed()
 
@@ -129,12 +129,12 @@ async def test_survives_navigation(fresh_async_browser, test_server, ws_echo_ser
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     await asyncio.sleep(0.5)
 
-    await vibe.eval(f"createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"createWS('{ws_echo_server}')")
     await vibe.wait(1000)
     count_before = len(ws_connections)
 
     await vibe.go(test_server + "/ws-page")
-    await vibe.eval(f"createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"createWS('{ws_echo_server}')")
     await vibe.wait(1000)
     assert len(ws_connections) >= count_before
 
@@ -148,6 +148,6 @@ async def test_remove_listeners(fresh_async_browser, test_server, ws_echo_server
     vibe.on_web_socket(lambda ws: ws_connections.append(ws))
     vibe.remove_all_listeners("websocket")
 
-    await vibe.eval(f"createWS('{ws_echo_server}')")
+    await vibe.evaluate(f"createWS('{ws_echo_server}')")
     await vibe.wait(1000)
     assert len(ws_connections) == 0

@@ -165,11 +165,6 @@ export class ElementSync {
     return result.editable;
   }
 
-  eval<T = unknown>(fn: string): T {
-    const result = this.bridge.call<{ value: T }>('element.eval', [this.elementId, fn]);
-    return result.value;
-  }
-
   screenshot(): Buffer {
     const result = this.bridge.call<{ data: string }>('element.screenshot', [this.elementId]);
     return Buffer.from(result.data, 'base64');

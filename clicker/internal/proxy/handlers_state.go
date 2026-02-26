@@ -288,68 +288,6 @@ func (r *Router) handleVibiumElIsEditable(session *BrowserSession, cmd bidiComma
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"editable": editable})
 }
 
-// handleVibiumElEval handles vibium:el.eval — runs script.callFunction with element.
-func (r *Router) handleVibiumElEval(session *BrowserSession, cmd bidiCommand) {
-	ep := ExtractElementParams(cmd.Params)
-	fn, _ := cmd.Params["fn"].(string)
-	context, err := r.resolveContext(session, cmd.Params)
-	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
-	}
-
-	args := buildElBaseArgs(ep)
-	args = append(args, map[string]interface{}{"type": "string", "value": fn})
-	script := `
-		(scope, selector, index, hasIndex, fn) => {
-			const root = scope ? document.querySelector(scope) : document;
-			if (!root) return JSON.stringify({error: 'root not found'});
-			let el;
-			if (hasIndex) {
-				el = root.querySelectorAll(selector)[index];
-			} else {
-				el = root.querySelector(selector);
-			}
-			if (!el) return JSON.stringify({error: 'element not found'});
-			const userFn = new Function('el', fn);
-			const result = userFn(el);
-			return JSON.stringify({value: result});
-		}
-	`
-
-	resp, err := r.sendInternalCommand(session, "script.callFunction", map[string]interface{}{
-		"functionDeclaration": script,
-		"target":              map[string]interface{}{"context": context},
-		"arguments":           args,
-		"awaitPromise":        false,
-		"resultOwnership":     "root",
-	})
-	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
-	}
-
-	val, err := parseScriptResult(resp)
-	if err != nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("eval failed: %w", err))
-		return
-	}
-
-	var result struct {
-		Value interface{} `json:"value"`
-		Error string      `json:"error"`
-	}
-	if err := json.Unmarshal([]byte(val), &result); err != nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("eval parse failed: %w", err))
-		return
-	}
-	if result.Error != "" {
-		r.sendError(session, cmd.ID, fmt.Errorf("eval: %s", result.Error))
-		return
-	}
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{"value": result.Value})
-}
-
 // handleVibiumElScreenshot handles vibium:el.screenshot — captures element screenshot.
 func (r *Router) handleVibiumElScreenshot(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -959,48 +897,6 @@ func (r *Router) handlePageEval(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"value": value})
-}
-
-// handlePageEvalHandle handles vibium:page.evalHandle — evaluates JS and returns a handle ID.
-func (r *Router) handlePageEvalHandle(session *BrowserSession, cmd bidiCommand) {
-	expression, _ := cmd.Params["expression"].(string)
-
-	context, err := r.resolveContext(session, cmd.Params)
-	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
-	}
-
-	resp, err := r.sendInternalCommand(session, "script.evaluate", map[string]interface{}{
-		"expression":      expression,
-		"target":          map[string]interface{}{"context": context},
-		"awaitPromise":    true,
-		"resultOwnership": "root",
-	})
-	if err != nil {
-		r.sendError(session, cmd.ID, err)
-		return
-	}
-
-	if bidiErr := checkBidiError(resp); bidiErr != nil {
-		r.sendError(session, cmd.ID, bidiErr)
-		return
-	}
-
-	// Extract the handle from the response
-	var result struct {
-		Result struct {
-			Result struct {
-				Handle string `json:"handle"`
-			} `json:"result"`
-		} `json:"result"`
-	}
-	if err := json.Unmarshal(resp, &result); err != nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("evalHandle parse failed: %w", err))
-		return
-	}
-
-	r.sendSuccess(session, cmd.ID, map[string]interface{}{"handle": result.Result.Result.Handle})
 }
 
 // handlePageAddScript handles vibium:page.addScript — injects a <script> tag.

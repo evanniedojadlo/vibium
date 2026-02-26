@@ -192,7 +192,7 @@ describe('Storage: context.storageState()', () => {
       await ctx.setCookies([
         { name: 'state_cookie', value: 'state_val', domain: '127.0.0.1' },
       ]);
-      await vibe.eval('localStorage.setItem("key1", "value1")');
+      await vibe.evaluate('localStorage.setItem("key1", "value1")');
 
       const state = await ctx.storageState();
 
@@ -233,7 +233,7 @@ describe('Init Scripts: context.addInitScript()', () => {
       const vibe = await ctx.newPage();
       await vibe.go(baseURL);
 
-      const value = await vibe.eval('window.__injected');
+      const value = await vibe.evaluate('window.__injected');
       assert.strictEqual(value, 'hello from init');
 
       await ctx.close();
@@ -252,13 +252,13 @@ describe('Init Scripts: context.addInitScript()', () => {
       const vibe = await ctx.newPage();
       await vibe.go(baseURL);
 
-      let value = await vibe.eval('window.__persistent');
+      let value = await vibe.evaluate('window.__persistent');
       assert.strictEqual(value, 42);
 
       // Navigate again
       await vibe.go(`${baseURL}/sub/page`);
 
-      value = await vibe.eval('window.__persistent');
+      value = await vibe.evaluate('window.__persistent');
       assert.strictEqual(value, 42);
 
       await ctx.close();

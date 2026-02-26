@@ -124,7 +124,7 @@ async function main() {
         const responsePromise = page.waitForResponse("**/get?test=1");
 
         // Trigger the request via fetch
-        await page.eval("fetch('https://httpbin.org/get?test=1')");
+        await page.evaluate("fetch('https://httpbin.org/get?test=1')");
 
         const resp = await responsePromise;
         console.log(`  Response URL: ${resp.url()}`);
@@ -145,7 +145,7 @@ async function main() {
 
         const requestPromise = page.waitForRequest("**/post");
 
-        await page.eval(`
+        await page.evaluate(`
       fetch('https://httpbin.org/post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,7 +179,7 @@ async function main() {
             dialog.accept();
         });
 
-        await alertPage.eval('alert("Hello from Vibium!")');
+        await alertPage.evaluate('alert("Hello from Vibium!")');
         console.log(`  Alert message: "${alertMessage}"`);
         console.log(
             `  ${alertMessage === "Hello from Vibium!" ? PASS : FAIL} alert captured and accepted`,
@@ -195,7 +195,7 @@ async function main() {
             dialog.accept();
         });
 
-        const confirmResult = await confirmPage.eval(
+        const confirmResult = await confirmPage.evaluate(
             'confirm("Do you like Vibium?")',
         );
         console.log(`  confirm() returned: ${confirmResult}`);
@@ -216,7 +216,7 @@ async function main() {
             dialog.accept("Vibium is great");
         });
 
-        const promptResult = await promptPage.eval(
+        const promptResult = await promptPage.evaluate(
             'prompt("What do you think?")',
         );
         console.log(`  prompt() returned: "${promptResult}"`);
@@ -234,7 +234,7 @@ async function main() {
             dialog.dismiss();
         });
 
-        const dismissResult = await dismissPage.eval('confirm("Cancel this?")');
+        const dismissResult = await dismissPage.evaluate('confirm("Cancel this?")');
         console.log(`  confirm() after dismiss: ${dismissResult}`);
         console.log(
             `  ${dismissResult === false ? PASS : FAIL} confirm dismissed returns false`,

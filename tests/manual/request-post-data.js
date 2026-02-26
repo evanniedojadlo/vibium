@@ -45,7 +45,7 @@ async function main() {
         await page.wait(300);
 
         // Trigger a POST via fetch
-        await page.eval(`
+        await page.evaluate(`
             fetch('https://httpbin.org/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -89,7 +89,7 @@ async function main() {
         // Give the data collector a moment to register
         await page.wait(300);
 
-        await page.eval(`
+        await page.evaluate(`
             fetch('https://httpbin.org/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
@@ -124,7 +124,7 @@ async function main() {
 
         await page.wait(300);
 
-        await page.eval("fetch('https://httpbin.org/get?foo=bar')");
+        await page.evaluate("fetch('https://httpbin.org/get?foo=bar')");
         await page.wait(1500);
 
         // GET requests have no body, so null or empty string is fine
@@ -146,7 +146,7 @@ async function main() {
 
         await page.wait(300);
 
-        await page.eval(`
+        await page.evaluate(`
             fetch('https://httpbin.org/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

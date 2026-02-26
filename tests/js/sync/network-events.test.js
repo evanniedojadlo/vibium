@@ -50,7 +50,7 @@ describe('Sync API: onRequest/onResponse', () => {
       urls.push(req.url);
     });
 
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     vibe.wait(500);
     assert.ok(urls.some(u => u.includes('/api/data')), `Should capture request to /api/data, got: ${urls.join(', ')}`);
   });
@@ -68,7 +68,7 @@ describe('Sync API: onRequest/onResponse', () => {
       }
     });
 
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     vibe.wait(500);
     assert.strictEqual(capturedMethod, 'GET');
     assert.ok(typeof capturedHeaders === 'object');
@@ -83,7 +83,7 @@ describe('Sync API: onRequest/onResponse', () => {
       statuses.push(resp.status);
     });
 
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     vibe.wait(500);
     assert.ok(statuses.includes(200), `Should capture 200 response, got: ${statuses.join(', ')}`);
   });
@@ -103,7 +103,7 @@ describe('Sync API: onRequest/onResponse', () => {
       }
     });
 
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     vibe.wait(500);
     assert.ok(capturedUrl.includes('/api/data'));
     assert.strictEqual(capturedStatus, 200);
@@ -120,7 +120,7 @@ describe('Sync API: onRequest/onResponse', () => {
     });
 
     vibe.removeAllListeners('request');
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     vibe.wait(500);
     assert.strictEqual(urls.length, 0, 'Should not capture requests after removeAllListeners');
   });
@@ -135,7 +135,7 @@ describe('Sync API: onRequest/onResponse', () => {
     });
 
     vibe.removeAllListeners('response');
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     vibe.wait(500);
     assert.strictEqual(statuses.length, 0, 'Should not capture responses after removeAllListeners');
   });
@@ -151,7 +151,7 @@ describe('Sync API: onRequest/onResponse', () => {
       }
     });
 
-    vibe.evaluate('return doPostFetch()');
+    vibe.evaluate('doPostFetch()');
     vibe.wait(500);
     assert.ok(capturedPostData !== null, 'Should capture postData');
     const parsed = JSON.parse(capturedPostData);
@@ -169,7 +169,7 @@ describe('Sync API: onRequest/onResponse', () => {
       }
     });
 
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     vibe.wait(500);
     assert.ok(capturedBody !== null, 'Should capture body');
     const parsed = JSON.parse(capturedBody);
@@ -182,7 +182,7 @@ describe('Sync API: onRequest/onResponse', () => {
     vibe.go(`${baseURL}/fetch`);
 
     const result = vibe.capture.request('**/api/echo', () => {
-      vibe.evaluate('return doPostFetch()');
+      vibe.evaluate('doPostFetch()');
     });
 
     assert.ok(result.postData !== null && result.postData !== undefined, 'Should have postData');
@@ -195,7 +195,7 @@ describe('Sync API: onRequest/onResponse', () => {
     vibe.go(`${baseURL}/fetch`);
 
     const result = vibe.capture.response('**/api/data', () => {
-      vibe.evaluate('return doFetch()');
+      vibe.evaluate('doFetch()');
     });
 
     assert.ok(result.body !== null && result.body !== undefined, 'Should have body');

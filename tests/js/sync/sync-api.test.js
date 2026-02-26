@@ -163,21 +163,21 @@ describe('Sync API: Evaluation', () => {
   test('evaluate() executes JavaScript', () => {
     const vibe = bro.page();
     vibe.go(baseURL);
-    const title = vibe.evaluate('return document.title');
+    const title = vibe.evaluate('document.title');
     assert.strictEqual(title, 'Test App');
   });
 
   test('eval() evaluates expression', () => {
     const vibe = bro.page();
     vibe.go(`${baseURL}/eval`);
-    const val = vibe.eval('window.testVal');
+    const val = vibe.evaluate('window.testVal');
     assert.strictEqual(val, 42);
   });
 
   test('eval() returns computed value', () => {
     const vibe = bro.page();
     vibe.go(baseURL);
-    const year = vibe.eval('new Date().getFullYear()');
+    const year = vibe.evaluate('new Date().getFullYear()');
     assert.strictEqual(typeof year, 'number');
     assert.ok(year >= 2025);
   });
@@ -291,7 +291,7 @@ describe('Sync API: Element interaction', () => {
     vibe.go(`${baseURL}/inputs`);
     const input = vibe.find('#text-input');
     input.type('12345');
-    const value = vibe.evaluate("return document.querySelector('#text-input').value");
+    const value = vibe.evaluate("document.querySelector('#text-input').value");
     assert.strictEqual(value, '12345');
   });
 
@@ -327,7 +327,7 @@ describe('Sync API: Element interaction', () => {
     const input = vibe.find('#text-input');
     input.click();
     input.press('a');
-    const value = vibe.evaluate("return document.querySelector('#text-input').value");
+    const value = vibe.evaluate("document.querySelector('#text-input').value");
     assert.ok(typeof value === 'string');
   });
 });
@@ -433,7 +433,7 @@ describe('Sync API: Keyboard, Mouse, Touch', () => {
     vibe.go(`${baseURL}/inputs`);
     vibe.find('#text-input').click();
     vibe.keyboard.type('hello');
-    const value = vibe.evaluate("return document.querySelector('#text-input').value");
+    const value = vibe.evaluate("document.querySelector('#text-input').value");
     assert.strictEqual(value, 'hello');
   });
 
@@ -463,7 +463,7 @@ describe('Sync API: Clock control', () => {
     vibe.go(`${baseURL}/clock`);
     vibe.clock.install({ time: new Date('2025-06-15T12:00:00Z') });
     vibe.clock.setFixedTime(new Date('2025-06-15T12:00:00Z'));
-    const year = vibe.eval('new Date().getFullYear()');
+    const year = vibe.evaluate('new Date().getFullYear()');
     assert.strictEqual(year, 2025);
   });
 
@@ -472,7 +472,7 @@ describe('Sync API: Clock control', () => {
     vibe.go(`${baseURL}/clock`);
     vibe.clock.install({ time: new Date('2025-06-15T12:00:00Z') });
     vibe.clock.fastForward(60000);
-    const time = vibe.eval('Date.now()');
+    const time = vibe.evaluate('Date.now()');
     assert.ok(typeof time === 'number');
   });
 });
@@ -568,7 +568,7 @@ describe('Sync API: Route handler callback', () => {
         body: JSON.stringify({ message: 'mocked', count: 99 }),
       });
     });
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     const text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.message, 'mocked');
@@ -585,7 +585,7 @@ describe('Sync API: Route handler callback', () => {
       capturedMethod = route.request.method;
       route.continue();
     });
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     assert.ok(capturedUrl.includes('/api/data'), 'Should capture URL');
     assert.strictEqual(capturedMethod, 'GET');
   });
@@ -597,7 +597,7 @@ describe('Sync API: Route handler callback', () => {
       route.abort();
     });
     // fetch will fail — check that it doesn't hang
-    vibe.evaluate('return doFetch().catch(e => { document.getElementById("result").textContent = "ABORTED"; })');
+    vibe.evaluate('doFetch().catch(e => { document.getElementById("result").textContent = "ABORTED"; })');
     const text = vibe.find('#result').text();
     assert.strictEqual(text, 'ABORTED');
   });
@@ -608,7 +608,7 @@ describe('Sync API: Route handler callback', () => {
     vibe.route('**/api/data', () => {
       // No action — should default to continue
     });
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     const text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.message, 'real data');
@@ -619,7 +619,7 @@ describe('Sync API: Route handler callback', () => {
     vibe.go(`${baseURL}/fetch`);
     // Static action (unchanged API)
     vibe.route('**/api/data', { status: 200, body: '{"static":true}' });
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     const text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.static, true);
@@ -631,14 +631,14 @@ describe('Sync API: Route handler callback', () => {
     vibe.route('**/api/data', (route) => {
       route.fulfill({ status: 200, body: '{"handler":"active"}' });
     });
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     let text = vibe.find('#result').text();
     assert.strictEqual(JSON.parse(text).handler, 'active');
 
     // Remove the route — clear result first
     vibe.evaluate('document.getElementById("result").textContent = ""');
     vibe.unroute('**/api/data');
-    vibe.evaluate('return doFetch()');
+    vibe.evaluate('doFetch()');
     text = vibe.find('#result').text();
     const data = JSON.parse(text);
     assert.strictEqual(data.message, 'real data', 'Should get real data after unroute');
@@ -821,7 +821,7 @@ describe('Sync API: Capture dialog', () => {
     vibe.go(`${baseURL}/prompt`);
     // Trigger alert asynchronously — alert() blocks the page, so we use
     // setTimeout to let expectDialogStart register before the dialog opens.
-    vibe.eval('setTimeout(() => document.getElementById("alert-btn").click(), 50)');
+    vibe.evaluate('setTimeout(() => document.getElementById("alert-btn").click(), 50)');
     const result = vibe.capture.dialog();
     assert.strictEqual(result.type, 'alert');
     assert.strictEqual(result.message, 'hello');
@@ -860,7 +860,7 @@ describe('Sync API: Full checkpoint', () => {
       const png = vibe.screenshot();
       assert.ok(png.length > 100, 'Screenshot should have data');
 
-      const year = vibe.eval('new Date().getFullYear()');
+      const year = vibe.evaluate('new Date().getFullYear()');
       assert.strictEqual(typeof year, 'number');
     } finally {
       bro.close();

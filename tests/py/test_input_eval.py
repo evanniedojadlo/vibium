@@ -87,47 +87,40 @@ async def test_pdf(async_page, test_server):
 
 async def test_eval_expression(async_page, test_server):
     await async_page.go(test_server + "/eval")
-    result = await async_page.eval("window.testVal")
+    result = await async_page.evaluate("window.testVal")
     assert result == 42
 
 
 async def test_eval_string(async_page, test_server):
     await async_page.go(test_server)
-    result = await async_page.eval("'hello'")
+    result = await async_page.evaluate("'hello'")
     assert result == "hello"
 
 
 async def test_eval_null_undefined(async_page, test_server):
     await async_page.go(test_server)
-    result = await async_page.eval("null")
+    result = await async_page.evaluate("null")
     assert result is None
-
-
-async def test_eval_handle(async_page, test_server):
-    await async_page.go(test_server)
-    handle = await async_page.eval_handle("document.body")
-    assert isinstance(handle, str)
-    assert len(handle) > 0
 
 
 async def test_add_script(async_page, test_server):
     await async_page.go(test_server)
     await async_page.add_script("window.__injected = 'yes'")
-    result = await async_page.eval("window.__injected")
+    result = await async_page.evaluate("window.__injected")
     assert result == "yes"
 
 
 async def test_add_style(async_page, test_server):
     await async_page.go(test_server)
     await async_page.add_style("body { background: rgb(255, 0, 0); }")
-    bg = await async_page.eval("getComputedStyle(document.body).backgroundColor")
+    bg = await async_page.evaluate("getComputedStyle(document.body).backgroundColor")
     assert "255" in bg
 
 
 async def test_expose(async_page, test_server):
     await async_page.go(test_server)
     await async_page.expose("myFunc", "(...args) => args.join('-')")
-    result = await async_page.eval("window.myFunc('a', 'b')")
+    result = await async_page.evaluate("window.myFunc('a', 'b')")
     assert result == "a-b"
 
 
@@ -143,5 +136,5 @@ async def test_checkpoint(async_page, test_server):
     assert await inp.value() == "checkpoint"
     data = await async_page.screenshot()
     assert data[:4] == b"\x89PNG"
-    result = await async_page.eval("1 + 1")
+    result = await async_page.evaluate("1 + 1")
     assert result == 2

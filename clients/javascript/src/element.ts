@@ -298,12 +298,6 @@ export class Element {
     return result.label;
   }
 
-  /** Evaluate a function with this element as argument. The fn body receives `el`. */
-  async eval<T = unknown>(fn: string): Promise<T> {
-    const result = await this.client.send<{ value: T }>('vibium:el.eval', this.commandParams({ fn }));
-    return result.value;
-  }
-
   /** Take a screenshot of just this element. Returns a PNG buffer. */
   async screenshot(): Promise<Buffer> {
     const result = await this.client.send<{ data: string }>('vibium:el.screenshot', this.commandParams());
@@ -421,7 +415,6 @@ export type FluentElement = Promise<Element> & {
   isEditable(): Promise<boolean>;
   role(): Promise<string>;
   label(): Promise<string>;
-  eval<T = unknown>(fn: string): Promise<T>;
   screenshot(): Promise<Buffer>;
   waitUntil(state?: string, options?: { timeout?: number }): Promise<void>;
   // Finding
@@ -464,7 +457,6 @@ export function fluent(promise: Promise<Element>): FluentElement {
   p.isEditable = () => promise.then(el => el.isEditable());
   p.role = () => promise.then(el => el.role());
   p.label = () => promise.then(el => el.label());
-  p.eval = (fn) => promise.then(el => el.eval(fn));
   p.screenshot = () => promise.then(el => el.screenshot());
   p.waitUntil = (state?, opts?) => promise.then(el => el.waitUntil(state, opts));
   // Finding

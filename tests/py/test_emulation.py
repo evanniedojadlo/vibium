@@ -41,53 +41,53 @@ async def test_set_content_with_title(async_page, test_server):
 async def test_emulate_media_dark(async_page, test_server):
     await async_page.go(test_server)
     await async_page.emulate_media(colorScheme="dark")
-    result = await async_page.eval("matchMedia('(prefers-color-scheme: dark)').matches")
+    result = await async_page.evaluate("matchMedia('(prefers-color-scheme: dark)').matches")
     assert result is True
 
 
 async def test_emulate_media_light(async_page, test_server):
     await async_page.go(test_server)
     await async_page.emulate_media(colorScheme="light")
-    result = await async_page.eval("matchMedia('(prefers-color-scheme: light)').matches")
+    result = await async_page.evaluate("matchMedia('(prefers-color-scheme: light)').matches")
     assert result is True
 
 
 async def test_emulate_media_print(async_page, test_server):
     await async_page.go(test_server)
     await async_page.emulate_media(media="print")
-    result = await async_page.eval("matchMedia('print').matches")
+    result = await async_page.evaluate("matchMedia('print').matches")
     assert result is True
 
 
 async def test_emulate_media_reduced_motion(async_page, test_server):
     await async_page.go(test_server)
     await async_page.emulate_media(reducedMotion="reduce")
-    result = await async_page.eval("matchMedia('(prefers-reduced-motion: reduce)').matches")
+    result = await async_page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     assert result is True
 
 
 async def test_emulate_media_forced_colors(async_page, test_server):
     await async_page.go(test_server)
     await async_page.emulate_media(forcedColors="active")
-    result = await async_page.eval("matchMedia('(forced-colors: active)').matches")
+    result = await async_page.evaluate("matchMedia('(forced-colors: active)').matches")
     assert result is True
 
 
 async def test_emulate_media_contrast(async_page, test_server):
     await async_page.go(test_server)
     await async_page.emulate_media(contrast="more")
-    result = await async_page.eval("matchMedia('(prefers-contrast: more)').matches")
+    result = await async_page.evaluate("matchMedia('(prefers-contrast: more)').matches")
     assert result is True
 
 
 async def test_emulate_media_reset(async_page, test_server):
     await async_page.go(test_server)
     await async_page.emulate_media(colorScheme="dark")
-    result = await async_page.eval("matchMedia('(prefers-color-scheme: dark)').matches")
+    result = await async_page.evaluate("matchMedia('(prefers-color-scheme: dark)').matches")
     assert result is True
     # Reset
     await async_page.emulate_media(colorScheme="light")
-    result = await async_page.eval("matchMedia('(prefers-color-scheme: light)').matches")
+    result = await async_page.evaluate("matchMedia('(prefers-color-scheme: light)').matches")
     assert result is True
 
 
@@ -122,7 +122,7 @@ async def test_set_geolocation(async_page, test_server):
     await async_page.go(test_server)
     await async_page.set_geolocation({"latitude": 37.7749, "longitude": -122.4194})
     # Verify geolocation was set by querying it
-    result = await async_page.eval("""
+    result = await async_page.evaluate("""
         new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
                 (pos) => resolve({lat: pos.coords.latitude, lng: pos.coords.longitude}),

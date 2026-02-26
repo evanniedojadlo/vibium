@@ -267,19 +267,9 @@ export class PageSync {
 
   // --- Evaluation ---
 
-  evaluate<T = unknown>(script: string): T {
-    const result = this._bridge.call<{ result: T }>('page.evaluate', [this._pageId, script]);
-    return result.result;
-  }
-
-  eval<T = unknown>(expression: string): T {
+  evaluate<T = unknown>(expression: string): T {
     const result = this._bridge.call<{ value: T }>('page.eval', [this._pageId, expression]);
     return result.value;
-  }
-
-  evalHandle(expression: string): string {
-    const result = this._bridge.call<{ handle: string }>('page.evalHandle', [this._pageId, expression]);
-    return result.handle;
   }
 
   addScript(source: string): void {

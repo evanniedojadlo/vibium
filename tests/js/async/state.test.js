@@ -238,22 +238,6 @@ describe('Element State: enabled/checked/editable', () => {
   });
 });
 
-describe('Element State: eval', () => {
-  test('eval() runs function with element', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go('https://example.com');
-
-      const h1 = await vibe.find('h1');
-      const tagName = await h1.eval('return el.tagName.toLowerCase()');
-      assert.strictEqual(tagName, 'h1');
-    } finally {
-      await bro.close();
-    }
-  });
-});
-
 describe('Element State: screenshot', () => {
   test('screenshot() returns a PNG buffer', async () => {
     const bro = await browser.launch({ headless: true });

@@ -358,22 +358,10 @@ const handlers: Record<string, Handler> = {
     return { data: buffer.toString('base64') };
   },
 
-  'page.evaluate': async (args) => {
-    const [pageId, script] = args as [number, string];
-    const result = await getPage(pageId).evaluate(script);
-    return { result };
-  },
-
   'page.eval': async (args) => {
     const [pageId, expression] = args as [number, string];
-    const value = await getPage(pageId).eval(expression);
+    const value = await getPage(pageId).evaluate(expression);
     return { value };
-  },
-
-  'page.evalHandle': async (args) => {
-    const [pageId, expression] = args as [number, string];
-    const handle = await getPage(pageId).evalHandle(expression);
-    return { handle };
   },
 
   'page.addScript': async (args) => {
@@ -1339,12 +1327,6 @@ const handlers: Record<string, Handler> = {
     const [elementId] = args as [number];
     const label = await getElement(elementId).label();
     return { label };
-  },
-
-  'element.eval': async (args) => {
-    const [elementId, fn] = args as [number, string];
-    const value = await getElement(elementId).eval(fn);
-    return { value };
   },
 
   'element.screenshot': async (args) => {

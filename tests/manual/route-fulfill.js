@@ -74,7 +74,7 @@ async function main() {
             });
         });
 
-        const result = await page.eval(`
+        const result = await page.evaluate(`
             fetch('/api/users').then(r => r.json())
         `);
 
@@ -105,7 +105,7 @@ async function main() {
             });
         });
 
-        const teapot = await page.eval(`
+        const teapot = await page.evaluate(`
             fetch('/api/status')
                 .then(r => r.text().then(body => ({
                     status: r.status,
@@ -149,7 +149,7 @@ async function main() {
         await page.wait(500);
 
         const title = await page.title();
-        const bodyText = await page.eval("document.body.innerText");
+        const bodyText = await page.evaluate("document.body.innerText");
 
         console.log(`  Page title: "${title}"`);
         console.log(`  ${title === "Vibium Mock Page" ? PASS : FAIL} Mock HTML page loaded`);
@@ -180,7 +180,7 @@ async function main() {
         console.log(`  ${realTitle === "Test App" ? PASS : FAIL} Real page loaded normally`);
 
         // Fetch the mocked API from within the real page
-        const apiResult = await page.eval(`
+        const apiResult = await page.evaluate(`
             fetch('/api/users').then(r => r.json())
         `);
 

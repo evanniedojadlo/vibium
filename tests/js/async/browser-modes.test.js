@@ -62,7 +62,7 @@ describe('JS Browser Modes', () => {
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
-      const title = await vibe.evaluate('return document.title');
+      const title = await vibe.evaluate('document.title');
       assert.match(title, /The Internet/i, 'Should work with default options');
     } finally {
       await bro.close();

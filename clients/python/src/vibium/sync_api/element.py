@@ -122,9 +122,6 @@ class Element:
     def label(self) -> str:
         return self._loop.run(self._async.label())
 
-    def eval(self, fn: str) -> Any:
-        return self._loop.run(self._async.eval(fn))
-
     def screenshot(self) -> bytes:
         return self._loop.run(self._async.screenshot())
 

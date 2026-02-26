@@ -9,7 +9,7 @@ def test_on_request(sync_browser, test_server):
     vibe.go(test_server + "/fetch")
     urls = []
     vibe.on_request(lambda req: urls.append(req.url()))
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     assert any("api/data" in u for u in urls)
 
@@ -26,7 +26,7 @@ def test_on_request_method_headers(sync_browser, test_server):
             captured["headers"] = req.headers()
 
     vibe.on_request(handler)
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     assert captured.get("method") == "GET"
     assert isinstance(captured.get("headers"), dict)
@@ -38,7 +38,7 @@ def test_on_response(sync_browser, test_server):
     vibe.go(test_server + "/fetch")
     statuses = []
     vibe.on_response(lambda resp: statuses.append(resp.status()))
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     assert 200 in statuses
 
@@ -56,7 +56,7 @@ def test_on_response_url_status(sync_browser, test_server):
             captured["headers"] = resp.headers()
 
     vibe.on_response(handler)
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     assert "api/data" in captured.get("url", "")
     assert captured.get("status") == 200
@@ -70,7 +70,7 @@ def test_remove_request_listeners(sync_browser, test_server):
     urls = []
     vibe.on_request(lambda req: urls.append(req.url()))
     vibe.remove_all_listeners("request")
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     assert len(urls) == 0
 
@@ -82,7 +82,7 @@ def test_remove_response_listeners(sync_browser, test_server):
     statuses = []
     vibe.on_response(lambda resp: statuses.append(resp.status()))
     vibe.remove_all_listeners("response")
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     assert len(statuses) == 0
 
@@ -98,7 +98,7 @@ def test_on_request_post_data(sync_browser, test_server):
             captured["post_data"] = req.post_data()
 
     vibe.on_request(handler)
-    vibe.eval("doPostFetch()")
+    vibe.evaluate("doPostFetch()")
     vibe.wait(500)
     import json
     assert captured.get("post_data") is not None, "Should capture post_data"
@@ -117,7 +117,7 @@ def test_on_response_body(sync_browser, test_server):
             captured["body"] = resp.body()
 
     vibe.on_response(handler)
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     import json
     assert captured.get("body") is not None, "Should capture body"
@@ -131,7 +131,7 @@ def test_capture_request_post_data(sync_browser, test_server):
     vibe = sync_browser.new_page()
     vibe.go(test_server + "/fetch")
 
-    result = vibe.capture.request("**/api/echo", lambda: vibe.eval("doPostFetch()"))
+    result = vibe.capture.request("**/api/echo", lambda: vibe.evaluate("doPostFetch()"))
 
     import json
     assert result["post_data"] is not None, "Should have post_data"
@@ -144,7 +144,7 @@ def test_capture_response_body(sync_browser, test_server):
     vibe = sync_browser.new_page()
     vibe.go(test_server + "/fetch")
 
-    result = vibe.capture.response("**/api/data", lambda: vibe.eval("doFetch()"))
+    result = vibe.capture.response("**/api/data", lambda: vibe.evaluate("doFetch()"))
 
     import json
     assert result["body"] is not None, "Should have body"

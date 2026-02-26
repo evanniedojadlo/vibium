@@ -28,7 +28,7 @@ async def test_page_screenshot_returns_png(async_page, test_server):
 
 async def test_page_eval_executes_js(async_page, test_server):
     await async_page.go(test_server + "/eval")
-    result = await async_page.eval("window.testVal")
+    result = await async_page.evaluate("window.testVal")
     assert result == 42
 
 

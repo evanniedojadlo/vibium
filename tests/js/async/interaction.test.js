@@ -58,14 +58,14 @@ describe('Interaction: Checkpoint', () => {
       // First checkbox starts unchecked
       await first.check();
       const checked = await vibe.evaluate(`
-        return document.querySelectorAll('input[type="checkbox"]')[0].checked;
+        document.querySelectorAll('input[type="checkbox"]')[0].checked;
       `);
       assert.strictEqual(checked, true, 'First checkbox should be checked');
 
       // Uncheck it
       await first.uncheck();
       const unchecked = await vibe.evaluate(`
-        return document.querySelectorAll('input[type="checkbox"]')[0].checked;
+        document.querySelectorAll('input[type="checkbox"]')[0].checked;
       `);
       assert.strictEqual(unchecked, false, 'First checkbox should be unchecked');
     } finally {
@@ -86,11 +86,12 @@ describe('Interaction: Checkpoint', () => {
       // After hover, the caption should be visible
       // Wait briefly for CSS transition
       await new Promise(resolve => setTimeout(resolve, 500));
-      const visible = await vibe.evaluate(`
+      const visible = await vibe.evaluate(`(() => {
         const caption = document.querySelector('.figure .figcaption');
         const style = window.getComputedStyle(caption);
         return style.opacity !== '0' && style.display !== 'none';
-      `);
+      })()`);
+
       assert.ok(visible, 'Hovering should reveal caption');
     } finally {
       await bro.close();
@@ -129,7 +130,7 @@ describe('Interaction: Click variants', () => {
 
       // Double-clicking on text should select it
       const selectedText = await vibe.evaluate(`
-        return window.getSelection().toString();
+        window.getSelection().toString();
       `);
       assert.ok(selectedText.length > 0, 'Double-click should select text');
     } finally {
@@ -150,7 +151,7 @@ describe('Interaction: Input methods', () => {
       await username.fill('secondvalue');
 
       const value = await vibe.evaluate(`
-        return document.getElementById('username').value;
+        document.getElementById('username').value;
       `);
       assert.strictEqual(value, 'secondvalue', 'fill() should clear and replace text');
     } finally {
@@ -169,7 +170,7 @@ describe('Interaction: Input methods', () => {
       await input.type('45');
 
       const value = await vibe.evaluate(`
-        return document.querySelector('input').value;
+        document.querySelector('input').value;
       `);
       assert.strictEqual(value, '12345', 'type() should append text');
     } finally {
@@ -188,7 +189,7 @@ describe('Interaction: Input methods', () => {
       await username.clear();
 
       const value = await vibe.evaluate(`
-        return document.getElementById('username').value;
+        document.getElementById('username').value;
       `);
       assert.strictEqual(value, '', 'clear() should empty the input');
     } finally {
@@ -231,7 +232,7 @@ describe('Interaction: Select', () => {
       await dropdown.selectOption('2');
 
       const value = await vibe.evaluate(`
-        return document.getElementById('dropdown').value;
+        document.getElementById('dropdown').value;
       `);
       assert.strictEqual(value, '2', 'selectOption should set dropdown value');
     } finally {
@@ -251,7 +252,7 @@ describe('Interaction: Focus', () => {
       await username.focus();
 
       const activeId = await vibe.evaluate(`
-        return document.activeElement ? document.activeElement.id : '';
+        document.activeElement ? document.activeElement.id : '';
       `);
       assert.strictEqual(activeId, 'username', 'focus() should set active element');
     } finally {
@@ -271,11 +272,12 @@ describe('Interaction: Scroll', () => {
       const footer = await vibe.find('#page-footer');
       await footer.scrollIntoView();
 
-      const inView = await vibe.evaluate(`
+      const inView = await vibe.evaluate(`(() => {
         const footer = document.getElementById('page-footer');
         const rect = footer.getBoundingClientRect();
         return rect.top >= 0 && rect.top < window.innerHeight;
-      `);
+      })()`);
+
       assert.ok(inView, 'scrollIntoView should bring element into viewport');
     } finally {
       await bro.close();
@@ -295,7 +297,7 @@ describe('Interaction: findAll index bug fix', () => {
 
       // Second checkbox starts checked
       const secondChecked = await vibe.evaluate(`
-        return document.querySelectorAll('input[type="checkbox"]')[1].checked;
+        document.querySelectorAll('input[type="checkbox"]')[1].checked;
       `);
       assert.strictEqual(secondChecked, true, 'Second checkbox starts checked');
 
@@ -303,13 +305,13 @@ describe('Interaction: findAll index bug fix', () => {
       await checkboxes.nth(1).click();
 
       const afterClick = await vibe.evaluate(`
-        return document.querySelectorAll('input[type="checkbox"]')[1].checked;
+        document.querySelectorAll('input[type="checkbox"]')[1].checked;
       `);
       assert.strictEqual(afterClick, false, 'nth(1).click() should toggle second checkbox');
 
       // First checkbox should be unchanged
       const firstUnchanged = await vibe.evaluate(`
-        return document.querySelectorAll('input[type="checkbox"]')[0].checked;
+        document.querySelectorAll('input[type="checkbox"]')[0].checked;
       `);
       assert.strictEqual(firstUnchanged, false, 'First checkbox should be unchanged');
     } finally {
@@ -337,7 +339,7 @@ describe('Interaction: dispatchEvent', () => {
       await h1.dispatchEvent('click', { bubbles: true });
 
       const fired = await vibe.evaluate(`
-        return window.__eventFired;
+        window.__eventFired;
       `);
       assert.strictEqual(fired, true, 'dispatchEvent should fire the event');
     } finally {

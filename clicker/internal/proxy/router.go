@@ -336,9 +336,6 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	case "vibium:el.isEditable":
 		r.dispatch(session, cmd, r.handleVibiumElIsEditable)
 		return
-	case "vibium:el.eval":
-		r.dispatch(session, cmd, r.handleVibiumElEval)
-		return
 	case "vibium:el.screenshot":
 		r.dispatch(session, cmd, r.handleVibiumElScreenshot)
 		return
@@ -392,9 +389,6 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	// Page-level evaluation commands
 	case "vibium:page.eval":
 		r.dispatch(session, cmd, r.handlePageEval)
-		return
-	case "vibium:page.evalHandle":
-		r.dispatch(session, cmd, r.handlePageEvalHandle)
 		return
 	case "vibium:page.addScript":
 		r.dispatch(session, cmd, r.handlePageAddScript)

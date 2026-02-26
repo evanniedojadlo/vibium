@@ -77,7 +77,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       });
 
       await vibe.wait(200);
-      await vibe.eval(`window.createWS('${wsURL}')`);
+      await vibe.evaluate(`window.createWS('${wsURL}')`);
       await vibe.wait(500);
 
       assert.ok(wsCreated, 'onWebSocket should have fired');
@@ -98,7 +98,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       });
 
       await vibe.wait(200);
-      await vibe.eval(`window.createWS('${wsURL}')`);
+      await vibe.evaluate(`window.createWS('${wsURL}')`);
       await vibe.wait(500);
 
       assert.strictEqual(capturedUrl, wsURL);
@@ -123,7 +123,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       await vibe.wait(200);
 
       // Create WS and send a message (fire-and-forget, no Promise)
-      await vibe.eval(`
+      await vibe.evaluate(`
         const ws = window.createWS('${wsURL}');
         ws.onopen = () => ws.send('hello');
       `);
@@ -153,7 +153,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       await vibe.wait(200);
 
       // Create WS and send — echo server echoes back
-      await vibe.eval(`
+      await vibe.evaluate(`
         const ws = window.createWS('${wsURL}');
         ws.onopen = () => ws.send('echo-me');
       `);
@@ -184,7 +184,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
 
       await vibe.wait(200);
 
-      await vibe.eval(`
+      await vibe.evaluate(`
         const ws = window.createWS('${wsURL}');
         ws.onopen = () => ws.close(1000, 'done');
       `);
@@ -210,7 +210,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       });
 
       await vibe.wait(200);
-      await vibe.eval(`
+      await vibe.evaluate(`
         const ws = window.createWS('${wsURL}');
         ws.onopen = () => ws.close();
       `);
@@ -237,7 +237,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       await vibe.wait(200);
 
       // Create WS on first page
-      await vibe.eval(`window.createWS('${wsURL}')`);
+      await vibe.evaluate(`window.createWS('${wsURL}')`);
       await vibe.wait(500);
       assert.strictEqual(wsCount, 1, 'Should have captured 1 WS on first page');
 
@@ -246,7 +246,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       await vibe.wait(200);
 
       // Create WS on second page — preload script should still be active
-      await vibe.eval(`window.createWS('${wsURL}')`);
+      await vibe.evaluate(`window.createWS('${wsURL}')`);
       await vibe.wait(500);
       assert.strictEqual(wsCount, 2, 'Should have captured 2 WS total after navigation');
     } finally {
@@ -266,7 +266,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       });
 
       await vibe.wait(200);
-      await vibe.eval(`window.createWS('${wsURL}')`);
+      await vibe.evaluate(`window.createWS('${wsURL}')`);
       await vibe.wait(500);
       assert.strictEqual(wsCount, 1);
 
@@ -274,7 +274,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       vibe.removeAllListeners('websocket');
 
       // Create another WS — should not fire callback
-      await vibe.eval(`window.createWS('${wsURL}')`);
+      await vibe.evaluate(`window.createWS('${wsURL}')`);
       await vibe.wait(500);
       assert.strictEqual(wsCount, 1, 'Should still be 1 after removing listeners');
     } finally {

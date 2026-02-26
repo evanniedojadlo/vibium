@@ -94,7 +94,7 @@ describe('JS Async API', () => {
   test('page.evaluate() executes JavaScript', async () => {
     const vibe = await bro.page();
     await vibe.go(baseURL);
-    const title = await vibe.evaluate('return document.title');
+    const title = await vibe.evaluate('document.title');
     assert.match(title, /Test App/i, 'Should return page title');
   });
 
@@ -125,9 +125,7 @@ describe('JS Async API', () => {
     const input = await vibe.find('input');
     await input.type('12345');
 
-    const value = await vibe.evaluate(`
-      return document.querySelector('input').value;
-    `);
+    const value = await vibe.evaluate("document.querySelector('input').value");
     assert.strictEqual(value, '12345', 'Input should have typed value');
   });
 

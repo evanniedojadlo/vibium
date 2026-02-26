@@ -108,7 +108,6 @@
 | `el.isEnabled()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.isChecked()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `el.isEditable()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.eval(fn)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `el.screenshot()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
 ## Keyboard & Mouse
@@ -282,9 +281,7 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `page.evaluate(script)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.eval(expr)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.evalHandle(expr)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `page.evaluate(expr)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `page.addScript(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.addStyle(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
 | `page.expose(name, fn)` | ✅ | ✅ | ✅ | ✅ | — | — |

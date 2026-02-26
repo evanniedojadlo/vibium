@@ -64,7 +64,7 @@ describe('Sync API: onWebSocket', () => {
     });
 
     vibe.wait(200);
-    vibe.eval(`window.createWS('${wsURL}')`);
+    vibe.evaluate(`window.createWS('${wsURL}')`);
     vibe.wait(1000);
 
     assert.ok(wsCreated, 'onWebSocket should have fired');
@@ -80,7 +80,7 @@ describe('Sync API: onWebSocket', () => {
     });
 
     vibe.wait(200);
-    vibe.eval(`window.createWS('${wsURL}')`);
+    vibe.evaluate(`window.createWS('${wsURL}')`);
     vibe.wait(1000);
 
     assert.strictEqual(capturedUrl, wsURL);
@@ -98,7 +98,7 @@ describe('Sync API: onWebSocket', () => {
     });
 
     vibe.wait(200);
-    vibe.eval(`
+    vibe.evaluate(`
       const ws = window.createWS('${wsURL}');
       ws.onopen = () => ws.send('hello');
     `);
@@ -121,7 +121,7 @@ describe('Sync API: onWebSocket', () => {
     });
 
     vibe.wait(200);
-    vibe.eval(`
+    vibe.evaluate(`
       const ws = window.createWS('${wsURL}');
       ws.onopen = () => ws.send('echo-me');
     `);
@@ -146,7 +146,7 @@ describe('Sync API: onWebSocket', () => {
     });
 
     vibe.wait(200);
-    vibe.eval(`
+    vibe.evaluate(`
       const ws = window.createWS('${wsURL}');
       ws.onopen = () => ws.close(1000, 'done');
     `);
@@ -167,7 +167,7 @@ describe('Sync API: onWebSocket', () => {
     });
 
     vibe.wait(200);
-    vibe.eval(`
+    vibe.evaluate(`
       const ws = window.createWS('${wsURL}');
       ws.onopen = () => ws.close();
     `);
@@ -187,13 +187,13 @@ describe('Sync API: onWebSocket', () => {
     });
 
     vibe.wait(200);
-    vibe.eval(`window.createWS('${wsURL}')`);
+    vibe.evaluate(`window.createWS('${wsURL}')`);
     vibe.wait(1000);
     assert.strictEqual(wsCount, 1);
 
     vibe.removeAllListeners('websocket');
 
-    vibe.eval(`window.createWS('${wsURL}')`);
+    vibe.evaluate(`window.createWS('${wsURL}')`);
     vibe.wait(1000);
     assert.strictEqual(wsCount, 1, 'Should still be 1 after removing listeners');
   });

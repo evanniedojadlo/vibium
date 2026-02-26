@@ -47,7 +47,7 @@ describe('Console Events: page.onConsole', () => {
       const messages = [];
       vibe.onConsole((msg) => messages.push(msg));
 
-      await vibe.eval('console.log("hello from test")');
+      await vibe.evaluate('console.log("hello from test")');
       await vibe.wait(300);
 
       assert.ok(messages.length >= 1, `Expected at least 1 console message, got ${messages.length}`);
@@ -68,7 +68,7 @@ describe('Console Events: page.onConsole', () => {
       const messages = [];
       vibe.onConsole((msg) => messages.push(msg));
 
-      await vibe.eval('console.warn("warning msg")');
+      await vibe.evaluate('console.warn("warning msg")');
       await vibe.wait(300);
 
       const msg = messages.find(m => m.text().includes('warning msg'));
@@ -90,7 +90,7 @@ describe('Console Events: page.onConsole', () => {
       vibe.onConsole((msg) => consoleMessages.push(msg));
       vibe.onError((err) => errors.push(err));
 
-      await vibe.eval('console.error("console err")');
+      await vibe.evaluate('console.error("console err")');
       await vibe.wait(300);
 
       // console.error should fire onConsole
@@ -115,7 +115,7 @@ describe('Console Events: page.onConsole', () => {
       const messages = [];
       vibe.onConsole((msg) => messages.push(msg));
 
-      await vibe.eval('console.log("arg1", 42)');
+      await vibe.evaluate('console.log("arg1", 42)');
       await vibe.wait(300);
 
       const msg = messages.find(m => m.text().includes('arg1'));
@@ -142,7 +142,7 @@ describe('Error Events: page.onError', () => {
       vibe.onError((err) => errors.push(err));
 
       // Use setTimeout to create a truly uncaught exception (not caught by eval's promise)
-      await vibe.eval('setTimeout(() => { throw new Error("boom uncaught") }, 0)');
+      await vibe.evaluate('setTimeout(() => { throw new Error("boom uncaught") }, 0)');
       await vibe.wait(500);
 
       assert.ok(errors.length >= 1, `Expected at least 1 error, got ${errors.length}`);
@@ -163,7 +163,7 @@ describe('Error Events: page.onError', () => {
       const errors = [];
       vibe.onError((err) => errors.push(err));
 
-      await vibe.eval('console.error("just a console error")');
+      await vibe.evaluate('console.error("just a console error")');
       await vibe.wait(300);
 
       const matchingError = errors.find(e => e.message.includes('just a console error'));
@@ -184,7 +184,7 @@ describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
       await vibe.go(baseURL);
 
       vibe.onConsole('collect');
-      await vibe.eval('console.log("collect hello")');
+      await vibe.evaluate('console.log("collect hello")');
       await vibe.wait(300);
 
       const messages = vibe.consoleMessages();
@@ -203,7 +203,7 @@ describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
       await vibe.go(baseURL);
 
       vibe.onConsole('collect');
-      await vibe.eval('console.warn("collect warning")');
+      await vibe.evaluate('console.warn("collect warning")');
       await vibe.wait(300);
 
       const messages = vibe.consoleMessages();
@@ -222,7 +222,7 @@ describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
       await vibe.go(baseURL);
 
       vibe.onConsole('collect');
-      await vibe.eval('console.log("first")');
+      await vibe.evaluate('console.log("first")');
       await vibe.wait(300);
 
       const first = vibe.consoleMessages();
@@ -257,7 +257,7 @@ describe('Collect Mode: onError("collect") + errors()', () => {
       await vibe.go(baseURL);
 
       vibe.onError('collect');
-      await vibe.eval('setTimeout(() => { throw new Error("collect boom") }, 0)');
+      await vibe.evaluate('setTimeout(() => { throw new Error("collect boom") }, 0)');
       await vibe.wait(500);
 
       const errs = vibe.errors();
@@ -275,7 +275,7 @@ describe('Collect Mode: onError("collect") + errors()', () => {
       await vibe.go(baseURL);
 
       vibe.onError('collect');
-      await vibe.eval('setTimeout(() => { throw new Error("err1") }, 0)');
+      await vibe.evaluate('setTimeout(() => { throw new Error("err1") }, 0)');
       await vibe.wait(500);
 
       const first = vibe.errors();
@@ -314,14 +314,14 @@ describe('removeAllListeners for console/error', () => {
       const messages = [];
       vibe.onConsole((msg) => messages.push(msg));
 
-      await vibe.eval('console.log("before clear")');
+      await vibe.evaluate('console.log("before clear")');
       await vibe.wait(300);
       assert.ok(messages.length >= 1, 'Should have captured message before clear');
 
       vibe.removeAllListeners('console');
 
       const countBefore = messages.length;
-      await vibe.eval('console.log("after clear")');
+      await vibe.evaluate('console.log("after clear")');
       await vibe.wait(300);
       assert.strictEqual(messages.length, countBefore, 'Should not capture messages after removeAllListeners');
     } finally {
@@ -340,7 +340,7 @@ describe('removeAllListeners for console/error', () => {
 
       vibe.removeAllListeners('error');
 
-      await vibe.eval('setTimeout(() => { throw new Error("should not capture") }, 0)');
+      await vibe.evaluate('setTimeout(() => { throw new Error("should not capture") }, 0)');
       await vibe.wait(500);
 
       const matching = errors.find(e => e.message.includes('should not capture'));
@@ -357,14 +357,14 @@ describe('removeAllListeners for console/error', () => {
       await vibe.go(baseURL);
 
       vibe.onConsole('collect');
-      await vibe.eval('console.log("before remove")');
+      await vibe.evaluate('console.log("before remove")');
       await vibe.wait(300);
 
       const msgsBefore = vibe.consoleMessages();
       assert.ok(msgsBefore.length >= 1, 'Should have captured message before clear');
 
       vibe.removeAllListeners('console');
-      await vibe.eval('console.log("after remove")');
+      await vibe.evaluate('console.log("after remove")');
       await vibe.wait(300);
 
       const msgsAfter = vibe.consoleMessages();
@@ -383,7 +383,7 @@ describe('removeAllListeners for console/error', () => {
       vibe.onError('collect');
       vibe.removeAllListeners('error');
 
-      await vibe.eval('setTimeout(() => { throw new Error("should not collect") }, 0)');
+      await vibe.evaluate('setTimeout(() => { throw new Error("should not collect") }, 0)');
       await vibe.wait(500);
 
       const errs = vibe.errors();

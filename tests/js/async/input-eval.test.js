@@ -1,7 +1,7 @@
 /**
  * JS Library Tests: Keyboard, Mouse, Screenshots, Evaluation
  * Tests page.keyboard, page.mouse, page.screenshot (options),
- * page.pdf, page.eval, page.evalHandle, page.addScript, page.addStyle, page.expose.
+ * page.pdf, page.evaluate, page.addScript, page.addStyle, page.expose.
  */
 
 const { test, describe, before, after } = require('node:test');
@@ -128,11 +128,12 @@ describe('Mouse: page-level input', () => {
       // Wait briefly for CSS transition
       await vibe.wait(500);
 
-      const visible = await vibe.evaluate(`
+      const visible = await vibe.evaluate(`(() => {
         const caption = document.querySelector('.figure .figcaption');
         const style = window.getComputedStyle(caption);
         return style.opacity !== '0';
-      `);
+      })()`);
+
       assert.ok(visible, 'Hover caption should be visible after mouse.move');
     } finally {
       await bro.close();
@@ -149,7 +150,7 @@ describe('Mouse: page-level input', () => {
       await vibe.mouse.wheel(0, 500);
       await vibe.wait(300);
 
-      const scrollY = await vibe.evaluate('return window.scrollY;');
+      const scrollY = await vibe.evaluate('window.scrollY;');
       assert.ok(scrollY > 0, `Page should have scrolled down, scrollY: ${scrollY}`);
     } finally {
       await bro.close();
@@ -241,7 +242,7 @@ describe('Evaluation: page-level', () => {
       const vibe = await bro.page();
       await vibe.go('https://example.com');
 
-      const result = await vibe.eval('1 + 1');
+      const result = await vibe.evaluate('1 + 1');
       assert.strictEqual(result, 2);
     } finally {
       await bro.close();
@@ -254,7 +255,7 @@ describe('Evaluation: page-level', () => {
       const vibe = await bro.page();
       await vibe.go('https://example.com');
 
-      const result = await vibe.eval('document.title');
+      const result = await vibe.evaluate('document.title');
       assert.strictEqual(result, 'Example Domain');
     } finally {
       await bro.close();
@@ -267,22 +268,8 @@ describe('Evaluation: page-level', () => {
       const vibe = await bro.page();
       await vibe.go('https://example.com');
 
-      const result = await vibe.eval('undefined');
+      const result = await vibe.evaluate('undefined');
       assert.strictEqual(result, null);
-    } finally {
-      await bro.close();
-    }
-  });
-
-  test('evalHandle() returns a handle ID', async () => {
-    const bro = await browser.launch({ headless: true });
-    try {
-      const vibe = await bro.page();
-      await vibe.go('https://example.com');
-
-      const handle = await vibe.evalHandle('document.body');
-      assert.ok(typeof handle === 'string', `evalHandle should return string, got: ${typeof handle}`);
-      assert.ok(handle.length > 0, 'Handle ID should not be empty');
     } finally {
       await bro.close();
     }
@@ -296,7 +283,7 @@ describe('Evaluation: page-level', () => {
 
       await vibe.addScript('window.__testVar = 42;');
 
-      const result = await vibe.eval('window.__testVar');
+      const result = await vibe.evaluate('window.__testVar');
       assert.strictEqual(result, 42);
     } finally {
       await bro.close();
@@ -311,9 +298,7 @@ describe('Evaluation: page-level', () => {
 
       await vibe.addStyle('body { background-color: rgb(255, 0, 0) !important; }');
 
-      const bg = await vibe.evaluate(`
-        return window.getComputedStyle(document.body).backgroundColor;
-      `);
+      const bg = await vibe.evaluate('window.getComputedStyle(document.body).backgroundColor');
       assert.strictEqual(bg, 'rgb(255, 0, 0)');
     } finally {
       await bro.close();
@@ -328,7 +313,7 @@ describe('Evaluation: page-level', () => {
 
       await vibe.expose('myAdd', '(a, b) => a + b');
 
-      const result = await vibe.eval('window.myAdd(2, 3)');
+      const result = await vibe.evaluate('window.myAdd(2, 3)');
       assert.strictEqual(result, 5);
     } finally {
       await bro.close();
@@ -360,9 +345,9 @@ describe('Input & Eval Checkpoint', () => {
       await vibe.keyboard.type('SuperSecretPassword!');
 
       // Verify values using eval
-      const username = await vibe.eval('document.querySelector("#username").value');
+      const username = await vibe.evaluate('document.querySelector("#username").value');
       assert.strictEqual(username, 'tomsmith');
-      const password = await vibe.eval('document.querySelector("#password").value');
+      const password = await vibe.evaluate('document.querySelector("#password").value');
       assert.strictEqual(password, 'SuperSecretPassword!');
 
       // Take screenshot

@@ -116,15 +116,6 @@ async def test_is_editable(async_page, test_server):
     assert await inp.is_editable()
 
 
-# --- Eval ---
-
-async def test_element_eval(async_page, test_server):
-    await async_page.go(test_server)
-    el = await async_page.find("h1")
-    result = await el.eval("return el.tagName")
-    assert result == "H1"
-
-
 # --- Screenshot ---
 
 async def test_element_screenshot(async_page, test_server):
@@ -151,7 +142,7 @@ async def test_wait_ms(async_page, test_server):
 
 async def test_wait_until_function(async_page, test_server):
     await async_page.go(test_server)
-    await async_page.eval("setTimeout(() => { window.__ready = true }, 200)")
+    await async_page.evaluate("setTimeout(() => { window.__ready = true }, 200)")
     result = await async_page.wait_until("() => window.__ready", timeout=5000)
     assert result is True
 
@@ -190,5 +181,3 @@ async def test_full_checkpoint(async_page, test_server):
     assert box.width > 0
     html = await name.html()
     assert html == ""  # input has no innerHTML
-    tag_result = await name.eval("return el.tagName")
-    assert tag_result == "INPUT"

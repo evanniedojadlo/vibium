@@ -68,7 +68,7 @@ async def test_set_files(fresh_async_browser, test_server):
         inp = await vibe.find("#file-input")
         await inp.set_files([temp_path])
         # Verify file was set
-        name = await vibe.eval("document.getElementById('file-input').files[0]?.name")
+        name = await vibe.evaluate("document.getElementById('file-input').files[0]?.name")
         assert name is not None
         assert ".txt" in name
     finally:

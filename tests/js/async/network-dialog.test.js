@@ -96,7 +96,7 @@ describe('Network Interception: page.route', () => {
         });
       });
 
-      const result = await vibe.eval(`
+      const result = await vibe.evaluate(`
         fetch('${baseURL}/json')
           .then(r => r.json())
       `);
@@ -121,7 +121,7 @@ describe('Network Interception: page.route', () => {
         });
       });
 
-      const result = await vibe.eval(`
+      const result = await vibe.evaluate(`
         fetch('${baseURL}/text')
           .then(r => r.text().then(body => ({ status: r.status, body, custom: r.headers.get('X-Custom') })))
       `);
@@ -147,7 +147,7 @@ describe('Network Interception: page.route', () => {
       });
 
       // Fetch triggers the intercept
-      await vibe.eval(`fetch('${baseURL}/text')`);
+      await vibe.evaluate(`fetch('${baseURL}/text')`);
       await vibe.wait(200);
 
       assert.ok(intercepted, 'Route handler should have been called');
@@ -169,7 +169,7 @@ describe('Network Interception: page.route', () => {
       });
 
       // First fetch — should be intercepted
-      await vibe.eval(`fetch('${baseURL}/text')`);
+      await vibe.evaluate(`fetch('${baseURL}/text')`);
       await vibe.wait(200);
       assert.ok(callCount > 0, 'Route handler should have been called');
 
@@ -177,7 +177,7 @@ describe('Network Interception: page.route', () => {
       await vibe.unroute('**/text');
 
       // Second fetch — should NOT be intercepted
-      await vibe.eval(`fetch('${baseURL}/text')`);
+      await vibe.evaluate(`fetch('${baseURL}/text')`);
       await vibe.wait(200);
       assert.strictEqual(callCount, countBefore, 'Route should not fire after unroute');
     } finally {
@@ -263,7 +263,7 @@ describe('Network Events: onRequest/onResponse', () => {
       await vibe.go(baseURL);
 
       const responsePromise = vibe.capture.response('**/json');
-      await vibe.eval(`fetch('${baseURL}/json')`);
+      await vibe.evaluate(`fetch('${baseURL}/json')`);
       const resp = await responsePromise;
 
       assert.ok(resp.url().includes('/json'));
@@ -283,7 +283,7 @@ describe('Network Waiters: capture.request/capture.response', () => {
       await vibe.go(baseURL);
 
       const responsePromise = vibe.capture.response('**/json');
-      await vibe.eval(`fetch('${baseURL}/json')`);
+      await vibe.evaluate(`fetch('${baseURL}/json')`);
 
       const resp = await responsePromise;
       assert.ok(resp.url().includes('/json'), `Response URL should include /json, got: ${resp.url()}`);
@@ -300,7 +300,7 @@ describe('Network Waiters: capture.request/capture.response', () => {
       await vibe.go(baseURL);
 
       const requestPromise = vibe.capture.request('**/text');
-      await vibe.eval(`fetch('${baseURL}/text')`);
+      await vibe.evaluate(`fetch('${baseURL}/text')`);
 
       const req = await requestPromise;
       assert.ok(req.url().includes('/text'), `Request URL should include /text, got: ${req.url()}`);
@@ -327,7 +327,7 @@ describe('Response Body: response.body() and response.json()', () => {
         }
       });
 
-      await vibe.eval(`fetch('${baseURL}/text')`);
+      await vibe.evaluate(`fetch('${baseURL}/text')`);
       await vibe.wait(500);
 
       assert.ok(captured, 'Should have captured the /text response');
@@ -351,7 +351,7 @@ describe('Response Body: response.body() and response.json()', () => {
         }
       });
 
-      await vibe.eval(`fetch('${baseURL}/json')`);
+      await vibe.evaluate(`fetch('${baseURL}/json')`);
       await vibe.wait(500);
 
       assert.ok(captured, 'Should have captured the /json response');
@@ -369,7 +369,7 @@ describe('Response Body: response.body() and response.json()', () => {
       await vibe.go(baseURL);
 
       const responsePromise = vibe.capture.response('**/text');
-      await vibe.eval(`fetch('${baseURL}/text')`);
+      await vibe.evaluate(`fetch('${baseURL}/text')`);
       const resp = await responsePromise;
 
       const body = await resp.body();
@@ -386,7 +386,7 @@ describe('Response Body: response.body() and response.json()', () => {
       await vibe.go(baseURL);
 
       const responsePromise = vibe.capture.response('**/json');
-      await vibe.eval(`fetch('${baseURL}/json')`);
+      await vibe.evaluate(`fetch('${baseURL}/json')`);
       const resp = await responsePromise;
 
       const data = await resp.json();
@@ -414,7 +414,7 @@ describe('Dialogs: page.onDialog', () => {
         dialog.accept();
       });
 
-      await vibe.eval('alert("Hello from test")');
+      await vibe.evaluate('alert("Hello from test")');
 
       assert.strictEqual(dialogMessage, 'Hello from test');
       assert.strictEqual(dialogType, 'alert');
@@ -433,7 +433,7 @@ describe('Dialogs: page.onDialog', () => {
         dialog.accept();
       });
 
-      const result = await vibe.eval('confirm("Are you sure?")');
+      const result = await vibe.evaluate('confirm("Are you sure?")');
       assert.strictEqual(result, true);
     } finally {
       await bro.close();
@@ -450,7 +450,7 @@ describe('Dialogs: page.onDialog', () => {
         dialog.dismiss();
       });
 
-      const result = await vibe.eval('confirm("Are you sure?")');
+      const result = await vibe.evaluate('confirm("Are you sure?")');
       assert.strictEqual(result, false);
     } finally {
       await bro.close();
@@ -468,7 +468,7 @@ describe('Dialogs: page.onDialog', () => {
         dialog.accept('my answer');
       });
 
-      const result = await vibe.eval('prompt("Enter name:")');
+      const result = await vibe.evaluate('prompt("Enter name:")');
       assert.strictEqual(result, 'my answer');
     } finally {
       await bro.close();
@@ -482,7 +482,7 @@ describe('Dialogs: page.onDialog', () => {
       await vibe.go(baseURL);
 
       // No onDialog handler — should auto-dismiss
-      const result = await vibe.eval('confirm("Auto dismiss?")');
+      const result = await vibe.evaluate('confirm("Auto dismiss?")');
       assert.strictEqual(result, false);
     } finally {
       await bro.close();
@@ -545,7 +545,7 @@ describe('Capture: dialog', () => {
 
       // Use setTimeout because alert() blocks eval — the dialog must fire
       // asynchronously so capture.dialog can capture it.
-      await vibe.eval('setTimeout(() => alert("Hello from expect"), 50)');
+      await vibe.evaluate('setTimeout(() => alert("Hello from expect"), 50)');
       const dialog = await vibe.capture.dialog();
 
       assert.ok(dialog, 'Should resolve with a Dialog object');
@@ -568,7 +568,7 @@ describe('Capture: event', () => {
       await vibe.go(baseURL);
 
       const result = await vibe.capture.event('response', async () => {
-        await vibe.eval(`fetch('${baseURL}/json')`);
+        await vibe.evaluate(`fetch('${baseURL}/json')`);
       });
 
       assert.ok(result, 'Should resolve with event data');
@@ -631,7 +631,7 @@ describe('Network & Dialog Checkpoint', () => {
         dialog.accept();
       });
 
-      await vibe.eval('alert("checkpoint")');
+      await vibe.evaluate('alert("checkpoint")');
       assert.ok(dialogHandled);
     } finally {
       await bro.close();

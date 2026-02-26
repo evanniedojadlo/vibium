@@ -178,10 +178,6 @@ class Element:
         result = await self._client.send("vibium:el.label", self._command_params())
         return result["label"]
 
-    async def eval(self, fn: str) -> Any:
-        result = await self._client.send("vibium:el.eval", self._command_params({"fn": fn}))
-        return result["value"]
-
     async def screenshot(self) -> bytes:
         result = await self._client.send("vibium:el.screenshot", self._command_params())
         return base64.b64decode(result["data"])

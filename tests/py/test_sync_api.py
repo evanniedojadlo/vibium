@@ -118,12 +118,12 @@ def test_pdf(bro, test_server):
 def test_eval_expression(bro, test_server):
     vibe = bro.page()
     vibe.go(test_server + "/eval")
-    result = vibe.eval("window.testVal")
+    result = vibe.evaluate("window.testVal")
     assert result == 42
 
 
 def test_eval_computed_value(vibe):
-    result = vibe.eval("2 + 3")
+    result = vibe.evaluate("2 + 3")
     assert result == 5
 
 
@@ -370,7 +370,7 @@ def test_install_set_fixed_time(bro, test_server):
     vibe.go(test_server + "/clock")
     vibe.clock.install(time=0)
     vibe.clock.set_fixed_time(1000)
-    result = vibe.eval("Date.now()")
+    result = vibe.evaluate("Date.now()")
     assert result == 1000
 
 
@@ -379,7 +379,7 @@ def test_fast_forward(bro, test_server):
     vibe.go(test_server + "/clock")
     vibe.clock.install(time=0)
     vibe.clock.fast_forward(5000)
-    result = vibe.eval("Date.now()")
+    result = vibe.evaluate("Date.now()")
     assert result >= 5000
 
 
@@ -442,7 +442,7 @@ def test_on_dialog_accept_string(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server)
     vibe.on_dialog("accept")
-    result = vibe.eval('confirm("Are you sure?")')
+    result = vibe.evaluate('confirm("Are you sure?")')
     assert result is True
 
 
@@ -458,7 +458,7 @@ def test_route_fulfill(bro, test_server):
         route.fulfill(status=200, body='{"message":"mocked"}', content_type="application/json")
 
     vibe.route("**/api/data", handler)
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     result = vibe.find("#result").text()
     assert "mocked" in result
@@ -476,7 +476,7 @@ def test_route_inspect_request(bro, test_server):
         route.continue_()
 
     vibe.route("**/api/data", handler)
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     assert "api/data" in captured.get("url", "")
     assert captured.get("method") == "GET"
@@ -487,7 +487,7 @@ def test_route_abort(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
     vibe.route("**/api/data", "abort")
-    vibe.eval("doFetch().catch(() => document.getElementById('result').textContent = 'aborted')")
+    vibe.evaluate("doFetch().catch(() => document.getElementById('result').textContent = 'aborted')")
     vibe.wait(500)
     result = vibe.find("#result").text()
     assert "aborted" in result or result == ""  # abort may not populate result
@@ -498,7 +498,7 @@ def test_route_default_continue(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
     vibe.route("**/api/data", "continue")
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     result = vibe.find("#result").text()
     assert "real data" in result
@@ -509,7 +509,7 @@ def test_static_route(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
     vibe.route("**/api/data", {"status": 200, "body": '{"static":true}', "content_type": "application/json"})
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     result = vibe.find("#result").text()
     assert "static" in result
@@ -521,7 +521,7 @@ def test_unroute(bro, test_server):
     vibe.go(test_server + "/fetch")
     vibe.route("**/api/data", "abort")
     vibe.unroute("**/api/data")
-    vibe.eval("doFetch()")
+    vibe.evaluate("doFetch()")
     vibe.wait(500)
     result = vibe.find("#result").text()
     assert "real data" in result
@@ -541,7 +541,7 @@ def test_dialog_accept_alert(bro, test_server):
         dialog.accept()
 
     vibe.on_dialog(handler)
-    vibe.eval('alert("Hello from test")')
+    vibe.evaluate('alert("Hello from test")')
     assert len(messages) == 1
     assert messages[0] == "Hello from test"
 
@@ -554,7 +554,7 @@ def test_dialog_dismiss_confirm(bro, test_server):
         dialog.dismiss()
 
     vibe.on_dialog(handler)
-    result = vibe.eval('confirm("Are you sure?")')
+    result = vibe.evaluate('confirm("Are you sure?")')
     assert result is False
 
 
@@ -566,7 +566,7 @@ def test_dialog_accept_confirm(bro, test_server):
         dialog.accept()
 
     vibe.on_dialog(handler)
-    result = vibe.eval('confirm("Are you sure?")')
+    result = vibe.evaluate('confirm("Are you sure?")')
     assert result is True
 
 
@@ -579,7 +579,7 @@ def test_dialog_prompt_text(bro, test_server):
         dialog.accept("my answer")
 
     vibe.on_dialog(handler)
-    result = vibe.eval('prompt("Enter name:")')
+    result = vibe.evaluate('prompt("Enter name:")')
     assert result == "my answer"
 
 
@@ -587,7 +587,7 @@ def test_dialog_default_dismiss(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server)
     # No handler — should auto-dismiss
-    result = vibe.eval('confirm("Auto dismiss?")')
+    result = vibe.evaluate('confirm("Auto dismiss?")')
     assert result is False
 
 
@@ -602,7 +602,7 @@ def test_dialog_default_value(bro, test_server):
         dialog.accept()
 
     vibe.on_dialog(handler)
-    vibe.eval('prompt("Name?", "default-val")')
+    vibe.evaluate('prompt("Name?", "default-val")')
     assert len(captured_default) == 1
     assert captured_default[0] == "default-val"
 
@@ -611,7 +611,7 @@ def test_static_on_dialog(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server)
     vibe.on_dialog("dismiss")
-    result = vibe.eval('confirm("test")')
+    result = vibe.evaluate('confirm("test")')
     assert result is False
 
 
@@ -623,7 +623,7 @@ def test_on_console_collect(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server)
     vibe.on_console()
-    vibe.eval('console.log("hello from console")')
+    vibe.evaluate('console.log("hello from console")')
     vibe.wait(300)
     msgs = vibe.console_messages()
     assert any("hello from console" in m["text"] for m in msgs)
@@ -633,7 +633,7 @@ def test_on_error_collect(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server)
     vibe.on_error()
-    vibe.eval('setTimeout(() => { throw new Error("test error") }, 0)')
+    vibe.evaluate('setTimeout(() => { throw new Error("test error") }, 0)')
     vibe.wait(500)
     errs = vibe.errors()
     assert any("test error" in e["message"] for e in errs)
@@ -646,7 +646,7 @@ def test_on_error_collect(bro, test_server):
 def test_capture_request_returns_dict(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
-    req = vibe.capture.request("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
+    req = vibe.capture.request("**/api/data", fn=lambda: vibe.evaluate("setTimeout(() => doFetch(), 100)"), timeout=5000)
     assert isinstance(req, dict)
     assert "url" in req
     assert "api/data" in req["url"]
@@ -655,7 +655,7 @@ def test_capture_request_returns_dict(bro, test_server):
 def test_capture_response_returns_dict(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server + "/fetch")
-    resp = vibe.capture.response("**/api/data", fn=lambda: vibe.eval("setTimeout(() => doFetch(), 100)"), timeout=5000)
+    resp = vibe.capture.response("**/api/data", fn=lambda: vibe.evaluate("setTimeout(() => doFetch(), 100)"), timeout=5000)
     assert isinstance(resp, dict)
     assert "url" in resp
     assert resp["status"] == 200
@@ -714,7 +714,7 @@ def test_capture_dialog(bro, test_server):
     vibe = bro.new_page()
     vibe.go(test_server)
     with vibe.capture.dialog() as info:
-        vibe.eval('setTimeout(() => alert("Hello from expect"), 50)')
+        vibe.evaluate('setTimeout(() => alert("Hello from expect"), 50)')
     assert info.value is not None
     assert info.value["type"] == "alert"
     assert info.value["message"] == "Hello from expect"
@@ -757,7 +757,7 @@ def test_full_checkpoint(bro, test_server):
     sel.select_option("green")
     assert sel.value() == "green"
 
-    result = vibe.eval("document.getElementById('name').value")
+    result = vibe.evaluate("document.getElementById('name').value")
     assert result == "Test User"
 
     data = vibe.screenshot()

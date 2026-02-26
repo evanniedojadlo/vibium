@@ -73,10 +73,10 @@ Vibium's coverage of the WebDriver spec (W3C + BiDi). Maps every WebDriver comma
 |-----------|--------|--------|
 | Is Element Selected | `el.isChecked()` | ⬜ |
 | Get Attribute | `el.attr(name)` | ⬜ |
-| Get Property | `el.eval(fn)` | ⬜ |
-| Get CSS Value | `el.eval(fn)` | ⬜ |
+| Get Property | `page.evaluate(fn, el)` | ⬜ |
+| Get CSS Value | `page.evaluate(fn, el)` | ⬜ |
 | Get Text | `el.text()` | ⬜ |
-| Get Tag Name | `el.eval(fn)` | ⬜ |
+| Get Tag Name | `page.evaluate(fn, el)` | ⬜ |
 | Get Rect | `el.bounds()` | ⬜ |
 | Is Enabled | `el.isEnabled()` | ⬜ |
 | Computed Role | `el.role()` | ⬜ |
@@ -86,9 +86,9 @@ Vibium's coverage of the WebDriver spec (W3C + BiDi). Maps every WebDriver comma
 
 | WebDriver | Vibium | Status |
 |-----------|--------|--------|
-| Get Page Source | `page.eval(fn)` | ⬜ |
-| Execute Script | `page.eval(expr)` | ⬜ |
-| Execute Async Script | `page.eval(asyncExpr)` | ⬜ |
+| Get Page Source | `page.evaluate(fn)` | ⬜ |
+| Execute Script | `page.evaluate(expr)` | ⬜ |
+| Execute Async Script | `page.evaluate(asyncExpr)` | ⬜ |
 
 ## Cookies (5 commands)
 

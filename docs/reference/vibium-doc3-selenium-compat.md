@@ -136,10 +136,10 @@ class SwitchTo:
 
 | Selenium | Vibium Mapping | Complexity |
 |----------|---------------|------------|
-| `driver.execute_script(js)` | `page.eval(js)` | Low |
-| `driver.execute_async_script(js)` | `page.eval(asyncJs)` | Medium |
+| `driver.execute_script(js)` | `page.evaluate(js)` | Low |
+| `driver.execute_async_script(js)` | `page.evaluate(asyncJs)` | Medium |
 | `driver.get_screenshot_as_png()` | `page.screenshot()` | Low |
-| `driver.page_source` | `page.eval(() => document.documentElement.outerHTML)` | Low |
+| `driver.page_source` | `page.evaluate(() => document.documentElement.outerHTML)` | Low |
 | `driver.get_cookies()` | `context.cookies()` | Low |
 | `driver.add_cookie(cookie)` | `context.setCookies([cookie])` | Low |
 | `driver.delete_all_cookies()` | `context.clearCookies()` | Low |
@@ -167,8 +167,8 @@ class SwitchTo:
 | Expected Conditions | Map to Vibium wait predicates | Medium |
 | `element.screenshot()` | `el.screenshot()` | Low |
 | `element.location` / `.size` | `el.bounds()` decomposed | Low |
-| `element.tag_name` | `el.eval(e => e.tagName)` | Low |
-| `element.value_of_css_property()` | `el.eval(fn)` | Low |
+| `element.tag_name` | `page.evaluate(e => e.tagName, el)` | Low |
+| `element.value_of_css_property()` | `page.evaluate(fn, el)` | Low |
 | Proxy configuration | Launch options | Medium |
 | Desired capabilities | Launch options mapping | High |
 

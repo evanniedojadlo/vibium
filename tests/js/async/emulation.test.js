@@ -60,7 +60,7 @@ describe('JS Emulation', () => {
     const vibe = await bro.page();
     await vibe.setContent('<html><body></body></html>');
     await vibe.emulateMedia({ colorScheme: 'dark' });
-    const matches = await vibe.eval('window.matchMedia("(prefers-color-scheme: dark)").matches');
+    const matches = await vibe.evaluate('window.matchMedia("(prefers-color-scheme: dark)").matches');
     assert.strictEqual(matches, true, 'prefers-color-scheme: dark should match');
   });
 
@@ -68,9 +68,9 @@ describe('JS Emulation', () => {
     const vibe = await bro.page();
     await vibe.setContent('<html><body></body></html>');
     await vibe.emulateMedia({ colorScheme: 'light' });
-    const matches = await vibe.eval('window.matchMedia("(prefers-color-scheme: light)").matches');
+    const matches = await vibe.evaluate('window.matchMedia("(prefers-color-scheme: light)").matches');
     assert.strictEqual(matches, true, 'prefers-color-scheme: light should match');
-    const darkMatches = await vibe.eval('window.matchMedia("(prefers-color-scheme: dark)").matches');
+    const darkMatches = await vibe.evaluate('window.matchMedia("(prefers-color-scheme: dark)").matches');
     assert.strictEqual(darkMatches, false, 'prefers-color-scheme: dark should NOT match');
   });
 
@@ -78,7 +78,7 @@ describe('JS Emulation', () => {
     const vibe = await bro.page();
     await vibe.setContent('<html><body></body></html>');
     await vibe.emulateMedia({ media: 'print' });
-    const matches = await vibe.eval('window.matchMedia("print").matches');
+    const matches = await vibe.evaluate('window.matchMedia("print").matches');
     assert.strictEqual(matches, true, 'print media should match');
   });
 
@@ -86,7 +86,7 @@ describe('JS Emulation', () => {
     const vibe = await bro.page();
     await vibe.setContent('<html><body></body></html>');
     await vibe.emulateMedia({ reducedMotion: 'reduce' });
-    const matches = await vibe.eval('window.matchMedia("(prefers-reduced-motion: reduce)").matches');
+    const matches = await vibe.evaluate('window.matchMedia("(prefers-reduced-motion: reduce)").matches');
     assert.strictEqual(matches, true, 'prefers-reduced-motion: reduce should match');
   });
 
@@ -94,7 +94,7 @@ describe('JS Emulation', () => {
     const vibe = await bro.page();
     await vibe.setContent('<html><body></body></html>');
     await vibe.emulateMedia({ forcedColors: 'active' });
-    const matches = await vibe.eval('window.matchMedia("(forced-colors: active)").matches');
+    const matches = await vibe.evaluate('window.matchMedia("(forced-colors: active)").matches');
     assert.strictEqual(matches, true, 'forced-colors: active should match');
   });
 
@@ -102,7 +102,7 @@ describe('JS Emulation', () => {
     const vibe = await bro.page();
     await vibe.setContent('<html><body></body></html>');
     await vibe.emulateMedia({ contrast: 'more' });
-    const matches = await vibe.eval('window.matchMedia("(prefers-contrast: more)").matches');
+    const matches = await vibe.evaluate('window.matchMedia("(prefers-contrast: more)").matches');
     assert.strictEqual(matches, true, 'prefers-contrast: more should match');
   });
 
@@ -112,14 +112,14 @@ describe('JS Emulation', () => {
 
     // Set override
     await vibe.emulateMedia({ colorScheme: 'dark' });
-    let matches = await vibe.eval('window.matchMedia("(prefers-color-scheme: dark)").matches');
+    let matches = await vibe.evaluate('window.matchMedia("(prefers-color-scheme: dark)").matches');
     assert.strictEqual(matches, true, 'dark should match after setting');
 
     // Reset
     await vibe.emulateMedia({ colorScheme: null });
     // After reset, the query should use browser default (which may or may not be dark)
     // The key test is that the override was removed — query passthrough to native matchMedia
-    const result = await vibe.eval('typeof window.__vibiumMediaOverrides.colorScheme');
+    const result = await vibe.evaluate('typeof window.__vibiumMediaOverrides.colorScheme');
     assert.strictEqual(result, 'undefined', 'colorScheme override should be removed');
   });
 
@@ -165,7 +165,7 @@ describe('JS Emulation', () => {
     await vibe.setContent('<html><body></body></html>');
     await vibe.setGeolocation({ latitude: 51.5074, longitude: -0.1278 });
 
-    const coords = await vibe.eval(`
+    const coords = await vibe.evaluate(`
       new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
           pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),

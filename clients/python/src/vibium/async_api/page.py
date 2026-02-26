@@ -579,30 +579,12 @@ class Page:
 
     # --- Evaluation ---
 
-    async def eval(self, expression: str) -> Any:
+    async def evaluate(self, expression: str) -> Any:
         """Evaluate a JS expression and return the deserialized value."""
         result = await self._client.send("vibium:page.eval", {
             "context": self._context_id, "expression": expression,
         })
         return result["value"]
-
-    async def evaluate(self, script: str) -> Any:
-        """Execute a JS script (multi-statement, use 'return' for values)."""
-        result = await self._client.send("script.callFunction", {
-            "functionDeclaration": f"() => {{ {script} }}",
-            "target": {"context": self._context_id},
-            "arguments": [],
-            "awaitPromise": True,
-            "resultOwnership": "root",
-        })
-        return result.get("result", {}).get("value")
-
-    async def eval_handle(self, expression: str) -> str:
-        """Evaluate a JS expression and return a handle ID."""
-        result = await self._client.send("vibium:page.evalHandle", {
-            "context": self._context_id, "expression": expression,
-        })
-        return result["handle"]
 
     async def add_script(self, source: str) -> None:
         """Inject a script into the page. Pass a URL or inline JavaScript."""
