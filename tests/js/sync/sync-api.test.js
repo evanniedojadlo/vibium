@@ -490,6 +490,14 @@ describe('Sync API: Viewport & emulation', () => {
     assert.strictEqual(vp.height, 812);
   });
 
+  test('setWindow() and window()', () => {
+    const vibe = bro.page();
+    vibe.setWindow({ width: 900, height: 700 });
+    const win = vibe.window();
+    assert.strictEqual(win.width, 900);
+    assert.strictEqual(win.height, 700);
+  });
+
   test('setContent() replaces page HTML', () => {
     const vibe = bro.page();
     vibe.setContent('<html><body><h1>Custom</h1></body></html>');

@@ -566,3 +566,78 @@ describe('MCP Server: New Tools', () => {
     assert.ok(!listResponse.result.content[0].text.includes('[1]'), 'Should have 1 tab');
   });
 });
+
+describe('MCP Server: Viewport & Window', () => {
+  /** @type {MCPClient} */
+  let client;
+
+  before(async () => {
+    client = new MCPClient();
+    await client.start();
+    await client.call('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test-viewport', version: '1.0.0' },
+    });
+  });
+
+  after(async () => {
+    await client.stop();
+  });
+
+  test('browser_get_viewport returns width and height', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_get_viewport',
+      arguments: {},
+    });
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    const text = response.result.content[0].text;
+    assert.ok(text.includes('width'), 'Should contain width');
+    assert.ok(text.includes('height'), 'Should contain height');
+  });
+
+  test('browser_set_viewport then browser_get_viewport', async () => {
+    await client.call('tools/call', {
+      name: 'browser_set_viewport',
+      arguments: { width: 800, height: 600 },
+    });
+
+    const response = await client.call('tools/call', {
+      name: 'browser_get_viewport',
+      arguments: {},
+    });
+    assert.ok(!response.result.isError, 'Should not be an error');
+    const text = response.result.content[0].text;
+    assert.ok(text.includes('800'), 'Should reflect width 800');
+    assert.ok(text.includes('600'), 'Should reflect height 600');
+  });
+
+  test('browser_get_window returns state and dimensions', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_get_window',
+      arguments: {},
+    });
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    const text = response.result.content[0].text;
+    assert.ok(text.includes('width'), 'Should contain width');
+    assert.ok(text.includes('height'), 'Should contain height');
+  });
+
+  test('browser_set_window then browser_get_window', async () => {
+    await client.call('tools/call', {
+      name: 'browser_set_window',
+      arguments: { width: 900, height: 700 },
+    });
+
+    const response = await client.call('tools/call', {
+      name: 'browser_get_window',
+      arguments: {},
+    });
+    assert.ok(!response.result.isError, 'Should not be an error');
+    const text = response.result.content[0].text;
+    assert.ok(text.includes('900'), 'Should reflect width 900');
+    assert.ok(text.includes('700'), 'Should reflect height 700');
+  });
+});

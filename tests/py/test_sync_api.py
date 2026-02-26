@@ -396,6 +396,14 @@ def test_set_viewport_viewport(bro, test_server):
     assert vp["height"] == 600
 
 
+def test_set_window_window(bro, test_server):
+    vibe = bro.page()
+    vibe.go(test_server)
+    vibe.set_window(width=900, height=700)
+    win = vibe.window()
+    assert isinstance(win, dict)
+
+
 def test_set_content(bro, test_server):
     vibe = bro.page()
     vibe.set_content("<h1>Custom</h1>")
