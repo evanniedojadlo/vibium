@@ -1,6 +1,7 @@
 """Vibium binary management - finding, spawning, and stopping."""
 
 import asyncio
+import atexit
 import importlib.util
 import os
 import platform
@@ -159,6 +160,7 @@ class VibiumProcess:
     def __init__(self, process: subprocess.Popen, port: int):
         self._process = process
         self.port = port
+        atexit.register(self._cleanup)
 
     @classmethod
     async def start(
@@ -189,13 +191,19 @@ class VibiumProcess:
         # when multiple browser instances run concurrently
         args.extend(["--port", str(port if port is not None else 0)])
 
-        # Start the process
-        process = subprocess.Popen(
-            args,
+        # Start the process in its own process group so Ctrl+C in the
+        # Python REPL doesn't kill the browser
+        popen_kwargs: dict = dict(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
         )
+        if sys.platform == "win32":
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["start_new_session"] = True
+
+        process = subprocess.Popen(args, **popen_kwargs)
 
         # Read the port from stdout
         # Vibium prints "Server listening on ws://localhost:PORT"
@@ -223,11 +231,16 @@ class VibiumProcess:
 
         return cls(process, actual_port)
 
-    async def stop(self) -> None:
-        """Stop the vibium process."""
+    def _cleanup(self) -> None:
+        """Terminate the subprocess if still running (called at exit)."""
         if self._process.poll() is None:
             self._process.terminate()
             try:
                 self._process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self._process.kill()
+
+    async def stop(self) -> None:
+        """Stop the vibium process."""
+        self._cleanup()
+        atexit.unregister(self._cleanup)
