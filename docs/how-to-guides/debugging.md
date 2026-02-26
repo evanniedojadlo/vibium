@@ -92,6 +92,19 @@ If Chrome fails to start:
 2. Reinstall if needed: `./clicker/bin/vibium install`
 3. On macOS, you may need to allow it in System Preferences → Security & Privacy
 
+### Windows: "Access is denied. (0x5)" for Chrome for Testing
+
+If Windows reports sandbox/access errors for `chrome.exe` under `%LOCALAPPDATA%\vibium\chrome-for-testing\`:
+
+1. Delete `%LOCALAPPDATA%\vibium\chrome-for-testing\` and run `vibium install` again.
+2. Add antivirus/endpoint-security exclusions for `%LOCALAPPDATA%\vibium\`.
+3. Verify your user can execute files from that folder (no policy lock/block).
+4. Re-run with debug logs enabled:
+   - PowerShell: `$env:VIBIUM_DEBUG=1`
+   - CMD: `set VIBIUM_DEBUG=1`
+
+If this still fails, include the full debug output in your issue.
+
 ### Tests Hang
 
 If tests hang indefinitely:
