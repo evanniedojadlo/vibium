@@ -123,15 +123,22 @@ export class VibiumProcess {
         }
         resolve();
       } else {
+        // Track actual exit (this.process.killed is set on .kill() call, not on exit)
+        let exited = false;
+        this.process.on('exit', () => { exited = true; });
+
         // Try graceful shutdown first
         this.process.kill('SIGTERM');
 
-        // Force kill after timeout
+        // Force kill after timeout if process hasn't exited
         setTimeout(() => {
-          if (!this.process.killed) {
-            this.process.kill('SIGKILL');
+          if (!exited) {
+            try { this.process.kill('SIGKILL'); } catch {}
+            // Give OS time to reap after SIGKILL
+            setTimeout(() => resolve(), 500);
+          } else {
+            resolve();
           }
-          resolve();
         }, 3000);
       }
     });
