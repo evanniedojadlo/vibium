@@ -12,7 +12,7 @@ import (
 func (r *Router) setupDownloads(session *BrowserSession) {
 	dir, err := os.MkdirTemp("", "vibium-downloads-*")
 	if err != nil {
-		fmt.Printf("[router] Failed to create download temp dir: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[router] Failed to create download temp dir: %v\n", err)
 		return
 	}
 
@@ -27,7 +27,7 @@ func (r *Router) setupDownloads(session *BrowserSession) {
 		},
 	})
 	if err != nil {
-		fmt.Printf("[router] Failed to set download behavior: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[router] Failed to set download behavior: %v\n", err)
 	}
 }
 

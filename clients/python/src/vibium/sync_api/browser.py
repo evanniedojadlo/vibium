@@ -70,7 +70,6 @@ class _BrowserLauncher:
     def launch(
         self,
         headless: bool = False,
-        port: Optional[int] = None,
         executable_path: Optional[str] = None,
     ) -> Browser:
         """Launch a new browser instance."""
@@ -83,7 +82,6 @@ class _BrowserLauncher:
         async_browser = loop_thread.run(
             async_browser_launcher.launch(
                 headless=headless,
-                port=port,
                 executable_path=executable_path,
             )
         )

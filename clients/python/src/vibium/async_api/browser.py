@@ -91,7 +91,6 @@ class _BrowserLauncher:
     async def launch(
         self,
         headless: bool = False,
-        port: Optional[int] = None,
         executable_path: Optional[str] = None,
     ) -> Browser:
         """Launch a new browser instance."""
@@ -100,10 +99,9 @@ class _BrowserLauncher:
 
         process = await VibiumProcess.start(
             headless=headless,
-            port=port,
             executable_path=executable_path,
         )
-        client = await BiDiClient.connect(f"ws://localhost:{process.port}")
+        client = await BiDiClient.connect(process)
         return Browser(client, process)
 
 

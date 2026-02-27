@@ -6,7 +6,6 @@ import { debug, info } from './utils/debug';
 
 export interface LaunchOptions {
   headless?: boolean;
-  port?: number;
   executablePath?: string;
 }
 
@@ -107,26 +106,23 @@ export class Browser {
 
 export const browser = {
   async launch(options: LaunchOptions = {}): Promise<Browser> {
-    const { headless = false, port, executablePath } = options;
-    debug('launching browser', { headless, port, executablePath });
+    const { headless = false, executablePath } = options;
+    debug('launching browser', { headless, executablePath });
 
-    // Start the vibium process
+    // Start the vibium pipe process
     const process = await VibiumProcess.start({
       headless,
-      port,
       executablePath,
     });
-    debug('vibium started', { port: process.port });
+    debug('vibium started');
 
-    // Connect to the proxy
-    let client: BiDiClient;
-    try {
-      client = await BiDiClient.connect(`ws://localhost:${process.port}`);
-    } catch (e) {
-      await process.stop();
-      throw e;
-    }
-    info('browser launched', { port: process.port });
+    // Create BiDi client from stdin/stdout pipes
+    const client = BiDiClient.fromStreams(
+      process.stdin,
+      process.stdout,
+      process.preReadyLines,
+    );
+    info('browser launched (pipe)');
 
     return new Browser(client, process);
   },

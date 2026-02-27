@@ -1,13 +1,13 @@
-"""WebSocket client for communicating with the vibium binary."""
+"""Pipe client for communicating with the vibium binary via stdin/stdout."""
 
 from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
-from websockets.asyncio.client import ClientConnection, connect as ws_connect
-from websockets.exceptions import ConnectionClosed
+if TYPE_CHECKING:
+    from .binary import VibiumProcess
 
 
 class BiDiError(Exception):
@@ -20,25 +20,49 @@ class BiDiError(Exception):
 
 
 class BiDiClient:
-    """WebSocket client for BiDi protocol with event dispatch."""
+    """Pipe client for BiDi protocol with event dispatch."""
 
-    def __init__(self, ws: ClientConnection):
-        self._ws = ws
+    def __init__(
+        self,
+        process: VibiumProcess,
+    ):
+        self._process = process
+        self._stdin = process._process.stdin
+        self._stdout = process._process.stdout
         self._next_id = 1
         self._pending: Dict[int, asyncio.Future] = {}
         self._receiver_task: Optional[asyncio.Task] = None
         self._event_handlers: List[Callable[[Dict[str, Any]], None]] = []
 
     @classmethod
-    async def connect(cls, url: str, timeout: float = 30) -> BiDiClient:
-        """Connect to a BiDi WebSocket server."""
-        try:
-            ws = await asyncio.wait_for(ws_connect(url), timeout=timeout)
-        except asyncio.TimeoutError:
-            raise ConnectionError(f"Timed out connecting to {url} after {timeout}s")
-        client = cls(ws)
+    async def connect(cls, process: VibiumProcess) -> BiDiClient:
+        """Create a BiDiClient from a VibiumProcess with pipe streams."""
+        client = cls(process)
         client._receiver_task = asyncio.create_task(client._receive_loop())
+        # Replay any events that arrived before the ready signal
+        if hasattr(process, "_pre_ready_lines"):
+            for line in process._pre_ready_lines:
+                client._dispatch_message(line)
+            del process._pre_ready_lines
         return client
+
+    def _dispatch_message(self, line: str) -> None:
+        """Parse and dispatch a single message line."""
+        try:
+            data = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            return
+        msg_id = data.get("id")
+        if msg_id is not None and msg_id in self._pending:
+            future = self._pending[msg_id]
+            if not future.done():
+                future.set_result(data)
+        elif msg_id is None and "method" in data:
+            for handler in self._event_handlers:
+                try:
+                    handler(data)
+                except Exception:
+                    pass
 
     def on_event(self, handler: Callable[[Dict[str, Any]], None]) -> None:
         """Register an event handler for messages without an id (events)."""
@@ -52,26 +76,17 @@ class BiDiClient:
             pass
 
     async def _receive_loop(self) -> None:
-        """Background task to receive and dispatch messages."""
+        """Background task to receive and dispatch messages from stdout."""
         try:
-            async for message in self._ws:
-                try:
-                    data = json.loads(message)
-                except (json.JSONDecodeError, ValueError):
+            while True:
+                line_bytes = await self._stdout.readline()  # type: ignore[union-attr]
+                if not line_bytes:
+                    break  # EOF — process exited
+                line = line_bytes.decode().strip()
+                if not line:
                     continue
-                msg_id = data.get("id")
-                if msg_id is not None and msg_id in self._pending:
-                    future = self._pending[msg_id]
-                    if not future.done():
-                        future.set_result(data)
-                elif msg_id is None and "method" in data:
-                    # Event message — dispatch to handlers
-                    for handler in self._event_handlers:
-                        try:
-                            handler(data)
-                        except Exception:
-                            pass
-        except ConnectionClosed:
+                self._dispatch_message(line)
+        except (asyncio.CancelledError, OSError):
             pass
         finally:
             for future in self._pending.values():
@@ -93,7 +108,9 @@ class BiDiClient:
         self._pending[msg_id] = future
 
         try:
-            await self._ws.send(json.dumps(command))
+            line = json.dumps(command) + "\n"
+            self._stdin.write(line.encode())  # type: ignore[union-attr]
+            await self._stdin.drain()  # type: ignore[union-attr]
             try:
                 response = await asyncio.wait_for(future, timeout=timeout)
             except asyncio.TimeoutError:
@@ -110,7 +127,7 @@ class BiDiClient:
             self._pending.pop(msg_id, None)
 
     async def close(self) -> None:
-        """Close the WebSocket connection."""
+        """Close the pipe connection."""
         if self._receiver_task:
             self._receiver_task.cancel()
             try:
@@ -118,4 +135,6 @@ class BiDiClient:
             except asyncio.CancelledError:
                 pass
 
-        await self._ws.close()
+        # Close stdin to signal the pipe process
+        if self._stdin and not self._stdin.is_closing():
+            self._stdin.close()

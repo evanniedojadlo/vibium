@@ -1,0 +1,98 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/spf13/cobra"
+	"github.com/vibium/clicker/internal/browser"
+	"github.com/vibium/clicker/internal/proxy"
+)
+
+func newPipeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "pipe",
+		Short: "Run as a child process communicating via stdin/stdout pipes",
+		Long: `Start vibium in pipe mode where protocol messages are exchanged
+over stdin (commands) and stdout (responses/events) as newline-delimited JSON.
+Diagnostic output goes to stderr. This mode is used by client libraries.`,
+		Example: `  echo '{"id":1,"method":"vibium:browser.page","params":{}}' | vibium pipe --headless`,
+		Run: func(cmd *cobra.Command, args []string) {
+			runPipe()
+		},
+	}
+	return cmd
+}
+
+func runPipe() {
+	// Save a reference to the real fd 1 for protocol output BEFORE redirecting.
+	fd, err := syscall.Dup(int(os.Stdout.Fd()))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[pipe] Failed to dup stdout: %v\n", err)
+		os.Exit(1)
+	}
+	protocolOut := os.NewFile(uintptr(fd), "protocolOut")
+
+	// Redirect os.Stdout to stderr so any stray fmt.Print / log output
+	// doesn't corrupt the protocol stream.
+	os.Stdout = os.Stderr
+
+	router := proxy.NewRouter(headless)
+	client := proxy.NewPipeClientConn(protocolOut)
+
+	// OnClientConnect blocks until Chrome is launched, BiDi connected,
+	// and events subscribed — the client won't see messages until it's ready.
+	router.OnClientConnect(client)
+
+	// Send ready signal so the client knows it can start sending commands.
+	ready := map[string]interface{}{
+		"method": "vibium:ready",
+		"params": map[string]interface{}{
+			"version": version,
+		},
+	}
+	readyJSON, _ := json.Marshal(ready)
+	if err := client.Send(string(readyJSON)); err != nil {
+		fmt.Fprintf(os.Stderr, "[pipe] Failed to send ready signal: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Handle signals for clean shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	// Read commands from stdin line by line
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		scanner := bufio.NewScanner(os.Stdin)
+		// Allow large messages (10MB, matching WebSocket limit)
+		scanner.Buffer(make([]byte, 0, 64*1024), 10*1024*1024)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+			router.OnClientMessage(client, line)
+		}
+	}()
+
+	// Wait for stdin EOF or signal
+	select {
+	case <-done:
+		// stdin closed (parent process ended or sent EOF)
+	case <-sigCh:
+		// Received SIGTERM/SIGINT
+	}
+
+	// Clean up
+	router.OnClientDisconnect(client)
+	router.CloseAll()
+	browser.KillOrphanedChromeProcesses()
+
+	protocolOut.Close()
+}

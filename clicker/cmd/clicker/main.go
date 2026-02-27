@@ -55,6 +55,7 @@ func main() {
 	rootCmd.AddCommand(newTypeCmd())
 	rootCmd.AddCommand(newCheckActionableCmd())
 	rootCmd.AddCommand(newServeCmd())
+	rootCmd.AddCommand(newPipeCmd())
 	rootCmd.AddCommand(newMCPCmd())
 	rootCmd.AddCommand(newDaemonCmd())
 	rootCmd.AddCommand(newTextCmd())
