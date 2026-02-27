@@ -141,6 +141,18 @@ function runTutorial(mdPath, { browser, mode, serverCode, helpers: extraHelpers,
     }
   }
 
+  // Browser lifecycle (non-standalone only) — one browser shared across all tests
+  let _browser = null;
+  if (!standalone) {
+    if (mode === 'async') {
+      before(async () => { _browser = await browser.launch({ headless: true }); });
+      after(async () => { if (_browser) await _browser.close(); });
+    } else {
+      before(() => { _browser = browser.launch({ headless: true }); });
+      after(() => { if (_browser) _browser.close(); });
+    }
+  }
+
   // Collect helpers from the markdown (they may appear anywhere in the file)
   for (const block of blocks) {
     if (block.type === 'helpers') helpers += block.code + '\n';
@@ -164,28 +176,18 @@ function runTutorial(mdPath, { browser, mode, serverCode, helpers: extraHelpers,
         });
       }
     } else {
-      // Default: runner manages browser lifecycle, passes vibe
+      // Default: runner manages browser, passes vibe (reuses shared browser)
       if (mode === 'async') {
         test(block.name, async () => {
-          const bro = await browser.launch({ headless: true });
-          try {
-            const vibe = await bro.page();
-            const fn = new AsyncFunction('vibe', 'assert', 'baseURL', 'require', helpers + block.code);
-            await fn(vibe, assert, baseURL, require);
-          } finally {
-            await bro.close();
-          }
+          const vibe = await _browser.page();
+          const fn = new AsyncFunction('vibe', 'assert', 'baseURL', 'require', helpers + block.code);
+          await fn(vibe, assert, baseURL, require);
         });
       } else {
         test(block.name, () => {
-          const bro = browser.launch({ headless: true });
-          try {
-            const vibe = bro.page();
-            const fn = new Function('vibe', 'assert', 'baseURL', 'require', helpers + block.code);
-            fn(vibe, assert, baseURL, require);
-          } finally {
-            bro.close();
-          }
+          const vibe = _browser.page();
+          const fn = new Function('vibe', 'assert', 'baseURL', 'require', helpers + block.code);
+          fn(vibe, assert, baseURL, require);
         });
       }
     }

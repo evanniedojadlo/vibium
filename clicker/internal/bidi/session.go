@@ -3,6 +3,7 @@ package bidi
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // Client is a BiDi client that wraps a WebSocket connection.
@@ -21,8 +22,16 @@ func (c *Client) SetVerbose(verbose bool) {
 	c.verbose = verbose
 }
 
-// SendCommand sends a BiDi command and waits for the response.
+// defaultCommandTimeout is the maximum time to wait for a BiDi command response.
+const defaultCommandTimeout = 60 * time.Second
+
+// SendCommand sends a BiDi command and waits for the response (60s timeout).
 func (c *Client) SendCommand(method string, params interface{}) (*Message, error) {
+	return c.SendCommandWithTimeout(method, params, defaultCommandTimeout)
+}
+
+// SendCommandWithTimeout sends a BiDi command and waits for the response with a custom timeout.
+func (c *Client) SendCommandWithTimeout(method string, params interface{}, timeout time.Duration) (*Message, error) {
 	cmd := NewCommand(method, params)
 
 	data, err := cmd.Marshal()
@@ -38,8 +47,13 @@ func (c *Client) SendCommand(method string, params interface{}) (*Message, error
 		return nil, fmt.Errorf("failed to send command: %w", err)
 	}
 
-	// Wait for response with matching ID
+	// Wait for response with matching ID (with timeout)
+	deadline := time.Now().Add(timeout)
 	for {
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout waiting for response to %s after %s", method, timeout)
+		}
+
 		resp, err := c.conn.Receive()
 		if err != nil {
 			return nil, fmt.Errorf("failed to receive response: %w", err)

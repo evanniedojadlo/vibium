@@ -115,9 +115,17 @@ export class SyncBridge {
   private handleCallback(): void {
     // Spin-wait for the port message — the worker posted it before setting
     // signal[0]=2, but postMessage is async so it may arrive slightly after
-    // the Atomics signal.
+    // the Atomics signal. Limit iterations to avoid hanging if worker dies.
+    const maxSpinIterations = 60_000; // ~60s with 1ms sleeps
     let cbMsg = receiveMessageOnPort(this.callbackPortMain);
+    let spinCount = 0;
     while (!cbMsg) {
+      spinCount++;
+      if (spinCount >= maxSpinIterations) {
+        throw new Error('Timed out waiting for callback message from worker (60s)');
+      }
+      // Brief sleep to avoid busy-spinning — use Atomics.wait on a dummy array
+      Atomics.wait(this.signal, 1, Atomics.load(this.signal, 1), 1);
       cbMsg = receiveMessageOnPort(this.callbackPortMain);
     }
 
@@ -156,8 +164,23 @@ export class SyncBridge {
     this.worker.postMessage({ cmd, port: port2 }, [port2]);
 
     // Block until worker signals — loop to handle mid-command callbacks
+    // Use a 1000ms Atomics.wait timeout and track total elapsed time (60s max)
+    const commandTimeoutMs = 60_000;
+    const waitSliceMs = 1000;
+    const startTime = Date.now();
+
     for (;;) {
-      Atomics.wait(this.signal, 0, 0);
+      const waitResult = Atomics.wait(this.signal, 0, 0, waitSliceMs);
+
+      if (waitResult === 'timed-out') {
+        // Check total elapsed time
+        if (Date.now() - startTime >= commandTimeoutMs) {
+          port1.close();
+          throw new Error(`Bridge call '${method}' timed out after ${commandTimeoutMs / 1000}s — worker may have died`);
+        }
+        // Worker might still be alive, keep waiting
+        continue;
+      }
 
       const sig = Atomics.load(this.signal, 0);
 

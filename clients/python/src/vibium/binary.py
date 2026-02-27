@@ -212,8 +212,18 @@ class VibiumProcess:
         if process.stdout:
             # First line: "Starting Clicker proxy server on port ..."
             # Second line: "Server listening on ws://localhost:PORT"
+            # Use run_in_executor + wait_for to avoid blocking the event
+            # loop and to bail out if the process never prints.
+            loop = asyncio.get_event_loop()
             for _ in range(2):
-                line = process.stdout.readline()
+                try:
+                    line = await asyncio.wait_for(
+                        loop.run_in_executor(None, process.stdout.readline),
+                        timeout=30,
+                    )
+                except asyncio.TimeoutError:
+                    process.kill()
+                    raise RuntimeError("Vibium failed to start: timed out waiting for port")
                 if "listening on" in line.lower():
                     try:
                         actual_port = int(line.strip().split(":")[-1])

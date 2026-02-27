@@ -8,6 +8,9 @@ from typing import Any, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from ..client import BiDiClient
 
+# Default timeout for download completion (5 minutes).
+_DOWNLOAD_TIMEOUT = 300
+
 
 class Download:
     """Represents a file download triggered by the page."""
@@ -24,9 +27,16 @@ class Download:
     def suggested_filename(self) -> str:
         return self._suggested_filename
 
+    async def _wait_for_completion(self) -> dict:
+        """Wait for the download future with a timeout."""
+        return await asyncio.wait_for(self._future, timeout=_DOWNLOAD_TIMEOUT)
+
     async def save_as(self, path: str) -> None:
         """Wait for the download to complete, then save to the specified path."""
-        result = await self._future
+        try:
+            result = await self._wait_for_completion()
+        except asyncio.TimeoutError:
+            raise TimeoutError(f"Download timed out after {_DOWNLOAD_TIMEOUT}s")
         if result["status"] != "complete" or not result.get("filepath"):
             raise RuntimeError(f"Download failed with status: {result['status']}")
         await self._client.send("vibium:download.saveAs", {
@@ -36,7 +46,10 @@ class Download:
 
     async def path(self) -> Optional[str]:
         """Wait for the download to complete and return the temp file path."""
-        result = await self._future
+        try:
+            result = await self._wait_for_completion()
+        except asyncio.TimeoutError:
+            raise TimeoutError(f"Download timed out after {_DOWNLOAD_TIMEOUT}s")
         return result.get("filepath")
 
     def _complete(self, status: str, filepath: Optional[str]) -> None:

@@ -3,6 +3,7 @@ package bidi
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	errs "github.com/vibium/clicker/internal/errors"
@@ -19,11 +20,16 @@ type Connection struct {
 	closed bool
 }
 
+// readDeadline is the timeout for each WebSocket read operation.
+// Long enough for legitimate long operations but short enough to detect dead connections.
+const readDeadline = 120 * time.Second
+
 // Connect establishes a WebSocket connection to the given URL.
 func Connect(url string) (*Connection, error) {
 	dialer := websocket.Dialer{
-		ReadBufferSize:  maxMessageSize,
-		WriteBufferSize: maxMessageSize,
+		ReadBufferSize:   maxMessageSize,
+		WriteBufferSize:  maxMessageSize,
+		HandshakeTimeout: 30 * time.Second,
 	}
 	conn, _, err := dialer.Dial(url, nil)
 	if err != nil {
@@ -32,6 +38,12 @@ func Connect(url string) (*Connection, error) {
 
 	// Set read limit to handle large messages (e.g., screenshots from high-res displays)
 	conn.SetReadLimit(maxMessageSize)
+
+	// Set up pong handler to extend read deadline on activity
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(readDeadline))
+		return nil
+	})
 
 	return &Connection{
 		conn: conn,
@@ -51,11 +63,14 @@ func (c *Connection) Send(msg string) error {
 }
 
 // Receive receives a text message from the WebSocket.
-// Blocks until a message is received.
+// Blocks until a message is received or the read deadline (120s) expires.
 func (c *Connection) Receive() (string, error) {
 	if c.closed {
 		return "", fmt.Errorf("connection closed")
 	}
+
+	// Set a read deadline to detect dead connections (e.g., Chrome crash without TCP close)
+	c.conn.SetReadDeadline(time.Now().Add(readDeadline))
 
 	msgType, msg, err := c.conn.ReadMessage()
 	if err != nil {

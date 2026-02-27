@@ -92,9 +92,15 @@ func (m *MCPSession) SendBidiCommand(method string, params map[string]interface{
 }
 
 func (m *MCPSession) SendBidiCommandWithTimeout(method string, params map[string]interface{}, timeout time.Duration) (json.RawMessage, error) {
-	// bidi.Client.SendCommand blocks until a response arrives; the timeout is
-	// handled at the caller level (polling loops). Delegate to the regular path.
-	return m.SendBidiCommand(method, params)
+	msg, err := m.Client.SendCommandWithTimeout(method, params, timeout)
+	if err != nil {
+		return nil, err
+	}
+	wrapped, err := json.Marshal(map[string]json.RawMessage{"result": msg.Result})
+	if err != nil {
+		return nil, fmt.Errorf("failed to wrap bidi result: %w", err)
+	}
+	return wrapped, nil
 }
 
 func (m *MCPSession) GetContextID() (string, error) {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -14,6 +15,10 @@ import (
 // maxMessageSize is the maximum size of a WebSocket message (10MB).
 // This accommodates large screenshots from high-resolution displays (e.g., retina, 4K).
 const maxMessageSize = 10 * 1024 * 1024
+
+// clientReadDeadline is the timeout for reading from a client WebSocket.
+// Generous since clients may be idle between commands.
+const clientReadDeadline = 300 * time.Second
 
 // Server is a WebSocket server that accepts client connections.
 type Server struct {
@@ -172,7 +177,15 @@ func (s *Server) handleClient(client *ClientConn) {
 		}
 	}()
 
+	// Set up pong handler to extend read deadline on active connections
+	client.conn.SetPongHandler(func(string) error {
+		client.conn.SetReadDeadline(time.Now().Add(clientReadDeadline))
+		return nil
+	})
+
 	for {
+		// Set read deadline to detect dead client connections
+		client.conn.SetReadDeadline(time.Now().Add(clientReadDeadline))
 		msgType, msg, err := client.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {

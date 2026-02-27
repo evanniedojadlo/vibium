@@ -30,9 +30,12 @@ class BiDiClient:
         self._event_handlers: List[Callable[[Dict[str, Any]], None]] = []
 
     @classmethod
-    async def connect(cls, url: str) -> BiDiClient:
+    async def connect(cls, url: str, timeout: float = 30) -> BiDiClient:
         """Connect to a BiDi WebSocket server."""
-        ws = await ws_connect(url)
+        try:
+            ws = await asyncio.wait_for(ws_connect(url), timeout=timeout)
+        except asyncio.TimeoutError:
+            raise ConnectionError(f"Timed out connecting to {url} after {timeout}s")
         client = cls(ws)
         client._receiver_task = asyncio.create_task(client._receive_loop())
         return client
@@ -68,7 +71,7 @@ class BiDiClient:
                 if not future.done():
                     future.set_exception(ConnectionError("Connection closed"))
 
-    async def send(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    async def send(self, method: str, params: Optional[Dict[str, Any]] = None, timeout: float = 60) -> Any:
         """Send a command and wait for the response."""
         msg_id = self._next_id
         self._next_id += 1
@@ -84,7 +87,10 @@ class BiDiClient:
 
         try:
             await self._ws.send(json.dumps(command))
-            response = await future
+            try:
+                response = await asyncio.wait_for(future, timeout=timeout)
+            except asyncio.TimeoutError:
+                raise TimeoutError(f"Command '{method}' timed out after {timeout}s")
 
             if response.get("type") == "error":
                 raise BiDiError(

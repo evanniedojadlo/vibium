@@ -1,6 +1,9 @@
 import { BiDiClient } from './bidi';
 import * as fs from 'fs/promises';
 
+/** Default timeout for download completion (5 minutes). */
+const DOWNLOAD_TIMEOUT_MS = 300_000;
+
 /** Represents a file download triggered by the page. */
 export class Download {
   private client: BiDiClient;
@@ -28,9 +31,22 @@ export class Download {
     return this._suggestedFilename;
   }
 
+  /** Wait for the download completion promise with a timeout. */
+  private _waitForCompletion(): Promise<{ status: string; filepath: string | null }> {
+    return Promise.race([
+      this._completionPromise,
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Download timed out after ${DOWNLOAD_TIMEOUT_MS / 1000}s`)),
+          DOWNLOAD_TIMEOUT_MS,
+        ),
+      ),
+    ]);
+  }
+
   /** Wait for the download to complete, then save to the specified path. */
   async saveAs(path: string): Promise<void> {
-    const result = await this._completionPromise;
+    const result = await this._waitForCompletion();
     if (result.status !== 'complete' || !result.filepath) {
       throw new Error(`Download failed with status: ${result.status}`);
     }
@@ -43,7 +59,7 @@ export class Download {
 
   /** Wait for the download to complete and return the temp file path, or null if failed. */
   async path(): Promise<string | null> {
-    const result = await this._completionPromise;
+    const result = await this._waitForCompletion();
     return result.filepath;
   }
 
