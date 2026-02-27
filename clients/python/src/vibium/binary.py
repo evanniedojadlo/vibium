@@ -214,7 +214,7 @@ class VibiumProcess:
             # Second line: "Server listening on ws://localhost:PORT"
             # Use run_in_executor + wait_for to avoid blocking the event
             # loop and to bail out if the process never prints.
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             for _ in range(2):
                 try:
                     line = await asyncio.wait_for(

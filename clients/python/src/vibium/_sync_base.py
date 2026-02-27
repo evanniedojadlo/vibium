@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import threading
 from typing import Any, Optional
 
@@ -45,7 +44,15 @@ class _EventLoopThread:
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         try:
             return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
+        except BaseException:
+            # In Python 3.11+, concurrent.futures.TimeoutError is an alias for
+            # the built-in TimeoutError, so we can't distinguish between "the
+            # future.result() call timed out" and "the coroutine itself raised
+            # TimeoutError" using exception type alone.  Check future.done()
+            # instead: if the future completed, re-raise its stored exception;
+            # if it's still pending, the wait itself timed out.
+            if future.done():
+                raise  # coroutine raised — preserve the original exception
             future.cancel()
             raise TimeoutError(
                 f"Synchronous call did not complete within {timeout}s — "

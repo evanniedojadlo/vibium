@@ -55,10 +55,15 @@ class BiDiClient:
         """Background task to receive and dispatch messages."""
         try:
             async for message in self._ws:
-                data = json.loads(message)
+                try:
+                    data = json.loads(message)
+                except (json.JSONDecodeError, ValueError):
+                    continue
                 msg_id = data.get("id")
                 if msg_id is not None and msg_id in self._pending:
-                    self._pending[msg_id].set_result(data)
+                    future = self._pending[msg_id]
+                    if not future.done():
+                        future.set_result(data)
                 elif msg_id is None and "method" in data:
                     # Event message — dispatch to handlers
                     for handler in self._event_handlers:
@@ -67,6 +72,8 @@ class BiDiClient:
                         except Exception:
                             pass
         except ConnectionClosed:
+            pass
+        finally:
             for future in self._pending.values():
                 if not future.done():
                     future.set_exception(ConnectionError("Connection closed"))
@@ -82,7 +89,7 @@ class BiDiClient:
             "params": params or {},
         }
 
-        future: asyncio.Future = asyncio.get_event_loop().create_future()
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
         self._pending[msg_id] = future
 
         try:
