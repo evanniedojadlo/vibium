@@ -9,6 +9,11 @@ export interface LaunchOptions {
   executablePath?: string;
 }
 
+export interface ConnectOptions {
+  headers?: Record<string, string>;
+  executablePath?: string;
+}
+
 export class Browser {
   private client: BiDiClient;
   private process: VibiumProcess | null;
@@ -123,6 +128,26 @@ export const browser = {
       process.preReadyLines,
     );
     info('browser launched (pipe)');
+
+    return new Browser(client, process);
+  },
+
+  async connect(url: string, options: ConnectOptions = {}): Promise<Browser> {
+    debug('connecting to remote browser', { url });
+
+    const process = await VibiumProcess.start({
+      connectURL: url,
+      connectHeaders: options.headers,
+      executablePath: options.executablePath,
+    });
+    debug('vibium started (connect mode)');
+
+    const client = BiDiClient.fromStreams(
+      process.stdin,
+      process.stdout,
+      process.preReadyLines,
+    );
+    info('browser connected (pipe → remote)');
 
     return new Browser(client, process);
   },

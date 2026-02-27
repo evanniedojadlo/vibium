@@ -87,5 +87,33 @@ class _BrowserLauncher:
         )
         return Browser(async_browser, loop_thread)
 
+    def connect(
+        self,
+        url: str,
+        headers: Optional[dict] = None,
+        executable_path: Optional[str] = None,
+    ) -> Browser:
+        """Connect to a remote browser via vibium proxy.
+
+        Args:
+            url: Remote BiDi WebSocket URL (e.g. ws://remote:9515).
+            headers: HTTP headers for the WebSocket connection (e.g. auth tokens).
+            executable_path: Path to vibium binary (default: auto-detect).
+        """
+        from .._sync_base import _EventLoopThread
+        from ..async_api.browser import browser as async_browser_launcher
+
+        loop_thread = _EventLoopThread()
+        loop_thread.start()
+
+        async_browser = loop_thread.run(
+            async_browser_launcher.connect(
+                url,
+                headers=headers,
+                executable_path=executable_path,
+            )
+        )
+        return Browser(async_browser, loop_thread)
+
 
 browser = _BrowserLauncher()

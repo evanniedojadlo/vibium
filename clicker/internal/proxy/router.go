@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -65,46 +66,68 @@ type bidiResponse struct {
 
 // Router manages browser sessions for connected clients.
 type Router struct {
-	sessions sync.Map // map[uint64]*BrowserSession (client ID -> session)
-	headless bool
+	sessions       sync.Map // map[uint64]*BrowserSession (client ID -> session)
+	headless       bool
+	connectURL     string
+	connectHeaders http.Header
 }
 
 // NewRouter creates a new router.
-func NewRouter(headless bool) *Router {
+func NewRouter(headless bool, connectURL string, connectHeaders http.Header) *Router {
 	return &Router{
-		headless: headless,
+		headless:       headless,
+		connectURL:     connectURL,
+		connectHeaders: connectHeaders,
 	}
 }
 
 // OnClientConnect is called when a new client connects.
-// It launches a browser and establishes a BiDi connection.
+// It launches a browser (or connects to a remote one) and establishes a BiDi connection.
 func (r *Router) OnClientConnect(client ClientTransport) {
-	fmt.Fprintf(os.Stderr, "[router] Launching browser for client %d...\n", client.ID())
+	var launchResult *browser.LaunchResult
+	var bidiConn *bidi.Connection
+	var err error
 
-	// Launch browser
-	launchResult, err := browser.Launch(browser.LaunchOptions{
-		Headless: r.headless,
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[router] Failed to launch browser for client %d: %v\n", client.ID(), err)
-		client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to launch browser: %s"}}`, err.Error()))
-		client.Close()
-		return
+	if r.connectURL != "" {
+		// Remote mode: connect to an existing BiDi endpoint
+		fmt.Fprintf(os.Stderr, "[router] Connecting to remote browser for client %d: %s\n", client.ID(), r.connectURL)
+
+		bidiConn, err = bidi.ConnectWithHeaders(r.connectURL, r.connectHeaders)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[router] Failed to connect to remote browser for client %d: %v\n", client.ID(), err)
+			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to remote browser: %s"}}`, err.Error()))
+			client.Close()
+			return
+		}
+
+		fmt.Fprintf(os.Stderr, "[router] Remote BiDi connection established for client %d\n", client.ID())
+	} else {
+		// Local mode: launch a browser
+		fmt.Fprintf(os.Stderr, "[router] Launching browser for client %d...\n", client.ID())
+
+		launchResult, err = browser.Launch(browser.LaunchOptions{
+			Headless: r.headless,
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[router] Failed to launch browser for client %d: %v\n", client.ID(), err)
+			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to launch browser: %s"}}`, err.Error()))
+			client.Close()
+			return
+		}
+
+		fmt.Fprintf(os.Stderr, "[router] Browser launched for client %d, WebSocket: %s\n", client.ID(), launchResult.WebSocketURL)
+
+		bidiConn, err = bidi.Connect(launchResult.WebSocketURL)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[router] Failed to connect to browser BiDi for client %d: %v\n", client.ID(), err)
+			launchResult.Close()
+			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to browser: %s"}}`, err.Error()))
+			client.Close()
+			return
+		}
+
+		fmt.Fprintf(os.Stderr, "[router] BiDi connection established for client %d\n", client.ID())
 	}
-
-	fmt.Fprintf(os.Stderr, "[router] Browser launched for client %d, WebSocket: %s\n", client.ID(), launchResult.WebSocketURL)
-
-	// Connect to browser BiDi WebSocket
-	bidiConn, err := bidi.Connect(launchResult.WebSocketURL)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[router] Failed to connect to browser BiDi for client %d: %v\n", client.ID(), err)
-		launchResult.Close()
-		client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to browser: %s"}}`, err.Error()))
-		client.Close()
-		return
-	}
-
-	fmt.Fprintf(os.Stderr, "[router] BiDi connection established for client %d\n", client.ID())
 
 	// Create a BiDi client for handling custom commands
 	bidiClient := bidi.NewClient(bidiConn)

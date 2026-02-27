@@ -5,6 +5,8 @@ import { TimeoutError, BrowserCrashedError } from '../utils/errors';
 export interface VibiumProcessOptions {
   headless?: boolean;
   executablePath?: string;
+  connectURL?: string;
+  connectHeaders?: Record<string, string>;
 }
 
 export class VibiumProcess {
@@ -32,6 +34,14 @@ export class VibiumProcess {
     const args = ['pipe'];
     if (options.headless === true) {
       args.push('--headless');
+    }
+    if (options.connectURL) {
+      args.push('--connect', options.connectURL);
+    }
+    if (options.connectHeaders) {
+      for (const [key, value] of Object.entries(options.connectHeaders)) {
+        args.push('--connect-header', `${key}: ${value}`);
+      }
     }
 
     const proc = spawn(binaryPath, args, {

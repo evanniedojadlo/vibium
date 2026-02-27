@@ -162,6 +162,14 @@ const handlers: Record<string, Handler> = {
     return { pageId: defaultPageId };
   },
 
+  'browser.connect': async (args) => {
+    const [url, options] = args as [string, { headers?: Record<string, string> } | undefined];
+    browserInstance = await browser.connect(url, options);
+    const page = await browserInstance.page();
+    defaultPageId = storePage(page);
+    return { pageId: defaultPageId };
+  },
+
   'browser.close': async () => {
     if (!browserInstance) throw new Error('Browser not launched');
     await browserInstance.close();

@@ -166,24 +166,34 @@ class VibiumProcess:
         cls,
         headless: bool = False,
         executable_path: Optional[str] = None,
+        connect_url: Optional[str] = None,
+        connect_headers: Optional[dict] = None,
     ) -> "VibiumProcess":
         """Start a vibium pipe process.
 
         Args:
             headless: Run browser in headless mode.
             executable_path: Path to vibium binary (default: auto-detect).
+            connect_url: Remote BiDi WebSocket URL to connect to instead of launching a local browser.
+            connect_headers: HTTP headers for the WebSocket connection (e.g. auth tokens).
 
         Returns:
             A VibiumProcess instance with stdin/stdout streams ready.
         """
         binary = executable_path or find_vibium_bin()
 
-        # Ensure Chrome is installed (auto-download if needed)
-        ensure_browser_installed(binary)
+        # Ensure Chrome is installed (auto-download if needed) — skip for remote connections
+        if not connect_url:
+            ensure_browser_installed(binary)
 
         args = [binary, "pipe"]
         if headless:
             args.append("--headless")
+        if connect_url:
+            args.extend(["--connect", connect_url])
+        if connect_headers:
+            for key, value in connect_headers.items():
+                args.extend(["--connect-header", f"{key}: {value}"])
 
         process = await asyncio.create_subprocess_exec(
             *args,
