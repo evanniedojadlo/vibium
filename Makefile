@@ -146,7 +146,7 @@ test-cli: build-go
 	node --test --test-concurrency=1 tests/cli/process.test.js
 
 # Run JS library tests (sequential to avoid resource exhaustion)
-test-js: build
+test-js: build-go
 	@echo "━━━ JS Async API Tests ━━━"
 	node --test --test-concurrency=1 tests/js/async/async-api.test.js tests/js/async/auto-wait.test.js tests/js/async/browser-modes.test.js
 	@echo "━━━ JS Sync API Tests ━━━"
@@ -201,7 +201,7 @@ test-daemon: build-go
 	node --test --test-concurrency=1 tests/daemon/lifecycle.test.js tests/daemon/concurrency.test.js tests/daemon/cli-commands.test.js tests/daemon/find-refs.test.js
 
 # Run Python client tests
-test-python: build install-browser
+test-python: build-go install-browser
 	@echo "━━━ Python Client Tests ━━━"
 	@cd clients/python && \
 		if [ ! -d ".venv" ]; then python3 -m venv .venv; fi && \
