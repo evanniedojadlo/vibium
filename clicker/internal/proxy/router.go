@@ -115,18 +115,24 @@ func (r *Router) OnClientConnect(client ClientTransport) {
 			return
 		}
 
-		fmt.Fprintf(os.Stderr, "[router] Browser launched for client %d, WebSocket: %s\n", client.ID(), launchResult.WebSocketURL)
+		// Use BiDi connection from launch if available, otherwise connect via WebSocket URL
+		if launchResult.BidiConn != nil {
+			bidiConn = launchResult.BidiConn
+			fmt.Fprintf(os.Stderr, "[router] Browser launched for client %d (BiDi session)\n", client.ID())
+		} else {
+			fmt.Fprintf(os.Stderr, "[router] Browser launched for client %d, WebSocket: %s\n", client.ID(), launchResult.WebSocketURL)
 
-		bidiConn, err = bidi.Connect(launchResult.WebSocketURL)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[router] Failed to connect to browser BiDi for client %d: %v\n", client.ID(), err)
-			launchResult.Close()
-			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to browser: %s"}}`, err.Error()))
-			client.Close()
-			return
+			bidiConn, err = bidi.Connect(launchResult.WebSocketURL)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[router] Failed to connect to browser BiDi for client %d: %v\n", client.ID(), err)
+				launchResult.Close()
+				client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to browser: %s"}}`, err.Error()))
+				client.Close()
+				return
+			}
+
+			fmt.Fprintf(os.Stderr, "[router] BiDi connection established for client %d\n", client.ID())
 		}
-
-		fmt.Fprintf(os.Stderr, "[router] BiDi connection established for client %d\n", client.ID())
 	}
 
 	// Create a BiDi client for handling custom commands
