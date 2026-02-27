@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -20,7 +21,7 @@ type BrowserSession struct {
 	LaunchResult *browser.LaunchResult
 	BidiConn     *bidi.Connection
 	BidiClient   *bidi.Client
-	Client       *ClientConn
+	Client       ClientTransport
 	mu           sync.Mutex
 	closed       bool
 	stopChan     chan struct{}
@@ -65,46 +66,74 @@ type bidiResponse struct {
 
 // Router manages browser sessions for connected clients.
 type Router struct {
-	sessions sync.Map // map[uint64]*BrowserSession (client ID -> session)
-	headless bool
+	sessions       sync.Map // map[uint64]*BrowserSession (client ID -> session)
+	headless       bool
+	connectURL     string
+	connectHeaders http.Header
 }
 
 // NewRouter creates a new router.
-func NewRouter(headless bool) *Router {
+func NewRouter(headless bool, connectURL string, connectHeaders http.Header) *Router {
 	return &Router{
-		headless: headless,
+		headless:       headless,
+		connectURL:     connectURL,
+		connectHeaders: connectHeaders,
 	}
 }
 
 // OnClientConnect is called when a new client connects.
-// It launches a browser and establishes a BiDi connection.
-func (r *Router) OnClientConnect(client *ClientConn) {
-	fmt.Printf("[router] Launching browser for client %d...\n", client.ID)
+// It launches a browser (or connects to a remote one) and establishes a BiDi connection.
+func (r *Router) OnClientConnect(client ClientTransport) {
+	var launchResult *browser.LaunchResult
+	var bidiConn *bidi.Connection
+	var err error
 
-	// Launch browser
-	launchResult, err := browser.Launch(browser.LaunchOptions{
-		Headless: r.headless,
-	})
-	if err != nil {
-		fmt.Printf("[router] Failed to launch browser for client %d: %v\n", client.ID, err)
-		client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to launch browser: %s"}}`, err.Error()))
-		client.Close()
-		return
+	if r.connectURL != "" {
+		// Remote mode: connect to an existing BiDi endpoint
+		fmt.Fprintf(os.Stderr, "[router] Connecting to remote browser for client %d: %s\n", client.ID(), r.connectURL)
+
+		bidiConn, err = bidi.ConnectWithHeaders(r.connectURL, r.connectHeaders)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[router] Failed to connect to remote browser for client %d: %v\n", client.ID(), err)
+			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to remote browser: %s"}}`, err.Error()))
+			client.Close()
+			return
+		}
+
+		fmt.Fprintf(os.Stderr, "[router] Remote BiDi connection established for client %d\n", client.ID())
+	} else {
+		// Local mode: launch a browser
+		fmt.Fprintf(os.Stderr, "[router] Launching browser for client %d...\n", client.ID())
+
+		launchResult, err = browser.Launch(browser.LaunchOptions{
+			Headless: r.headless,
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[router] Failed to launch browser for client %d: %v\n", client.ID(), err)
+			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to launch browser: %s"}}`, err.Error()))
+			client.Close()
+			return
+		}
+
+		// Use BiDi connection from launch if available, otherwise connect via WebSocket URL
+		if launchResult.BidiConn != nil {
+			bidiConn = launchResult.BidiConn
+			fmt.Fprintf(os.Stderr, "[router] Browser launched for client %d (BiDi session)\n", client.ID())
+		} else {
+			fmt.Fprintf(os.Stderr, "[router] Browser launched for client %d, WebSocket: %s\n", client.ID(), launchResult.WebSocketURL)
+
+			bidiConn, err = bidi.Connect(launchResult.WebSocketURL)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[router] Failed to connect to browser BiDi for client %d: %v\n", client.ID(), err)
+				launchResult.Close()
+				client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to browser: %s"}}`, err.Error()))
+				client.Close()
+				return
+			}
+
+			fmt.Fprintf(os.Stderr, "[router] BiDi connection established for client %d\n", client.ID())
+		}
 	}
-
-	fmt.Printf("[router] Browser launched for client %d, WebSocket: %s\n", client.ID, launchResult.WebSocketURL)
-
-	// Connect to browser BiDi WebSocket
-	bidiConn, err := bidi.Connect(launchResult.WebSocketURL)
-	if err != nil {
-		fmt.Printf("[router] Failed to connect to browser BiDi for client %d: %v\n", client.ID, err)
-		launchResult.Close()
-		client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to browser: %s"}}`, err.Error()))
-		client.Close()
-		return
-	}
-
-	fmt.Printf("[router] BiDi connection established for client %d\n", client.ID)
 
 	// Create a BiDi client for handling custom commands
 	bidiClient := bidi.NewClient(bidiConn)
@@ -119,7 +148,7 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 		nextInternalID: 1000000, // Start at high number to avoid collision with client IDs
 	}
 
-	r.sessions.Store(client.ID, session)
+	r.sessions.Store(client.ID(), session)
 
 	// Start routing messages from browser to client
 	go r.routeBrowserToClient(session)
@@ -142,7 +171,7 @@ func (r *Router) OnClientConnect(client *ClientConn) {
 		},
 	})
 	if err != nil {
-		fmt.Printf("[router] Failed to subscribe to events for client %d: %v\n", client.ID, err)
+		fmt.Fprintf(os.Stderr, "[router] Failed to subscribe to events for client %d: %v\n", client.ID(), err)
 	}
 
 	// Download setup is non-critical — run in background so it doesn't
@@ -225,10 +254,10 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 
 // OnClientMessage is called when a message is received from a client.
 // It handles custom vibium: extension commands or forwards to the browser.
-func (r *Router) OnClientMessage(client *ClientConn, msg string) {
-	sessionVal, ok := r.sessions.Load(client.ID)
+func (r *Router) OnClientMessage(client ClientTransport, msg string) {
+	sessionVal, ok := r.sessions.Load(client.ID())
 	if !ok {
-		fmt.Printf("[router] No session for client %d\n", client.ID)
+		fmt.Fprintf(os.Stderr, "[router] No session for client %d\n", client.ID())
 		return
 	}
 
@@ -246,7 +275,7 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 	if err := json.Unmarshal([]byte(msg), &cmd); err != nil {
 		// Can't parse, forward as-is
 		if err := session.BidiConn.Send(msg); err != nil {
-			fmt.Printf("[router] Failed to send to browser for client %d: %v\n", client.ID, err)
+			fmt.Fprintf(os.Stderr, "[router] Failed to send to browser for client %d: %v\n", client.ID(), err)
 		}
 		return
 	}
@@ -625,7 +654,7 @@ func (r *Router) OnClientMessage(client *ClientConn, msg string) {
 
 	// Forward standard BiDi commands to browser
 	if err := session.BidiConn.Send(msg); err != nil {
-		fmt.Printf("[router] Failed to send to browser for client %d: %v\n", client.ID, err)
+		fmt.Fprintf(os.Stderr, "[router] Failed to send to browser for client %d: %v\n", client.ID(), err)
 	}
 }
 
@@ -673,8 +702,8 @@ func (r *Router) sendError(session *BrowserSession, id int, err error) {
 
 // OnClientDisconnect is called when a client disconnects.
 // It closes the browser session.
-func (r *Router) OnClientDisconnect(client *ClientConn) {
-	sessionVal, ok := r.sessions.LoadAndDelete(client.ID)
+func (r *Router) OnClientDisconnect(client ClientTransport) {
+	sessionVal, ok := r.sessions.LoadAndDelete(client.ID())
 	if !ok {
 		return
 	}
@@ -699,11 +728,11 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 			session.mu.Unlock()
 
 			if !closed {
-				fmt.Printf("[router] Browser connection closed for client %d: %v\n", session.Client.ID, err)
+				fmt.Fprintf(os.Stderr, "[router] Browser connection closed for client %d: %v\n", session.Client.ID(), err)
 				// Browser died — close the full session so any pending
 				// sendInternalCommand calls fail immediately with "session closed"
 				// instead of waiting for the 60-second timeout.
-				r.sessions.Delete(session.Client.ID)
+				r.sessions.Delete(session.Client.ID())
 				r.closeSession(session)
 				// Close the client WebSocket so JS/Python clients see the
 				// disconnect and can reject their pending commands.
@@ -764,7 +793,7 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 
 		// Forward message to client
 		if err := session.Client.Send(msg); err != nil {
-			fmt.Printf("[router] Failed to send to client %d: %v\n", session.Client.ID, err)
+			fmt.Fprintf(os.Stderr, "[router] Failed to send to client %d: %v\n", session.Client.ID(), err)
 			return
 		}
 	}
@@ -831,7 +860,7 @@ func (r *Router) closeSession(session *BrowserSession) {
 	session.closed = true
 	session.mu.Unlock()
 
-	fmt.Printf("[router] Closing browser session for client %d\n", session.Client.ID)
+	fmt.Fprintf(os.Stderr, "[router] Closing browser session for client %d\n", session.Client.ID())
 
 	// Signal the routing goroutine to stop
 	close(session.stopChan)
@@ -856,7 +885,7 @@ func (r *Router) closeSession(session *BrowserSession) {
 		session.LaunchResult.Close()
 	}
 
-	fmt.Printf("[router] Browser session closed for client %d\n", session.Client.ID)
+	fmt.Fprintf(os.Stderr, "[router] Browser session closed for client %d\n", session.Client.ID())
 }
 
 // CloseAll closes all browser sessions.

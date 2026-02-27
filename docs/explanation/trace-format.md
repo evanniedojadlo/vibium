@@ -89,13 +89,15 @@ Screenshots are captured per-action in `dispatch()`, with a CAS guard to avoid f
 Every vibium command emits a `before`/`after` pair automatically — both mutations (`click`, `fill`, `navigate`) and read-only queries (`text`, `isVisible`, `getAttribute`).
 
 ```json
-{"type":"before","callId":"call@1","title":"Page.navigate","class":"Page","method":"vibium:page.navigate","params":{"url":"https://example.com"},"wallTime":1708000000300,"startTime":1708000000300}
-{"type":"after","callId":"call@1","endTime":1708000000400}
-{"type":"before","callId":"call@2","title":"Element.click","class":"Element","method":"vibium:click","params":{"selector":"#login"},"wallTime":1708000000500,"startTime":1708000000500}
+{"type":"before","callId":"call@1","title":"Page.navigate","class":"Page","method":"vibium:page.navigate","pageId":"ABCDEF123","params":{"url":"https://example.com"},"wallTime":1708000000300,"startTime":1708000000300}
+{"type":"after","callId":"call@1","afterSnapshot":"after@call@1","endTime":1708000000400}
+{"type":"before","callId":"call@2","beforeSnapshot":"before@call@2","title":"Element.click","class":"Element","method":"vibium:click","pageId":"ABCDEF123","params":{"selector":"#login"},"wallTime":1708000000500,"startTime":1708000000500}
 {"type":"after","callId":"call@2","endTime":1708000000600}
-{"type":"before","callId":"call@3","title":"Element.text","class":"Element","method":"vibium:el.text","params":{"selector":".result"},"wallTime":1708000000700,"startTime":1708000000700}
-{"type":"after","callId":"call@3","endTime":1708000000750}
+{"type":"before","callId":"call@3","title":"Element.text","class":"Element","method":"vibium:el.text","pageId":"ABCDEF123","params":{"selector":".result"},"wallTime":1708000000700,"startTime":1708000000700}
+{"type":"after","callId":"call@3","afterSnapshot":"after@call@3","endTime":1708000000750}
 ```
+
+**`before` fields:**
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -104,6 +106,17 @@ Every vibium command emits a `before`/`after` pair automatically — both mutati
 | `class` | string | `Element`, `Page`, `Browser`, `BrowserContext`, `Network`, `Dialog`, etc. |
 | `method` | string | The raw vibium method (e.g., `vibium:click`, `vibium:el.text`). |
 | `params` | object | The command parameters as sent by the client. |
+| `pageId` | string | Browsing context ID of the page the action targets. Present on actions, absent on groups. |
+| `parentId` | string | `call@<N>` of the enclosing action group, if the action is inside a `startGroup()`/`stopGroup()` span. Absent for top-level actions. |
+| `beforeSnapshot` | string | `"before@call@<N>"` — references the `snapshotName` of a `frame-snapshot` event captured before the action ran. Present on `click` actions (which mutate the DOM), absent on other actions. Mutually exclusive with `afterSnapshot` on the corresponding `after` event. |
+
+**`after` fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `callId` | string | `call@<N>` — matches the corresponding `before` event. |
+| `endTime` | number | Unix ms when the action completed. |
+| `afterSnapshot` | string | `"after@call@<N>"` — references the `snapshotName` of a `frame-snapshot` event captured after the action completed. Present on most actions (`navigate`, `fill`, `find`, `text`, etc.) but absent on `click` actions (which use `beforeSnapshot` instead) and absent on groups. |
 
 The `dispatch()` wrapper in the router records these markers — every vibium command that goes through `dispatch()` gets traced. Tracing commands themselves (`tracing.start`, `tracing.stop`, etc.) are excluded since they control tracing.
 
@@ -113,18 +126,20 @@ Groups are named spans from `startGroup()` / `stopGroup()`. They wrap multiple a
 
 ```json
 {"type":"before","callId":"call@4","title":"login flow","class":"Tracing","method":"group","params":{"name":"login flow"},"wallTime":1708000000300,"startTime":1708000000300}
+{"type":"before","callId":"call@5","title":"Element.fill","class":"Element","method":"vibium:fill","pageId":"ABCDEF123","parentId":"call@4","params":{"selector":"#user","value":"admin"},"wallTime":1708000000350,"startTime":1708000000350}
+{"type":"after","callId":"call@5","afterSnapshot":"after@call@5","endTime":1708000000380}
 {"type":"after","callId":"call@4","endTime":1708000000500}
 ```
 
-Groups are nestable. The `before` and `after` events share the same `call@N` id. Actions inside a group have a `parentId` field pointing to the group's `callId`.
+Groups are nestable. The `before` and `after` events share the same `call@N` id. Actions inside a group have a `parentId` field pointing to the group's `callId` (see `parentId` in the field table above).
 
 #### BiDi commands (opt-in)
 
 When tracing is started with `bidi: true`, every raw BiDi command sent to the browser via `sendInternalCommand` is also recorded. This is useful for debugging low-level protocol issues.
 
 ```json
-{"type":"before","callId":"call@5","title":"browsingContext.navigate","class":"BiDi","method":"browsingContext.navigate","params":{"context":"ABC123","url":"https://example.com"},"wallTime":1708000000350,"startTime":1708000000350}
-{"type":"after","callId":"call@5","endTime":1708000000390}
+{"type":"before","callId":"call@6","title":"browsingContext.navigate","class":"BiDi","method":"browsingContext.navigate","params":{"context":"ABC123","url":"https://example.com"},"wallTime":1708000000350,"startTime":1708000000350}
+{"type":"after","callId":"call@6","endTime":1708000000390}
 ```
 
 | Field | Type | Description |

@@ -328,11 +328,16 @@ func (h *Handlers) browserLaunch(args map[string]interface{}) (*ToolsCallResult,
 		return nil, fmt.Errorf("failed to launch browser: %w", err)
 	}
 
-	// Connect to BiDi
-	conn, err := bidi.Connect(launchResult.WebSocketURL)
-	if err != nil {
-		launchResult.Close()
-		return nil, fmt.Errorf("failed to connect to browser: %w", err)
+	// Use BiDi connection from launch if available, otherwise connect via WebSocket URL
+	var conn *bidi.Connection
+	if launchResult.BidiConn != nil {
+		conn = launchResult.BidiConn
+	} else {
+		conn, err = bidi.Connect(launchResult.WebSocketURL)
+		if err != nil {
+			launchResult.Close()
+			return nil, fmt.Errorf("failed to connect to browser: %w", err)
+		}
 	}
 
 	h.launchResult = launchResult

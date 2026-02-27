@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,6 +21,13 @@ const maxMessageSize = 10 * 1024 * 1024
 // Generous since clients may be idle between commands.
 const clientReadDeadline = 300 * time.Second
 
+// ClientTransport is the interface that both WebSocket and pipe transports implement.
+type ClientTransport interface {
+	ID() uint64
+	Send(msg string) error
+	Close() error
+}
+
 // Server is a WebSocket server that accepts client connections.
 type Server struct {
 	port       int
@@ -27,18 +35,23 @@ type Server struct {
 	upgrader   websocket.Upgrader
 	clients    sync.Map // map[uint64]*ClientConn
 	nextID     atomic.Uint64
-	onConnect  func(*ClientConn)
-	onMessage  func(*ClientConn, string)
-	onClose    func(*ClientConn)
+	onConnect  func(ClientTransport)
+	onMessage  func(ClientTransport, string)
+	onClose    func(ClientTransport)
 }
 
 // ClientConn represents a connected WebSocket client.
 type ClientConn struct {
-	ID     uint64
+	id     uint64
 	conn   *websocket.Conn
 	mu     sync.Mutex
 	closed bool
 	server *Server
+}
+
+// ID returns the client connection ID.
+func (c *ClientConn) ID() uint64 {
+	return c.id
 }
 
 // ServerOption configures a Server.
@@ -52,21 +65,21 @@ func WithPort(port int) ServerOption {
 }
 
 // WithOnConnect sets a callback for when a client connects.
-func WithOnConnect(fn func(*ClientConn)) ServerOption {
+func WithOnConnect(fn func(ClientTransport)) ServerOption {
 	return func(s *Server) {
 		s.onConnect = fn
 	}
 }
 
 // WithOnMessage sets a callback for when a message is received.
-func WithOnMessage(fn func(*ClientConn, string)) ServerOption {
+func WithOnMessage(fn func(ClientTransport, string)) ServerOption {
 	return func(s *Server) {
 		s.onMessage = fn
 	}
 }
 
 // WithOnClose sets a callback for when a client disconnects.
-func WithOnClose(fn func(*ClientConn)) ServerOption {
+func WithOnClose(fn func(ClientTransport)) ServerOption {
 	return func(s *Server) {
 		s.onClose = fn
 	}
@@ -143,7 +156,7 @@ func (s *Server) Stop(ctx context.Context) error {
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Printf("WebSocket upgrade error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "WebSocket upgrade error: %v\n", err)
 		return
 	}
 
@@ -151,13 +164,13 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn.SetReadLimit(maxMessageSize)
 
 	client := &ClientConn{
-		ID:     s.nextID.Add(1),
+		id:     s.nextID.Add(1),
 		conn:   conn,
 		server: s,
 	}
 
-	s.clients.Store(client.ID, client)
-	fmt.Printf("[proxy] Client %d connected from %s\n", client.ID, r.RemoteAddr)
+	s.clients.Store(client.id, client)
+	fmt.Fprintf(os.Stderr, "[proxy] Client %d connected from %s\n", client.id, r.RemoteAddr)
 
 	if s.onConnect != nil {
 		s.onConnect(client)
@@ -169,9 +182,9 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleClient(client *ClientConn) {
 	defer func() {
-		s.clients.Delete(client.ID)
+		s.clients.Delete(client.id)
 		client.Close()
-		fmt.Printf("[proxy] Client %d disconnected\n", client.ID)
+		fmt.Fprintf(os.Stderr, "[proxy] Client %d disconnected\n", client.id)
 		if s.onClose != nil {
 			s.onClose(client)
 		}
@@ -189,7 +202,7 @@ func (s *Server) handleClient(client *ClientConn) {
 		msgType, msg, err := client.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-				fmt.Printf("[proxy] Client %d read error: %v\n", client.ID, err)
+				fmt.Fprintf(os.Stderr, "[proxy] Client %d read error: %v\n", client.id, err)
 			}
 			return
 		}

@@ -155,102 +155,105 @@ def ensure_browser_installed(vibium_path: str) -> None:
 
 
 class VibiumProcess:
-    """Manages a vibium subprocess."""
+    """Manages a vibium subprocess communicating via stdin/stdout pipes."""
 
-    def __init__(self, process: subprocess.Popen, port: int):
+    def __init__(self, process: asyncio.subprocess.Process):
         self._process = process
-        self.port = port
         atexit.register(self._cleanup)
 
     @classmethod
     async def start(
         cls,
         headless: bool = False,
-        port: Optional[int] = None,
         executable_path: Optional[str] = None,
+        connect_url: Optional[str] = None,
+        connect_headers: Optional[dict] = None,
     ) -> "VibiumProcess":
-        """Start a vibium process.
+        """Start a vibium pipe process.
 
         Args:
             headless: Run browser in headless mode.
-            port: WebSocket port (default: auto-assigned).
             executable_path: Path to vibium binary (default: auto-detect).
+            connect_url: Remote BiDi WebSocket URL to connect to instead of launching a local browser.
+            connect_headers: HTTP headers for the WebSocket connection (e.g. auth tokens).
 
         Returns:
-            A VibiumProcess instance.
+            A VibiumProcess instance with stdin/stdout streams ready.
         """
         binary = executable_path or find_vibium_bin()
 
-        # Ensure Chrome is installed (auto-download if needed)
-        ensure_browser_installed(binary)
+        # Ensure Chrome is installed (auto-download if needed) — skip for remote connections
+        if not connect_url:
+            ensure_browser_installed(binary)
 
-        args = [binary, "serve"]
+        args = [binary, "pipe"]
         if headless:
             args.append("--headless")
-        # Use port 0 (OS-assigned random port) by default to avoid conflicts
-        # when multiple browser instances run concurrently
-        args.extend(["--port", str(port if port is not None else 0)])
+        if connect_url:
+            args.extend(["--connect", connect_url])
+        if connect_headers:
+            for key, value in connect_headers.items():
+                args.extend(["--connect-header", f"{key}: {value}"])
 
-        # Start the process in its own process group so Ctrl+C in the
-        # Python REPL doesn't kill the browser
-        popen_kwargs: dict = dict(
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
+        process = await asyncio.create_subprocess_exec(
+            *args,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            start_new_session=(sys.platform != "win32"),
         )
-        if sys.platform == "win32":
-            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-        else:
-            popen_kwargs["start_new_session"] = True
 
-        process = subprocess.Popen(args, **popen_kwargs)
-
-        # Read the port from stdout
-        # Vibium prints "Server listening on ws://localhost:PORT"
-        actual_port = port or 0
-
-        if process.stdout:
-            # First line: "Starting Clicker proxy server on port ..."
-            # Second line: "Server listening on ws://localhost:PORT"
-            # Use run_in_executor + wait_for to avoid blocking the event
-            # loop and to bail out if the process never prints.
-            loop = asyncio.get_event_loop()
-            for _ in range(2):
+        # Read lines from stdout until we get the vibium:ready signal.
+        # Events (e.g. browsingContext.contextCreated) may arrive first.
+        import json
+        pre_ready_lines = []
+        try:
+            while True:
+                line_bytes = await asyncio.wait_for(
+                    process.stdout.readline(),  # type: ignore[union-attr]
+                    timeout=30,
+                )
+                if not line_bytes:
+                    # EOF — process died
+                    stderr_bytes = await process.stderr.read() if process.stderr else b""  # type: ignore[union-attr]
+                    raise RuntimeError(f"Vibium failed to start: {stderr_bytes.decode(errors='replace')}")
+                line = line_bytes.decode().strip()
+                if not line:
+                    continue
                 try:
-                    line = await asyncio.wait_for(
-                        loop.run_in_executor(None, process.stdout.readline),
-                        timeout=30,
-                    )
-                except asyncio.TimeoutError:
-                    process.kill()
-                    raise RuntimeError("Vibium failed to start: timed out waiting for port")
-                if "listening on" in line.lower():
-                    try:
-                        actual_port = int(line.strip().split(":")[-1])
-                    except (ValueError, IndexError):
-                        pass
+                    msg = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if msg.get("method") == "vibium:ready":
                     break
+                # Buffer pre-ready events for later replay
+                pre_ready_lines.append(line)
+        except asyncio.TimeoutError:
+            process.kill()
+            raise RuntimeError("Vibium failed to start: timed out waiting for ready signal")
 
-        # Give it a moment to start
-        await asyncio.sleep(0.1)
-
-        # Check if process is still running
-        if process.poll() is not None:
-            stderr = process.stderr.read() if process.stderr else ""
-            raise RuntimeError(f"Vibium failed to start: {stderr}")
-
-        return cls(process, actual_port)
+        instance = cls(process)
+        instance._pre_ready_lines = pre_ready_lines
+        return instance
 
     def _cleanup(self) -> None:
         """Terminate the subprocess if still running (called at exit)."""
-        if self._process.poll() is None:
-            self._process.terminate()
-            try:
-                self._process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self._process.kill()
+        try:
+            if self._process.returncode is None:
+                self._process.terminate()
+        except ProcessLookupError:
+            pass
 
     async def stop(self) -> None:
-        """Stop the vibium process."""
-        self._cleanup()
+        """Stop the vibium process by closing stdin."""
         atexit.unregister(self._cleanup)
+        try:
+            if self._process.stdin:
+                self._process.stdin.close()
+            # Wait for graceful shutdown
+            try:
+                await asyncio.wait_for(self._process.wait(), timeout=5)
+            except asyncio.TimeoutError:
+                self._process.kill()
+        except ProcessLookupError:
+            pass

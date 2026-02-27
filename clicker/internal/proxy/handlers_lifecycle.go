@@ -179,7 +179,7 @@ func (r *Router) handleContextClose(session *BrowserSession, cmd bidiCommand) {
 // before it sends SIGTERM to the server process.
 func (r *Router) handleBrowserClose(session *BrowserSession, cmd bidiCommand) {
 	// Close the session (browser + connections) — kills chromedriver + Chrome
-	r.sessions.Delete(session.Client.ID)
+	r.sessions.Delete(session.Client.ID())
 	r.closeSession(session)
 
 	// Send success after closing so the client knows cleanup is done

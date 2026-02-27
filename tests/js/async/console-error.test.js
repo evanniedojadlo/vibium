@@ -3,7 +3,7 @@
  * Tests page.onConsole, page.onError, ConsoleMessage class, and removeAllListeners.
  *
  * Uses a local HTTP server — no external network dependencies.
- * Each test uses bro.newPage() for event handler isolation.
+ * Each test uses bro.newPage() for event handler isolation, then closes the page.
  */
 
 const { test, describe, before, after } = require('node:test');
@@ -43,8 +43,9 @@ after(async () => {
 // --- Console Events ---
 
 describe('Console Events: page.onConsole', () => {
-  test('onConsole() captures console.log', async () => {
+  test('onConsole() captures console.log', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const messages = [];
@@ -59,8 +60,9 @@ describe('Console Events: page.onConsole', () => {
     assert.strictEqual(msg.type(), 'log');
   });
 
-  test('onConsole() captures console.warn', async () => {
+  test('onConsole() captures console.warn', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const messages = [];
@@ -74,8 +76,9 @@ describe('Console Events: page.onConsole', () => {
     assert.strictEqual(msg.type(), 'warn');
   });
 
-  test('onConsole() captures console.error (not onError)', async () => {
+  test('onConsole() captures console.error (not onError)', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const consoleMessages = [];
@@ -96,8 +99,9 @@ describe('Console Events: page.onConsole', () => {
     assert.ok(!matchingError, 'console.error should NOT fire onError');
   });
 
-  test('ConsoleMessage.args() returns serialized arguments', async () => {
+  test('ConsoleMessage.args() returns serialized arguments', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const messages = [];
@@ -117,8 +121,9 @@ describe('Console Events: page.onConsole', () => {
 // --- Error Events ---
 
 describe('Error Events: page.onError', () => {
-  test('onError() captures uncaught exception', async () => {
+  test('onError() captures uncaught exception', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const errors = [];
@@ -134,8 +139,9 @@ describe('Error Events: page.onError', () => {
     assert.ok(err instanceof Error, 'Should be an Error instance');
   });
 
-  test('onError() does NOT fire for console.error', async () => {
+  test('onError() does NOT fire for console.error', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const errors = [];
@@ -152,8 +158,9 @@ describe('Error Events: page.onError', () => {
 // --- Collect Mode ---
 
 describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
-  test('onConsole("collect") + consoleMessages() captures console.log', async () => {
+  test('onConsole("collect") + consoleMessages() captures console.log', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     vibe.onConsole('collect');
@@ -166,8 +173,9 @@ describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
     assert.strictEqual(match.type, 'log');
   });
 
-  test('onConsole("collect") + consoleMessages() captures console.warn', async () => {
+  test('onConsole("collect") + consoleMessages() captures console.warn', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     vibe.onConsole('collect');
@@ -180,8 +188,9 @@ describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
     assert.strictEqual(match.type, 'warn');
   });
 
-  test('consoleMessages() clears buffer after retrieval', async () => {
+  test('consoleMessages() clears buffer after retrieval', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     vibe.onConsole('collect');
@@ -195,8 +204,9 @@ describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
     assert.strictEqual(second.length, 0, 'Buffer should be empty after retrieval');
   });
 
-  test('consoleMessages() returns [] when not collecting', async () => {
+  test('consoleMessages() returns [] when not collecting', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const messages = vibe.consoleMessages();
@@ -205,8 +215,9 @@ describe('Collect Mode: onConsole("collect") + consoleMessages()', () => {
 });
 
 describe('Collect Mode: onError("collect") + errors()', () => {
-  test('onError("collect") + errors() captures uncaught exception', async () => {
+  test('onError("collect") + errors() captures uncaught exception', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     vibe.onError('collect');
@@ -218,8 +229,9 @@ describe('Collect Mode: onError("collect") + errors()', () => {
     assert.ok(match, `Should capture uncaught exception, got: ${JSON.stringify(errs)}`);
   });
 
-  test('errors() clears buffer after retrieval', async () => {
+  test('errors() clears buffer after retrieval', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     vibe.onError('collect');
@@ -233,8 +245,9 @@ describe('Collect Mode: onError("collect") + errors()', () => {
     assert.strictEqual(second.length, 0, 'Buffer should be empty after retrieval');
   });
 
-  test('errors() returns [] when not collecting', async () => {
+  test('errors() returns [] when not collecting', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const errs = vibe.errors();
@@ -245,8 +258,9 @@ describe('Collect Mode: onError("collect") + errors()', () => {
 // --- removeAllListeners ---
 
 describe('removeAllListeners for console/error', () => {
-  test('removeAllListeners("console") clears console callbacks', async () => {
+  test('removeAllListeners("console") clears console callbacks', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const messages = [];
@@ -264,8 +278,9 @@ describe('removeAllListeners for console/error', () => {
     assert.strictEqual(messages.length, countBefore, 'Should not capture messages after removeAllListeners');
   });
 
-  test('removeAllListeners("error") clears error callbacks', async () => {
+  test('removeAllListeners("error") clears error callbacks', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     const errors = [];
@@ -280,8 +295,9 @@ describe('removeAllListeners for console/error', () => {
     assert.ok(!matching, 'Should not capture errors after removeAllListeners');
   });
 
-  test('removeAllListeners("console") stops collect mode', async () => {
+  test('removeAllListeners("console") stops collect mode', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     vibe.onConsole('collect');
@@ -299,8 +315,9 @@ describe('removeAllListeners for console/error', () => {
     assert.deepStrictEqual(msgsAfter, [], 'Should return [] after removeAllListeners clears collect mode');
   });
 
-  test('removeAllListeners("error") stops collect mode', async () => {
+  test('removeAllListeners("error") stops collect mode', async (t) => {
     const vibe = await bro.newPage();
+    t.after(() => vibe.close());
     await vibe.go(baseURL);
 
     vibe.onError('collect');

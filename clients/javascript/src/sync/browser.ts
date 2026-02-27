@@ -6,6 +6,10 @@ export interface LaunchOptions {
   headless?: boolean;
 }
 
+export interface ConnectOptions {
+  headers?: Record<string, string>;
+}
+
 export class BrowserSync {
   /** @internal */
   readonly _bridge: SyncBridge;
@@ -97,6 +101,17 @@ export const browser = {
     const bridge = SyncBridge.create();
     try {
       bridge.call('browser.launch', [options]);
+    } catch (e) {
+      bridge.terminate();
+      throw e;
+    }
+    return new BrowserSync(bridge);
+  },
+
+  connect(url: string, options: ConnectOptions = {}): BrowserSync {
+    const bridge = SyncBridge.create();
+    try {
+      bridge.call('browser.connect', [url, options]);
     } catch (e) {
       bridge.terminate();
       throw e;

@@ -91,7 +91,6 @@ class _BrowserLauncher:
     async def launch(
         self,
         headless: bool = False,
-        port: Optional[int] = None,
         executable_path: Optional[str] = None,
     ) -> Browser:
         """Launch a new browser instance."""
@@ -100,10 +99,33 @@ class _BrowserLauncher:
 
         process = await VibiumProcess.start(
             headless=headless,
-            port=port,
             executable_path=executable_path,
         )
-        client = await BiDiClient.connect(f"ws://localhost:{process.port}")
+        client = await BiDiClient.connect(process)
+        return Browser(client, process)
+
+    async def connect(
+        self,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        executable_path: Optional[str] = None,
+    ) -> Browser:
+        """Connect to a remote browser via vibium proxy.
+
+        Args:
+            url: Remote BiDi WebSocket URL (e.g. ws://remote:9515).
+            headers: HTTP headers for the WebSocket connection (e.g. auth tokens).
+            executable_path: Path to vibium binary (default: auto-detect).
+        """
+        from ..binary import VibiumProcess
+        from ..client import BiDiClient
+
+        process = await VibiumProcess.start(
+            connect_url=url,
+            connect_headers=headers,
+            executable_path=executable_path,
+        )
+        client = await BiDiClient.connect(process)
         return Browser(client, process)
 
 

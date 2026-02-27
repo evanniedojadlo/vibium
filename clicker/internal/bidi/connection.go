@@ -2,6 +2,7 @@ package bidi
 
 import (
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -26,12 +27,18 @@ const readDeadline = 120 * time.Second
 
 // Connect establishes a WebSocket connection to the given URL.
 func Connect(url string) (*Connection, error) {
+	return ConnectWithHeaders(url, nil)
+}
+
+// ConnectWithHeaders establishes a WebSocket connection with optional HTTP headers.
+// Headers are sent during the WebSocket handshake (useful for authentication tokens).
+func ConnectWithHeaders(url string, headers http.Header) (*Connection, error) {
 	dialer := websocket.Dialer{
 		ReadBufferSize:   maxMessageSize,
 		WriteBufferSize:  maxMessageSize,
 		HandshakeTimeout: 30 * time.Second,
 	}
-	conn, _, err := dialer.Dial(url, nil)
+	conn, _, err := dialer.Dial(url, headers)
 	if err != nil {
 		return nil, &errs.ConnectionError{URL: url, Cause: err}
 	}

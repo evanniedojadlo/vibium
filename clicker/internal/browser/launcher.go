@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/log"
 	"github.com/vibium/clicker/internal/paths"
 	"github.com/vibium/clicker/internal/process"
@@ -56,7 +57,8 @@ type LaunchOptions struct {
 
 // LaunchResult contains the result of launching the browser via chromedriver.
 type LaunchResult struct {
-	WebSocketURL    string
+	BidiConn        *bidi.Connection // non-nil when session created via BiDi (no HTTP)
+	WebSocketURL    string           // set when session created via HTTP fallback
 	SessionID       string
 	ChromedriverCmd *exec.Cmd
 	Port            int
@@ -146,16 +148,40 @@ func Launch(opts LaunchOptions) (*LaunchResult, error) {
 		fmt.Println("       ----------------------------")
 	}
 
-	// Create session with BiDi enabled
-	sessionID, wsURL, userDataDir, err := createSession(baseURL, chromePath, opts.Headless, opts.Verbose)
+	// Try BiDi session.new first (direct WebSocket, no HTTP round-trip)
+	wsURL := fmt.Sprintf("ws://localhost:%d/session", port)
+	conn, connErr := bidi.Connect(wsURL)
+	if connErr == nil {
+		client := bidi.NewClient(conn)
+		caps := buildCapabilities(chromePath, opts.Headless)
+		result, sessionErr := client.SessionNew(caps)
+		if sessionErr == nil {
+			userDataDir, _ := result.Capabilities["userDataDir"].(string)
+			log.Info("browser launched via BiDi session.new", "sessionId", result.SessionID)
+			return &LaunchResult{
+				BidiConn:        conn,
+				SessionID:       result.SessionID,
+				ChromedriverCmd: cmd,
+				Port:            port,
+				UserDataDir:     userDataDir,
+			}, nil
+		}
+		log.Debug("BiDi session.new failed, falling back to HTTP", "error", sessionErr)
+		conn.Close()
+	} else {
+		log.Debug("BiDi WebSocket connect failed, falling back to HTTP", "error", connErr)
+	}
+
+	// Fallback: HTTP POST /session (original path)
+	sessionID, httpWsURL, userDataDir, err := createSession(baseURL, chromePath, opts.Headless, opts.Verbose)
 	if err != nil {
 		cmd.Process.Kill()
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
-	log.Info("browser launched", "sessionId", sessionID, "wsUrl", wsURL)
+	log.Info("browser launched via HTTP", "sessionId", sessionID, "wsUrl", httpWsURL)
 
 	return &LaunchResult{
-		WebSocketURL:    wsURL,
+		WebSocketURL:    httpWsURL,
 		SessionID:       sessionID,
 		ChromedriverCmd: cmd,
 		Port:            port,
@@ -189,8 +215,8 @@ func waitForChromedriver(baseURL string, timeout time.Duration) error {
 	return fmt.Errorf("timeout waiting for chromedriver")
 }
 
-// createSession creates a new WebDriver session with BiDi enabled.
-func createSession(baseURL, chromePath string, headless, verbose bool) (string, string, string, error) {
+// chromeArgs returns the standard Chrome launch arguments.
+func chromeArgs(headless bool) []string {
 	args := []string{
 		"--no-first-run",
 		"--no-default-browser-check",
@@ -220,32 +246,40 @@ func createSession(baseURL, chromePath string, headless, verbose bool) (string, 
 		"--password-store=basic",
 		"--use-mock-keychain",
 	}
-
 	if headless {
 		args = append(args, "--headless=new")
 	}
+	return args
+}
 
-	reqBody := map[string]interface{}{
-		"capabilities": map[string]interface{}{
-			"alwaysMatch": map[string]interface{}{
-				"browserName":              "chrome",
-				"webSocketUrl":             true,
-				"unhandledPromptBehavior": map[string]interface{}{
-					"default": "ignore",
-				},
-				"goog:chromeOptions": map[string]interface{}{
-					"binary":          chromePath,
-					"args":            args,
-					"excludeSwitches": []string{"enable-automation"},
-					"prefs": map[string]interface{}{
-						"credentials_enable_service":                          false,
-						"profile.password_manager_enabled":                    false,
-						"profile.password_manager_leak_detection":             false,
-						"profile.default_content_setting_values.notifications": 2,
-					},
+// buildCapabilities returns the capabilities map for BiDi session.new.
+func buildCapabilities(chromePath string, headless bool) map[string]interface{} {
+	return map[string]interface{}{
+		"alwaysMatch": map[string]interface{}{
+			"browserName":  "chrome",
+			"webSocketUrl": true,
+			"unhandledPromptBehavior": map[string]interface{}{
+				"default": "ignore",
+			},
+			"goog:chromeOptions": map[string]interface{}{
+				"binary":          chromePath,
+				"args":            chromeArgs(headless),
+				"excludeSwitches": []string{"enable-automation"},
+				"prefs": map[string]interface{}{
+					"credentials_enable_service":                          false,
+					"profile.password_manager_enabled":                    false,
+					"profile.password_manager_leak_detection":             false,
+					"profile.default_content_setting_values.notifications": 2,
 				},
 			},
 		},
+	}
+}
+
+// createSession creates a new WebDriver session with BiDi enabled via HTTP.
+func createSession(baseURL, chromePath string, headless, verbose bool) (string, string, string, error) {
+	reqBody := map[string]interface{}{
+		"capabilities": buildCapabilities(chromePath, headless),
 	}
 
 	jsonBody, err := json.Marshal(reqBody)
@@ -300,9 +334,10 @@ func (r *LaunchResult) Close() error {
 	log.Debug("closing browser", "sessionId", r.SessionID)
 
 	// Delete session first (tells chromedriver to quit Chrome gracefully).
+	// Skip when session was created via BiDi (browser.close / process kill handles it).
 	// Skip on Windows: the DELETE can cause chromedriver to exit before
 	// taskkill /T runs, orphaning Chrome children. taskkill /T handles cleanup.
-	if !skipGracefulShutdown() && r.SessionID != "" && r.Port > 0 {
+	if r.BidiConn == nil && !skipGracefulShutdown() && r.SessionID != "" && r.Port > 0 {
 		req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:%d/session/%s", r.Port, r.SessionID), nil)
 		if req != nil {
 			client := &http.Client{Timeout: 5 * time.Second}

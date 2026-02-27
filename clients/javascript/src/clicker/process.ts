@@ -3,64 +3,94 @@ import { getVibiumBinPath } from './binary';
 import { TimeoutError, BrowserCrashedError } from '../utils/errors';
 
 export interface VibiumProcessOptions {
-  port?: number;
   headless?: boolean;
   executablePath?: string;
+  connectURL?: string;
+  connectHeaders?: Record<string, string>;
 }
 
 export class VibiumProcess {
-  private process: ChildProcess;
-  private _port: number;
+  private _process: ChildProcess;
   private _stopped: boolean = false;
+  private _preReadyLines: string[] = [];
 
-  private constructor(process: ChildProcess, port: number) {
-    this.process = process;
-    this._port = port;
+  private constructor(process: ChildProcess, preReadyLines: string[]) {
+    this._process = process;
+    this._preReadyLines = preReadyLines;
   }
 
-  get port(): number {
-    return this._port;
-  }
+  /** The child process stdin stream (for sending commands). */
+  get stdin() { return this._process.stdin!; }
+
+  /** The child process stdout stream (for receiving responses/events). */
+  get stdout() { return this._process.stdout!; }
+
+  /** Lines received before the vibium:ready signal (buffered events). */
+  get preReadyLines(): string[] { return this._preReadyLines; }
 
   static async start(options: VibiumProcessOptions = {}): Promise<VibiumProcess> {
     const binaryPath = options.executablePath || getVibiumBinPath();
-    const port = options.port || 0; // 0 means auto-select
 
-    const args = ['serve', '--port', port.toString()];
+    const args = ['pipe'];
     if (options.headless === true) {
       args.push('--headless');
     }
+    if (options.connectURL) {
+      args.push('--connect', options.connectURL);
+    }
+    if (options.connectHeaders) {
+      for (const [key, value] of Object.entries(options.connectHeaders)) {
+        args.push('--connect-header', `${key}: ${value}`);
+      }
+    }
 
     const proc = spawn(binaryPath, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    // Wait for the server to start and extract the port
-    const actualPort = await new Promise<number>((resolve, reject) => {
-      let output = '';
+    // Read lines from stdout until we get the vibium:ready signal.
+    // Events (e.g. browsingContext.contextCreated) may arrive first.
+    const preReadyLines: string[] = [];
+    await new Promise<void>((resolve, reject) => {
+      let buffer = '';
       let resolved = false;
 
       const timeout = setTimeout(() => {
         if (!resolved) {
-          reject(new TimeoutError('vibium', 10000, 'waiting for vibium to start'));
+          resolved = true;
+          reject(new TimeoutError('vibium', 30000, 'waiting for vibium ready signal'));
         }
-      }, 10000);
+      }, 30000);
 
       const handleData = (data: Buffer) => {
-        const text = data.toString();
-        output += text;
+        buffer += data.toString();
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, newlineIdx).trim();
+          buffer = buffer.slice(newlineIdx + 1);
+          if (!line) continue;
 
-        // Look for "Server listening on ws://localhost:PORT"
-        const match = output.match(/Server listening on ws:\/\/localhost:(\d+)/);
-        if (match && !resolved) {
-          resolved = true;
-          clearTimeout(timeout);
-          resolve(parseInt(match[1], 10));
+          try {
+            const msg = JSON.parse(line);
+            if (msg.method === 'vibium:ready') {
+              if (!resolved) {
+                resolved = true;
+                clearTimeout(timeout);
+                // Stop listening for data — the BiDiClient will take over
+                proc.stdout?.removeListener('data', handleData);
+                resolve();
+              }
+              return;
+            }
+          } catch {
+            // Not JSON, ignore
+          }
+          // Buffer pre-ready lines for replay
+          preReadyLines.push(line);
         }
       };
 
       proc.stdout?.on('data', handleData);
-      proc.stderr?.on('data', handleData);
 
       proc.on('error', (err) => {
         if (!resolved) {
@@ -74,14 +104,14 @@ export class VibiumProcess {
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
-          reject(new BrowserCrashedError(code ?? 1, output));
+          reject(new BrowserCrashedError(code ?? 1, buffer));
         }
       });
     });
 
-    const vp = new VibiumProcess(proc, actualPort);
+    const vp = new VibiumProcess(proc, preReadyLines);
 
-    // Clean up child process when Node exits unexpectedly (Ctrl+C, uncaught exception, etc.)
+    // Clean up child process when Node exits unexpectedly
     const cleanup = () => vp.stop();
     process.on('exit', cleanup);
     process.on('SIGINT', cleanup);
@@ -108,38 +138,41 @@ export class VibiumProcess {
     }
 
     return new Promise((resolve) => {
-      this.process.on('exit', () => {
+      this._process.on('exit', () => {
         resolve();
       });
 
+      // Close stdin to signal the child to shut down
+      try { this._process.stdin?.end(); } catch {}
+
       if (process.platform === 'win32') {
-        // On Windows, process.kill('SIGTERM') calls TerminateProcess() which
-        // kills only the immediate process without letting cleanup code run.
-        // Use taskkill /T to kill the entire process tree (vibium + chromedriver + Chrome).
         try {
-          execFileSync('taskkill', ['/T', '/F', '/PID', this.process.pid!.toString()], { stdio: 'ignore' });
+          execFileSync('taskkill', ['/T', '/F', '/PID', this._process.pid!.toString()], { stdio: 'ignore' });
         } catch {
           // Process may have already exited
         }
         resolve();
       } else {
-        // Track actual exit (this.process.killed is set on .kill() call, not on exit)
         let exited = false;
-        this.process.on('exit', () => { exited = true; });
+        this._process.on('exit', () => { exited = true; });
 
-        // Try graceful shutdown first
-        this.process.kill('SIGTERM');
-
-        // Force kill after timeout if process hasn't exited
+        // Try graceful shutdown first (closing stdin should trigger exit)
+        // Use SIGTERM as fallback
         setTimeout(() => {
           if (!exited) {
-            try { this.process.kill('SIGKILL'); } catch {}
-            // Give OS time to reap after SIGKILL
+            try { this._process.kill('SIGTERM'); } catch {}
+          }
+        }, 1000);
+
+        // Force kill after longer timeout
+        setTimeout(() => {
+          if (!exited) {
+            try { this._process.kill('SIGKILL'); } catch {}
             setTimeout(() => resolve(), 500);
           } else {
             resolve();
           }
-        }, 3000);
+        }, 4000);
       }
     });
   }
