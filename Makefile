@@ -3,8 +3,28 @@ ifeq ($(OS),Windows_NT)
   SHELL := C:/PROGRA~1/Git/usr/bin/bash.exe
   .SHELLFLAGS := -c
   EXE := .exe
+  PYTHON := python
+  VENV_ACTIVATE := .venv/Scripts/activate
+  PYTHON_PLATFORM_PKG := vibium_win32_x64
 else
   EXE :=
+  PYTHON := python3
+  VENV_ACTIVATE := .venv/bin/activate
+  UNAME_S := $(shell uname -s)
+  UNAME_M := $(shell uname -m)
+  ifeq ($(UNAME_S),Darwin)
+    ifeq ($(UNAME_M),arm64)
+      PYTHON_PLATFORM_PKG := vibium_darwin_arm64
+    else
+      PYTHON_PLATFORM_PKG := vibium_darwin_x64
+    endif
+  else
+    ifeq ($(UNAME_M),aarch64)
+      PYTHON_PLATFORM_PKG := vibium_linux_arm64
+    else
+      PYTHON_PLATFORM_PKG := vibium_linux_x64
+    endif
+  endif
 endif
 
 .PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-daemon test-python test-cleanup double-tap get-version set-version help
@@ -112,7 +132,7 @@ serve: build-go
 # Build everything and run all tests: make test
 test: build install-browser
 	@START_TIME=$$(date +%s); \
-	$(MAKE) test-cli test-js test-mcp test-python test-cleanup; \
+	"$(MAKE)" test-cli test-js test-mcp test-python test-cleanup; \
 	EXIT=$$?; \
 	END_TIME=$$(date +%s); \
 	ELAPSED=$$((END_TIME - START_TIME)); \
@@ -204,9 +224,9 @@ test-daemon: build-go
 test-python: build-go install-browser
 	@echo "━━━ Python Client Tests ━━━"
 	@cd clients/python && \
-		if [ ! -d ".venv" ]; then python3 -m venv .venv; fi && \
-		. .venv/bin/activate && \
-		pip install -q -e ../../packages/python/vibium_darwin_arm64 -e ".[test]" && \
+		if [ ! -d ".venv" ]; then $(PYTHON) -m venv .venv; fi && \
+		. $(VENV_ACTIVATE) && \
+		pip install -e ../../packages/python/$(PYTHON_PLATFORM_PKG) -e ".[test]" && \
 		VIBIUM_BIN_PATH=$(CURDIR)/clicker/bin/vibium$(EXE) \
 		python -m pytest ../../tests/py/ -v --tb=short -x
 
