@@ -2,12 +2,28 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/log"
 )
+
+// connectFromEnv reads VIBIUM_CONNECT_URL and VIBIUM_CONNECT_API_KEY from the environment.
+// Returns the connect URL and any headers to send with the WebSocket connection.
+func connectFromEnv() (string, http.Header) {
+	url := os.Getenv("VIBIUM_CONNECT_URL")
+	apiKey := os.Getenv("VIBIUM_CONNECT_API_KEY")
+
+	var headers http.Header
+	if apiKey != "" {
+		headers = make(http.Header)
+		headers.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	return url, headers
+}
 
 var version = "dev"
 
@@ -121,6 +137,8 @@ func main() {
 	rootCmd.AddCommand(newStorageStateCmd())
 	rootCmd.AddCommand(newRestoreStorageCmd())
 	rootCmd.AddCommand(newDownloadCmd())
+	rootCmd.AddCommand(newConnectCmd())
+	rootCmd.AddCommand(newDisconnectCmd())
 
 	rootCmd.Version = version
 	rootCmd.SetVersionTemplate(progName + " v{{.Version}}\n")

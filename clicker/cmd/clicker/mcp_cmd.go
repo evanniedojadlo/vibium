@@ -97,8 +97,12 @@ The server provides browser automation tools:
 					}
 				}
 
+				connectURL, connectHeaders := connectFromEnv()
+
 				server := mcp.NewServer(version, mcp.ServerOptions{
-					ScreenshotDir: screenshotDir,
+					ScreenshotDir:  screenshotDir,
+					ConnectURL:     connectURL,
+					ConnectHeaders: connectHeaders,
 				})
 				defer server.Close()
 

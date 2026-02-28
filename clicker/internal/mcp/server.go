@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	"github.com/vibium/clicker/internal/log"
@@ -124,7 +125,9 @@ type Server struct {
 
 // ServerOptions configures the MCP server.
 type ServerOptions struct {
-	ScreenshotDir string // Directory for saving screenshots (empty = disabled)
+	ScreenshotDir  string      // Directory for saving screenshots (empty = disabled)
+	ConnectURL     string      // Remote BiDi WebSocket URL (empty = local browser)
+	ConnectHeaders http.Header // Headers for remote WebSocket connection
 }
 
 // NewServer creates a new MCP server.
@@ -132,7 +135,7 @@ func NewServer(version string, opts ServerOptions) *Server {
 	return &Server{
 		reader:   bufio.NewReader(os.Stdin),
 		writer:   os.Stdout,
-		handlers: NewHandlers(opts.ScreenshotDir, false),
+		handlers: NewHandlers(opts.ScreenshotDir, false, opts.ConnectURL, opts.ConnectHeaders),
 		version:  version,
 	}
 }

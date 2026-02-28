@@ -170,6 +170,8 @@ vibium go https://example.com && vibium map && vibium click @e3 && vibium diff m
 - `vibium daemon start` — start background browser
 - `vibium daemon status` — check if running
 - `vibium daemon stop` — stop daemon
+- `vibium connect <url>` — connect to a remote browser (stops local daemon, starts in connect mode)
+- `vibium disconnect` — disconnect from remote browser (stops daemon; next command auto-starts local)
 
 ## Common Patterns
 
@@ -248,6 +250,14 @@ vibium eval "JSON.stringify([...document.querySelectorAll('a')].map(a => ({text:
 ### Check page structure without rendering
 ```sh
 vibium go https://example.com && vibium a11y-tree
+```
+
+### Remote browser
+```sh
+vibium connect ws://remote-host:9515/session
+vibium go https://example.com
+vibium map
+vibium disconnect
 ```
 
 ### Multi-tab workflow
