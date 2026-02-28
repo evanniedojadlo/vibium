@@ -36,6 +36,7 @@ async def test_route_abort(net_browser, test_server):
     await vibe.wait(500)
     result = await (await vibe.find("#result")).text()
     assert "aborted" in result or result == ""
+    await vibe.close()
 
 
 async def test_route_fulfill(net_browser, test_server):
@@ -48,6 +49,7 @@ async def test_route_fulfill(net_browser, test_server):
     await vibe.route("**/json", handler)
     result = await vibe.evaluate(f"fetch('{test_server}/json').then(r => r.json())")
     assert result["mocked"] is True
+    await vibe.close()
 
 
 async def test_route_fulfill_headers(net_browser, test_server):
@@ -70,6 +72,7 @@ async def test_route_fulfill_headers(net_browser, test_server):
     assert result["status"] == 201
     assert result["body"] == "custom body"
     assert result["custom"] == "test-value"
+    await vibe.close()
 
 
 async def test_route_continue(net_browser, test_server):
@@ -82,6 +85,7 @@ async def test_route_continue(net_browser, test_server):
     await vibe.route("**/json", handler)
     result = await vibe.evaluate(f"fetch('{test_server}/json').then(r => r.json())")
     assert result["name"] == "vibium"
+    await vibe.close()
 
 
 async def test_unroute(net_browser, test_server):
@@ -95,6 +99,7 @@ async def test_unroute(net_browser, test_server):
     await vibe.unroute("**/json")
     result = await vibe.evaluate(f"fetch('{test_server}/json').then(r => r.json())")
     assert result["name"] == "vibium"
+    await vibe.close()
 
 
 # --- Events ---
@@ -107,6 +112,7 @@ async def test_on_request(net_browser, test_server):
     await vibe.evaluate("doFetch()")
     await vibe.wait(500)
     assert any("api/data" in u for u in urls)
+    await vibe.close()
 
 
 async def test_on_response(net_browser, test_server):
@@ -117,6 +123,7 @@ async def test_on_response(net_browser, test_server):
     await vibe.evaluate("doFetch()")
     await vibe.wait(500)
     assert 200 in statuses
+    await vibe.close()
 
 
 async def test_request_method_headers(net_browser, test_server):
@@ -134,6 +141,7 @@ async def test_request_method_headers(net_browser, test_server):
     await vibe.wait(500)
     assert captured.get("method") == "GET"
     assert isinstance(captured.get("headers"), dict)
+    await vibe.close()
 
 
 async def test_response_url_status(net_browser, test_server):
@@ -151,6 +159,7 @@ async def test_response_url_status(net_browser, test_server):
     await vibe.wait(500)
     assert "api/data" in captured.get("url", "")
     assert captured.get("status") == 200
+    await vibe.close()
 
 
 # --- Waiters ---
@@ -161,6 +170,7 @@ async def test_capture_response(net_browser, test_server):
     await vibe.evaluate("setTimeout(() => doFetch(), 100)")
     resp = await vibe.capture.response("**/api/data", timeout=5000)
     assert resp.status() == 200
+    await vibe.close()
 
 
 async def test_capture_request(net_browser, test_server):
@@ -169,6 +179,7 @@ async def test_capture_request(net_browser, test_server):
     await vibe.evaluate("setTimeout(() => doFetch(), 100)")
     req = await vibe.capture.request("**/api/data", timeout=5000)
     assert "api/data" in req.url()
+    await vibe.close()
 
 
 # --- Response body ---
@@ -181,6 +192,7 @@ async def test_body_text(net_browser, test_server):
     body = await resp.body()
     assert body is not None
     assert "hello world" in body
+    await vibe.close()
 
 
 async def test_body_json(net_browser, test_server):
@@ -191,6 +203,7 @@ async def test_body_json(net_browser, test_server):
     data = await resp.json()
     assert data is not None
     assert data["name"] == "vibium"
+    await vibe.close()
 
 
 async def test_body_via_expect(net_browser, test_server):
@@ -201,6 +214,7 @@ async def test_body_via_expect(net_browser, test_server):
     body = await resp.body()
     assert body is not None
     assert "real data" in body
+    await vibe.close()
 
 
 async def test_json_via_expect(net_browser, test_server):
@@ -210,6 +224,7 @@ async def test_json_via_expect(net_browser, test_server):
     resp = await vibe.capture.response("**/api/data", timeout=5000)
     data = await resp.json()
     assert data["count"] == 42
+    await vibe.close()
 
 
 # --- Dialogs ---
@@ -227,6 +242,7 @@ async def test_alert(net_browser, test_server):
     await vibe.evaluate('alert("Hello from test")')
     assert len(messages) == 1
     assert messages[0] == "Hello from test"
+    await vibe.close()
 
 
 async def test_confirm_accept(net_browser, test_server):
@@ -235,6 +251,7 @@ async def test_confirm_accept(net_browser, test_server):
     vibe.on_dialog(lambda d: _fire(d.accept()))
     result = await vibe.evaluate('confirm("Are you sure?")')
     assert result is True
+    await vibe.close()
 
 
 async def test_confirm_dismiss(net_browser, test_server):
@@ -243,6 +260,7 @@ async def test_confirm_dismiss(net_browser, test_server):
     vibe.on_dialog(lambda d: _fire(d.dismiss()))
     result = await vibe.evaluate('confirm("Are you sure?")')
     assert result is False
+    await vibe.close()
 
 
 async def test_prompt(net_browser, test_server):
@@ -256,6 +274,7 @@ async def test_prompt(net_browser, test_server):
     vibe.on_dialog(handler)
     result = await vibe.evaluate('prompt("Enter name:")')
     assert result == "my answer"
+    await vibe.close()
 
 
 async def test_auto_dismiss(net_browser, test_server):
@@ -264,6 +283,7 @@ async def test_auto_dismiss(net_browser, test_server):
     # No handler — should auto-dismiss
     result = await vibe.evaluate('confirm("Auto dismiss?")')
     assert result is False
+    await vibe.close()
 
 
 # --- Expect navigation ---
@@ -276,6 +296,7 @@ async def test_capture_navigation(net_browser, test_server):
         await link.click()
     assert info.value is not None
     assert "/page2" in info.value
+    await vibe.close()
 
 
 # --- Expect download ---
@@ -289,6 +310,7 @@ async def test_capture_download(net_browser, test_server):
     assert info.value is not None
     assert info.value.url().endswith("/download-file") or "/download-file" in info.value.url()
     assert info.value.suggested_filename() == "test.txt"
+    await vibe.close()
 
 
 # --- Expect dialog ---
@@ -301,6 +323,7 @@ async def test_capture_dialog(net_browser, test_server):
     assert info.value is not None
     assert info.value.type() == "alert"
     assert info.value.message() == "Hello from expect"
+    await vibe.close()
 
 
 # --- Expect event ---
@@ -311,6 +334,7 @@ async def test_capture_event_response(net_browser, test_server):
     await vibe.evaluate("setTimeout(() => doFetch(), 100)")
     result = await vibe.capture.event("response", timeout=5000)
     assert result is not None
+    await vibe.close()
 
 
 # --- Checkpoint ---
@@ -339,3 +363,4 @@ async def test_checkpoint(net_browser, test_server):
     assert result is True
 
     await vibe.unroute("**")
+    await vibe.close()

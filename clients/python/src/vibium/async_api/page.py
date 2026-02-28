@@ -690,6 +690,8 @@ class Page:
         await self._client.send("browsingContext.activate", {"context": self._context_id})
 
     async def close(self) -> None:
+        if self._event_handler is not None:
+            self._client.remove_event_handler(self._event_handler)
         await self._client.send("browsingContext.close", {"context": self._context_id})
 
     # --- Scrolling ---

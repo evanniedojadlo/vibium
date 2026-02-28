@@ -497,6 +497,9 @@ export class Page {
 
   /** Close this page/tab. */
   async close(): Promise<void> {
+    if (this.eventHandler) {
+      this.client.offEvent(this.eventHandler);
+    }
     await this.client.send('browsingContext.close', { context: this.contextId });
   }
 

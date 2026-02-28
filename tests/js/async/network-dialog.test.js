@@ -80,6 +80,7 @@ describe('Network Interception: page.route', () => {
     // Verify the page loaded (route didn't break navigation)
     const title = await vibe.title();
     assert.strictEqual(title, 'Test Page');
+    await vibe.close();
   });
 
   test('route.fulfill() returns a mock response', async () => {
@@ -100,6 +101,7 @@ describe('Network Interception: page.route', () => {
     `);
 
     assert.deepStrictEqual(result, { mocked: true });
+    await vibe.close();
   });
 
   test('route.fulfill() with custom headers', async () => {
@@ -122,6 +124,7 @@ describe('Network Interception: page.route', () => {
     assert.strictEqual(result.status, 201);
     assert.strictEqual(result.body, 'custom body');
     assert.strictEqual(result.custom, 'test-value');
+    await vibe.close();
   });
 
   test('route.continue() lets request through', async () => {
@@ -139,6 +142,7 @@ describe('Network Interception: page.route', () => {
     await vibe.wait(200);
 
     assert.ok(intercepted, 'Route handler should have been called');
+    await vibe.close();
   });
 
   test('unroute() removes a route', async () => {
@@ -163,6 +167,7 @@ describe('Network Interception: page.route', () => {
     await vibe.evaluate(`fetch('${baseURL}/text')`);
     await vibe.wait(200);
     assert.strictEqual(callCount, countBefore, 'Route should not fire after unroute');
+    await vibe.close();
   });
 });
 
@@ -185,6 +190,7 @@ describe('Network Events: onRequest/onResponse', () => {
       urls.some(u => u.includes('127.0.0.1')),
       `Should have a request to local server, got: ${urls.join(', ')}`
     );
+    await vibe.close();
   });
 
   test('onResponse() fires for page navigation', async () => {
@@ -200,6 +206,7 @@ describe('Network Events: onRequest/onResponse', () => {
 
     assert.ok(statuses.length > 0, 'Should have captured at least one response');
     assert.ok(statuses.includes(200), `Should have a 200 response, got: ${statuses.join(', ')}`);
+    await vibe.close();
   });
 
   test('request.method() and request.headers() work', async () => {
@@ -219,6 +226,7 @@ describe('Network Events: onRequest/onResponse', () => {
 
     assert.strictEqual(capturedMethod, 'GET');
     assert.ok(typeof capturedHeaders === 'object');
+    await vibe.close();
   });
 
   test('response.url() and response.status() work', async () => {
@@ -232,6 +240,7 @@ describe('Network Events: onRequest/onResponse', () => {
     assert.ok(resp.url().includes('/json'));
     assert.strictEqual(resp.status(), 200);
     assert.ok(typeof resp.headers() === 'object');
+    await vibe.close();
   });
 });
 
@@ -246,6 +255,7 @@ describe('Network Waiters: capture.request/capture.response', () => {
     const resp = await responsePromise;
     assert.ok(resp.url().includes('/json'), `Response URL should include /json, got: ${resp.url()}`);
     assert.strictEqual(resp.status(), 200);
+    await vibe.close();
   });
 
   test('capture.request() resolves on matching request', async () => {
@@ -258,6 +268,7 @@ describe('Network Waiters: capture.request/capture.response', () => {
     const req = await requestPromise;
     assert.ok(req.url().includes('/text'), `Request URL should include /text, got: ${req.url()}`);
     assert.strictEqual(req.method(), 'GET');
+    await vibe.close();
   });
 });
 
@@ -281,6 +292,7 @@ describe('Response Body: response.body() and response.json()', () => {
     assert.ok(captured, 'Should have captured the /text response');
     const body = await captured.body();
     assert.strictEqual(body, 'hello world');
+    await vibe.close();
   });
 
   test('response.json() parses JSON content via onResponse', async () => {
@@ -300,6 +312,7 @@ describe('Response Body: response.body() and response.json()', () => {
     assert.ok(captured, 'Should have captured the /json response');
     const data = await captured.json();
     assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
+    await vibe.close();
   });
 
   test('response.body() works with capture.response', async () => {
@@ -312,6 +325,7 @@ describe('Response Body: response.body() and response.json()', () => {
 
     const body = await resp.body();
     assert.strictEqual(body, 'hello world');
+    await vibe.close();
   });
 
   test('response.json() works with capture.response', async () => {
@@ -324,6 +338,7 @@ describe('Response Body: response.body() and response.json()', () => {
 
     const data = await resp.json();
     assert.deepStrictEqual(data, { name: 'vibium', version: 1 });
+    await vibe.close();
   });
 });
 
@@ -346,6 +361,7 @@ describe('Dialogs: page.onDialog', () => {
 
     assert.strictEqual(dialogMessage, 'Hello from test');
     assert.strictEqual(dialogType, 'alert');
+    await vibe.close();
   });
 
   test('onDialog() handles confirm with accept', async () => {
@@ -358,6 +374,7 @@ describe('Dialogs: page.onDialog', () => {
 
     const result = await vibe.evaluate('confirm("Are you sure?")');
     assert.strictEqual(result, true);
+    await vibe.close();
   });
 
   test('onDialog() handles confirm with dismiss', async () => {
@@ -370,6 +387,7 @@ describe('Dialogs: page.onDialog', () => {
 
     const result = await vibe.evaluate('confirm("Are you sure?")');
     assert.strictEqual(result, false);
+    await vibe.close();
   });
 
   test('onDialog() handles prompt with text', async () => {
@@ -383,6 +401,7 @@ describe('Dialogs: page.onDialog', () => {
 
     const result = await vibe.evaluate('prompt("Enter name:")');
     assert.strictEqual(result, 'my answer');
+    await vibe.close();
   });
 
   test('dialogs are auto-dismissed when no handler registered', async () => {
@@ -392,6 +411,7 @@ describe('Dialogs: page.onDialog', () => {
     // No onDialog handler — should auto-dismiss
     const result = await vibe.evaluate('confirm("Auto dismiss?")');
     assert.strictEqual(result, false);
+    await vibe.close();
   });
 });
 
@@ -408,6 +428,7 @@ describe('Capture: navigation', () => {
     });
 
     assert.ok(url.includes('/page2'), `Navigation URL should include /page2, got: ${url}`);
+    await vibe.close();
   });
 });
 
@@ -426,6 +447,7 @@ describe('Capture: download', () => {
     assert.ok(download, 'Should resolve with a Download object');
     assert.ok(download.url().includes('/download-file'), `Download URL should include /download-file, got: ${download.url()}`);
     assert.strictEqual(download.suggestedFilename(), 'test.txt');
+    await vibe.close();
   });
 });
 
@@ -445,6 +467,7 @@ describe('Capture: dialog', () => {
     assert.strictEqual(dialog.type(), 'alert');
     assert.strictEqual(dialog.message(), 'Hello from expect');
     await dialog.accept();
+    await vibe.close();
   });
 });
 
@@ -461,6 +484,7 @@ describe('Capture: event', () => {
 
     assert.ok(result, 'Should resolve with event data');
     assert.ok(typeof result.url === 'function', 'Should be a Response object with url()');
+    await vibe.close();
   });
 });
 
@@ -474,6 +498,7 @@ describe('Stubs: WebSocket methods', () => {
       () => vibe.routeWebSocket('**', () => {}),
       /Not implemented/
     );
+    await vibe.close();
   });
 });
 
@@ -511,5 +536,6 @@ describe('Network & Dialog Checkpoint', () => {
 
     await vibe.evaluate('alert("checkpoint")');
     assert.ok(dialogHandled);
+    await vibe.close();
   });
 });
