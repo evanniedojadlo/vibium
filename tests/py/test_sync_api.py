@@ -55,6 +55,7 @@ def test_new_page_creates_tab(bro):
     assert isinstance(p, Page)
     pages = bro.pages()
     assert len(pages) >= 2
+    p.close()
 
 
 # ===========================================================================
@@ -452,6 +453,7 @@ def test_on_dialog_accept_string(bro, test_server):
     vibe.on_dialog("accept")
     result = vibe.evaluate('confirm("Are you sure?")')
     assert result is True
+    vibe.close()
 
 
 # ===========================================================================
@@ -471,6 +473,7 @@ def test_route_fulfill(bro, test_server):
     result = vibe.find("#result").text()
     assert "mocked" in result
     vibe.unroute("**/api/data")
+    vibe.close()
 
 
 def test_route_inspect_request(bro, test_server):
@@ -489,6 +492,7 @@ def test_route_inspect_request(bro, test_server):
     assert "api/data" in captured.get("url", "")
     assert captured.get("method") == "GET"
     vibe.unroute("**/api/data")
+    vibe.close()
 
 
 def test_route_abort(bro, test_server):
@@ -500,6 +504,7 @@ def test_route_abort(bro, test_server):
     result = vibe.find("#result").text()
     assert "aborted" in result or result == ""  # abort may not populate result
     vibe.unroute("**/api/data")
+    vibe.close()
 
 
 def test_route_default_continue(bro, test_server):
@@ -511,6 +516,7 @@ def test_route_default_continue(bro, test_server):
     result = vibe.find("#result").text()
     assert "real data" in result
     vibe.unroute("**/api/data")
+    vibe.close()
 
 
 def test_static_route(bro, test_server):
@@ -522,6 +528,7 @@ def test_static_route(bro, test_server):
     result = vibe.find("#result").text()
     assert "static" in result
     vibe.unroute("**/api/data")
+    vibe.close()
 
 
 def test_unroute(bro, test_server):
@@ -533,6 +540,7 @@ def test_unroute(bro, test_server):
     vibe.wait(500)
     result = vibe.find("#result").text()
     assert "real data" in result
+    vibe.close()
 
 
 # ===========================================================================
@@ -552,6 +560,7 @@ def test_dialog_accept_alert(bro, test_server):
     vibe.evaluate('alert("Hello from test")')
     assert len(messages) == 1
     assert messages[0] == "Hello from test"
+    vibe.close()
 
 
 def test_dialog_dismiss_confirm(bro, test_server):
@@ -564,6 +573,7 @@ def test_dialog_dismiss_confirm(bro, test_server):
     vibe.on_dialog(handler)
     result = vibe.evaluate('confirm("Are you sure?")')
     assert result is False
+    vibe.close()
 
 
 def test_dialog_accept_confirm(bro, test_server):
@@ -576,6 +586,7 @@ def test_dialog_accept_confirm(bro, test_server):
     vibe.on_dialog(handler)
     result = vibe.evaluate('confirm("Are you sure?")')
     assert result is True
+    vibe.close()
 
 
 def test_dialog_prompt_text(bro, test_server):
@@ -589,6 +600,7 @@ def test_dialog_prompt_text(bro, test_server):
     vibe.on_dialog(handler)
     result = vibe.evaluate('prompt("Enter name:")')
     assert result == "my answer"
+    vibe.close()
 
 
 def test_dialog_default_dismiss(bro, test_server):
@@ -597,6 +609,7 @@ def test_dialog_default_dismiss(bro, test_server):
     # No handler — should auto-dismiss
     result = vibe.evaluate('confirm("Auto dismiss?")')
     assert result is False
+    vibe.close()
 
 
 def test_dialog_default_value(bro, test_server):
@@ -613,6 +626,7 @@ def test_dialog_default_value(bro, test_server):
     vibe.evaluate('prompt("Name?", "default-val")')
     assert len(captured_default) == 1
     assert captured_default[0] == "default-val"
+    vibe.close()
 
 
 def test_static_on_dialog(bro, test_server):
@@ -621,6 +635,7 @@ def test_static_on_dialog(bro, test_server):
     vibe.on_dialog("dismiss")
     result = vibe.evaluate('confirm("test")')
     assert result is False
+    vibe.close()
 
 
 # ===========================================================================
@@ -635,6 +650,7 @@ def test_on_console_collect(bro, test_server):
     vibe.wait(300)
     msgs = vibe.console_messages()
     assert any("hello from console" in m["text"] for m in msgs)
+    vibe.close()
 
 
 def test_on_error_collect(bro, test_server):
@@ -645,6 +661,7 @@ def test_on_error_collect(bro, test_server):
     vibe.wait(500)
     errs = vibe.errors()
     assert any("test error" in e["message"] for e in errs)
+    vibe.close()
 
 
 # ===========================================================================
@@ -658,6 +675,7 @@ def test_capture_request_returns_dict(bro, test_server):
     assert isinstance(req, dict)
     assert "url" in req
     assert "api/data" in req["url"]
+    vibe.close()
 
 
 def test_capture_response_returns_dict(bro, test_server):
@@ -667,6 +685,7 @@ def test_capture_response_returns_dict(bro, test_server):
     assert isinstance(resp, dict)
     assert "url" in resp
     assert resp["status"] == 200
+    vibe.close()
 
 
 # ===========================================================================
@@ -680,6 +699,7 @@ def test_capture_navigation(bro, test_server):
         vibe.find("#link").click()
     assert info.value is not None
     assert "/page2" in info.value
+    vibe.close()
 
 
 # ===========================================================================
@@ -695,6 +715,7 @@ def test_capture_download(bro, test_server):
     assert "/download-file" in info.value["url"]
     assert info.value["suggested_filename"] == "test.txt"
     assert info.value["path"] is not None
+    vibe.close()
 
 
 def test_capture_download_save_as(bro, test_server):
@@ -712,6 +733,7 @@ def test_capture_download_save_as(bro, test_server):
             assert f.read() == "download content"
     finally:
         shutil.rmtree(tmp_dir)
+    vibe.close()
 
 
 # ===========================================================================
@@ -726,6 +748,7 @@ def test_capture_dialog(bro, test_server):
     assert info.value is not None
     assert info.value["type"] == "alert"
     assert info.value["message"] == "Hello from expect"
+    vibe.close()
 
 
 # ===========================================================================
@@ -738,6 +761,7 @@ def test_capture_event_navigation(bro, test_server):
     with vibe.capture.event("navigation") as info:
         vibe.find("#link").click()
     assert info.value is not None
+    vibe.close()
 
 
 # ===========================================================================
