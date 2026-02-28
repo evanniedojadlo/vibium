@@ -140,9 +140,9 @@ test: build install-browser
 	SECS=$$((ELAPSED % 60)); \
 	echo ""; \
 	if [ $$EXIT -eq 0 ]; then \
-		echo "━━━ All tests passed in $${MINS}m$${SECS}s ━━━"; \
+		echo "--- All tests passed in $${MINS}m$${SECS}s ---"; \
 	else \
-		echo "━━━ Tests failed after $${MINS}m$${SECS}s ━━━"; \
+		echo "--- Tests failed after $${MINS}m$${SECS}s ---"; \
 		exit $$EXIT; \
 	fi
 
@@ -155,74 +155,74 @@ test-cleanup:
 # Run CLI tests (tests the vibium binary directly)
 # Process tests run separately with --test-concurrency=1 to avoid interference
 test-cli: build-go
-	@echo "━━━ CLI Tests ━━━"
+	@echo "--- CLI Tests ---"
 	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon stop 2>/dev/null || true
 	@sleep 1
 	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon start -d --headless
 	@sleep 1
 	node --test --test-concurrency=1 tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js tests/cli/page-reading.test.js tests/cli/input-tools.test.js tests/cli/tabs.test.js tests/cli/find-refs.test.js
 	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon stop 2>/dev/null || true
-	@echo "━━━ CLI Process Tests (sequential) ━━━"
+	@echo "--- CLI Process Tests (sequential) ---"
 	node --test --test-concurrency=1 tests/cli/process.test.js
 
 # Run JS library tests (sequential to avoid resource exhaustion)
 test-js: build-go
-	@echo "━━━ JS Async API Tests ━━━"
+	@echo "--- JS Async API Tests ---"
 	node --test --test-concurrency=1 tests/js/async/async-api.test.js tests/js/async/auto-wait.test.js tests/js/async/browser-modes.test.js
-	@echo "━━━ JS Sync API Tests ━━━"
+	@echo "--- JS Sync API Tests ---"
 	node --test --test-concurrency=1 tests/js/sync/sync-api.test.js
-	@echo "━━━ JS Element Finding Tests ━━━"
+	@echo "--- JS Element Finding Tests ---"
 	node --test --test-concurrency=1 tests/js/async/elements.test.js
-	@echo "━━━ JS Interaction Tests ━━━"
+	@echo "--- JS Interaction Tests ---"
 	node --test --test-concurrency=1 tests/js/async/interaction.test.js
-	@echo "━━━ JS Element State Tests ━━━"
+	@echo "--- JS Element State Tests ---"
 	node --test --test-concurrency=1 tests/js/async/state.test.js
-	@echo "━━━ JS Input & Eval Tests (Keyboard, Mouse, Screenshots, Eval) ━━━"
+	@echo "--- JS Input & Eval Tests (Keyboard, Mouse, Screenshots, Eval) ---"
 	node --test --test-concurrency=1 tests/js/async/input-eval.test.js
-	@echo "━━━ JS Network & Dialog Tests ━━━"
+	@echo "--- JS Network & Dialog Tests ---"
 	node --test --test-concurrency=1 tests/js/async/network-dialog.test.js tests/js/sync/network-events.test.js
-	@echo "━━━ JS WebSocket Monitoring Tests (async) ━━━"
+	@echo "--- JS WebSocket Monitoring Tests (async) ---"
 	node --test --test-concurrency=1 tests/js/async/websocket.test.js
-	@echo "━━━ JS WebSocket Monitoring Tests (sync) ━━━"
+	@echo "--- JS WebSocket Monitoring Tests (sync) ---"
 	node --test --test-concurrency=1 tests/js/sync/websocket-sync.test.js
-	@echo "━━━ JS Console & Error Tests ━━━"
+	@echo "--- JS Console & Error Tests ---"
 	node --test --test-concurrency=1 tests/js/async/console-error.test.js tests/js/sync/console-error.test.js
-	@echo "━━━ JS Download & File Tests ━━━"
+	@echo "--- JS Download & File Tests ---"
 	node --test --test-concurrency=1 tests/js/async/download-file.test.js tests/js/sync/download-sync.test.js
-	@echo "━━━ JS Tracing Tests ━━━"
+	@echo "--- JS Tracing Tests ---"
 	node --test --test-concurrency=1 tests/js/async/tracing.test.js
-	@echo "━━━ JS Clock Tests ━━━"
+	@echo "--- JS Clock Tests ---"
 	node --test --test-concurrency=1 tests/js/async/clock.test.js
-	@echo "━━━ JS Emulation Tests ━━━"
+	@echo "--- JS Emulation Tests ---"
 	node --test --test-concurrency=1 tests/js/async/emulation.test.js
-	@echo "━━━ JS Accessibility Tests ━━━"
+	@echo "--- JS Accessibility Tests ---"
 	node --test --test-concurrency=1 tests/js/async/a11y.test.js
-	@echo "━━━ JS A11y Tree Tutorial Tests ━━━"
+	@echo "--- JS A11y Tree Tutorial Tests ---"
 	node --test --test-concurrency=1 tests/js/async/a11y-tree-tutorial.test.js tests/js/sync/a11y-tree-tutorial-sync.test.js
-	@echo "━━━ JS Downloads Tutorial Tests ━━━"
+	@echo "--- JS Downloads Tutorial Tests ---"
 	node --test --test-concurrency=1 tests/js/async/downloads-tutorial.test.js tests/js/sync/downloads-tutorial-sync.test.js
-	@echo "━━━ JS Cookie & Storage Tests ━━━"
+	@echo "--- JS Cookie & Storage Tests ---"
 	node --test --test-concurrency=1 tests/js/async/cookies.test.js
-	@echo "━━━ JS Frame Tests ━━━"
+	@echo "--- JS Frame Tests ---"
 	node --test --test-concurrency=1 tests/js/async/frames.test.js
-	@echo "━━━ JS Navigation & Lifecycle Tests ━━━"
+	@echo "--- JS Navigation & Lifecycle Tests ---"
 	node --test --test-concurrency=1 tests/js/async/object-model.test.js tests/js/async/navigation.test.js tests/js/async/lifecycle.test.js
-	@echo "━━━ JS Process Tests (sequential) ━━━"
+	@echo "--- JS Process Tests (sequential) ---"
 	node --test --test-concurrency=1 tests/js/async/process.test.js tests/js/sync/process.test.js
 
 # Run MCP server tests (sequential - browser sessions)
 test-mcp: build-go
-	@echo "━━━ MCP Server Tests ━━━"
+	@echo "--- MCP Server Tests ---"
 	node --test --test-concurrency=1 tests/mcp/server.test.js
 
 # Run daemon tests (sequential - daemon lifecycle)
 test-daemon: build-go
-	@echo "━━━ Daemon Tests ━━━"
+	@echo "--- Daemon Tests ---"
 	node --test --test-concurrency=1 tests/daemon/lifecycle.test.js tests/daemon/concurrency.test.js tests/daemon/cli-commands.test.js tests/daemon/find-refs.test.js tests/daemon/connect.test.js
 
 # Run Python client tests
 test-python: build-go install-browser
-	@echo "━━━ Python Client Tests ━━━"
+	@echo "--- Python Client Tests ---"
 	@cd clients/python && \
 		if [ ! -d ".venv" ]; then $(PYTHON) -m venv .venv; fi && \
 		. $(VENV_ACTIVATE) && \
