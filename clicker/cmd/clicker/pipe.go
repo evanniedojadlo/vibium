@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/browser"
@@ -56,12 +54,12 @@ Use --connect to proxy to a remote BiDi endpoint instead of launching a local br
 
 func runPipe(connectURL string, connectHeaders http.Header) {
 	// Save a reference to the real fd 1 for protocol output BEFORE redirecting.
-	fd, err := syscall.Dup(int(os.Stdout.Fd()))
+	fd, err := dupFd(os.Stdout.Fd())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[pipe] Failed to dup stdout: %v\n", err)
 		os.Exit(1)
 	}
-	protocolOut := os.NewFile(uintptr(fd), "protocolOut")
+	protocolOut := os.NewFile(fd, "protocolOut")
 
 	// Redirect os.Stdout to stderr so any stray fmt.Print / log output
 	// doesn't corrupt the protocol stream.
@@ -89,7 +87,7 @@ func runPipe(connectURL string, connectHeaders http.Header) {
 
 	// Handle signals for clean shutdown
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	notifyShutdownSignals(sigCh)
 
 	// Read commands from stdin line by line
 	done := make(chan struct{})
