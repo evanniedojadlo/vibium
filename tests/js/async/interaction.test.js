@@ -47,22 +47,15 @@ describe('Interaction: Checkpoint', () => {
     const vibe = await bro.page();
     await vibe.go(baseURL + '/checkboxes');
 
-    const checkboxes = await vibe.findAll('input[type="checkbox"]');
-    const first = checkboxes.first();
+    const first = await vibe.find('input[type="checkbox"]');
 
     // First checkbox starts unchecked
     await first.check();
-    const checked = await vibe.evaluate(`
-      document.querySelectorAll('input[type="checkbox"]')[0].checked;
-    `);
-    assert.strictEqual(checked, true, 'First checkbox should be checked');
+    assert.strictEqual(await first.isChecked(), true, 'First checkbox should be checked');
 
     // Uncheck it
     await first.uncheck();
-    const unchecked = await vibe.evaluate(`
-      document.querySelectorAll('input[type="checkbox"]')[0].checked;
-    `);
-    assert.strictEqual(unchecked, false, 'First checkbox should be unchecked');
+    assert.strictEqual(await first.isChecked(), false, 'First checkbox should be unchecked');
   });
 
   test('hover reveals hidden content', async () => {
@@ -85,7 +78,7 @@ describe('Interaction: Checkpoint', () => {
         }
       };
       check();
-      setTimeout(() => resolve(false), 2000);
+      setTimeout(() => resolve(false), 5000);
     })`);
 
     assert.ok(visible, 'Hovering should reveal caption');

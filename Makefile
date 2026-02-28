@@ -174,8 +174,8 @@ test-cli: build-go
 
 # Run JS library tests (3 consolidated groups with parallel execution)
 test-js: build-go
-	@echo "--- JS Async Tests (concurrency=2) ---"
-	$(TIMEOUT_CMD) node --test $(TEST_FLAGS) --test-concurrency=2 \
+	@echo "--- JS Async Tests ---"
+	$(TIMEOUT_CMD) node --test $(TEST_FLAGS) --test-concurrency=1 \
 		tests/js/async/async-api.test.js \
 		tests/js/async/auto-wait.test.js \
 		tests/js/async/browser-modes.test.js \
@@ -198,8 +198,8 @@ test-js: build-go
 		tests/js/async/object-model.test.js \
 		tests/js/async/navigation.test.js \
 		tests/js/async/lifecycle.test.js
-	@echo "--- JS Sync Tests (concurrency=2) ---"
-	$(TIMEOUT_CMD) node --test $(TEST_FLAGS) --test-concurrency=2 \
+	@echo "--- JS Sync Tests ---"
+	$(TIMEOUT_CMD) node --test $(TEST_FLAGS) --test-concurrency=1 \
 		tests/js/sync/sync-api.test.js \
 		tests/js/sync/network-events.test.js \
 		tests/js/sync/websocket-sync.test.js \
