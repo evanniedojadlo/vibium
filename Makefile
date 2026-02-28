@@ -228,7 +228,9 @@ test-python: build-go install-browser
 	@cd clients/python && \
 		if [ ! -d ".venv" ]; then $(PYTHON) -m venv .venv; fi && \
 		. $(VENV_ACTIVATE) && \
-		pip install -e ../../packages/python/$(PYTHON_PLATFORM_PKG) -e ".[test]" && \
+		if ! python -c "import vibium" 2>/dev/null; then \
+			pip install -e ../../packages/python/$(PYTHON_PLATFORM_PKG) -e ".[test]"; \
+		fi && \
 		VIBIUM_BIN_PATH=$(CURDIR)/clicker/bin/vibium$(EXE) \
 		python -m pytest ../../tests/py/ -v --tb=short -x
 
