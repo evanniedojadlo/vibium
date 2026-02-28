@@ -1,6 +1,6 @@
 # Vibium API
 
-168 commands across 23 categories, tracked across 6 implementation targets.
+167 commands across 23 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -28,6 +28,7 @@
 | `context.newPage()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `browser.pages()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.close()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `browser.connect(url)` | ✅ | ✅ | ✅ | ✅ | — | ✅ |
 | `browser.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `browser.onPage(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `browser.onPopup(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
