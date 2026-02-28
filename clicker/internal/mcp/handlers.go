@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,15 +20,17 @@ import (
 
 // Handlers manages browser session state and executes tool calls.
 type Handlers struct {
-	launchResult  *browser.LaunchResult
-	client        *bidi.Client
-	conn          *bidi.Connection
-	screenshotDir string
-	headless      bool
-	refMap        map[string]string // @e1 -> CSS selector
-	lastMap       string            // last map output (for diff)
-	traceRecorder *traceRecorder
-	downloadDir   string
+	launchResult   *browser.LaunchResult
+	client         *bidi.Client
+	conn           *bidi.Connection
+	screenshotDir  string
+	headless       bool
+	connectURL     string      // remote BiDi WebSocket URL (empty = local browser)
+	connectHeaders http.Header // headers for remote WebSocket connection
+	refMap         map[string]string // @e1 -> CSS selector
+	lastMap        string            // last map output (for diff)
+	traceRecorder  *traceRecorder
+	downloadDir    string
 }
 
 // traceRecorder records browser traces (screenshots + snapshots).
@@ -112,10 +115,12 @@ func (t *traceRecorder) writeZip(path string) error {
 // NewHandlers creates a new Handlers instance.
 // screenshotDir specifies where screenshots are saved. If empty, file saving is disabled.
 // headless controls whether the browser is launched in headless mode.
-func NewHandlers(screenshotDir string, headless bool) *Handlers {
+func NewHandlers(screenshotDir string, headless bool, connectURL string, connectHeaders http.Header) *Handlers {
 	return &Handlers{
-		screenshotDir: screenshotDir,
-		headless:      headless,
+		screenshotDir:  screenshotDir,
+		headless:       headless,
+		connectURL:     connectURL,
+		connectHeaders: connectHeaders,
 	}
 }
 
@@ -304,7 +309,7 @@ func (h *Handlers) Close() {
 	h.client = nil
 }
 
-// browserLaunch launches a new browser session.
+// browserLaunch launches a new browser session or connects to a remote one.
 func (h *Handlers) browserLaunch(args map[string]interface{}) (*ToolsCallResult, error) {
 	// If browser is already running, return success (no-op)
 	if h.client != nil {
@@ -312,6 +317,23 @@ func (h *Handlers) browserLaunch(args map[string]interface{}) (*ToolsCallResult,
 			Content: []Content{{
 				Type: "text",
 				Text: "Browser already running",
+			}},
+		}, nil
+	}
+
+	// Remote browser connect mode
+	if h.connectURL != "" {
+		conn, err := bidi.ConnectWithHeaders(h.connectURL, h.connectHeaders)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to remote browser: %w", err)
+		}
+		h.conn = conn
+		h.client = bidi.NewClient(conn)
+
+		return &ToolsCallResult{
+			Content: []Content{{
+				Type: "text",
+				Text: fmt.Sprintf("Connected to remote browser at %s", h.connectURL),
 			}},
 		}, nil
 	}
@@ -881,7 +903,7 @@ func (h *Handlers) browserEvaluate(args map[string]interface{}) (*ToolsCallResul
 
 // browserQuit closes the browser session.
 func (h *Handlers) browserQuit(args map[string]interface{}) (*ToolsCallResult, error) {
-	if h.launchResult == nil {
+	if h.client == nil {
 		return &ToolsCallResult{
 			Content: []Content{{
 				Type: "text",
@@ -3055,6 +3077,16 @@ func (h *Handlers) browserGetWindow(args map[string]interface{}) (*ToolsCallResu
 func (h *Handlers) browserSetWindow(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
+	}
+
+	if h.launchResult == nil {
+		return &ToolsCallResult{
+			Content: []Content{{
+				Type: "text",
+				Text: "Not supported for remote browsers",
+			}},
+			IsError: true,
+		}, nil
 	}
 
 	state, _ := args["state"].(string)

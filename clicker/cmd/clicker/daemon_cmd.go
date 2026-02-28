@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -35,6 +37,8 @@ func newDaemonStartCmd() *cobra.Command {
 		detach      bool
 		idleTimeout time.Duration
 		internal    bool // hidden flag for auto-start
+		connectFlag string
+		headerFlags []string
 	)
 
 	cmd := &cobra.Command{
@@ -47,16 +51,19 @@ func newDaemonStartCmd() *cobra.Command {
   # Starts daemon in background
 
   vibium daemon start --idle-timeout 30m
-  # Auto-shutdown after 30 minutes of inactivity`,
+  # Auto-shutdown after 30 minutes of inactivity
+
+  vibium daemon start --connect ws://remote:9515/session
+  # Connect to a remote browser instead of launching a local one`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if detach && !internal {
 				// Daemonize: re-exec as detached child
-				daemonize(idleTimeout)
+				daemonize(idleTimeout, connectFlag, headerFlags)
 				return
 			}
 
 			// Foreground mode (or internal detached child)
-			runDaemonForeground(idleTimeout)
+			runDaemonForeground(idleTimeout, connectFlag, headerFlags)
 		},
 	}
 
@@ -64,6 +71,8 @@ func newDaemonStartCmd() *cobra.Command {
 	cmd.Flags().DurationVar(&idleTimeout, "idle-timeout", 30*time.Minute, "Shutdown after this duration of inactivity (0 to disable)")
 	cmd.Flags().BoolVar(&internal, "_internal", false, "Internal flag for auto-start")
 	cmd.Flags().MarkHidden("_internal")
+	cmd.Flags().StringVar(&connectFlag, "connect", "", "Connect to a remote BiDi WebSocket URL instead of launching a local browser")
+	cmd.Flags().StringArrayVar(&headerFlags, "connect-header", nil, "HTTP header for WebSocket connect (repeatable, format: \"Key: Value\")")
 
 	return cmd
 }
@@ -129,8 +138,39 @@ func newDaemonStatusCmd() *cobra.Command {
 	}
 }
 
+// resolveConnect merges CLI flags with env vars. Flags take precedence.
+func resolveConnect(connectFlag string, headerFlags []string) (string, http.Header) {
+	connectURL := connectFlag
+	if connectURL == "" {
+		connectURL, _ = connectFromEnv()
+	}
+
+	var headers http.Header
+
+	// Start with env var API key
+	_, envHeaders := connectFromEnv()
+	if envHeaders != nil {
+		headers = envHeaders.Clone()
+	}
+
+	// CLI --connect-header flags override / add
+	if len(headerFlags) > 0 {
+		if headers == nil {
+			headers = make(http.Header)
+		}
+		for _, h := range headerFlags {
+			parts := strings.SplitN(h, ":", 2)
+			if len(parts) == 2 {
+				headers.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+			}
+		}
+	}
+
+	return connectURL, headers
+}
+
 // runDaemonForeground starts the daemon in the current process.
-func runDaemonForeground(idleTimeout time.Duration) {
+func runDaemonForeground(idleTimeout time.Duration, connectFlag string, headerFlags []string) {
 	// Clean stale files from a previous crash
 	daemon.CleanStale()
 
@@ -145,11 +185,15 @@ func runDaemonForeground(idleTimeout time.Duration) {
 		screenshotDir = defaultDir
 	}
 
+	connectURL, connectHeaders := resolveConnect(connectFlag, headerFlags)
+
 	d := daemon.New(daemon.Options{
-		Version:       version,
-		ScreenshotDir: screenshotDir,
-		Headless:      headless,
-		IdleTimeout:   idleTimeout,
+		Version:        version,
+		ScreenshotDir:  screenshotDir,
+		Headless:       headless,
+		IdleTimeout:    idleTimeout,
+		ConnectURL:     connectURL,
+		ConnectHeaders: connectHeaders,
 	})
 
 	// Install signal handler for clean shutdown
@@ -173,7 +217,7 @@ func runDaemonForeground(idleTimeout time.Duration) {
 }
 
 // daemonize spawns the daemon as a detached background process.
-func daemonize(idleTimeout time.Duration) {
+func daemonize(idleTimeout time.Duration, connectFlag string, headerFlags []string) {
 	// Clean stale files first
 	daemon.CleanStale()
 
@@ -192,6 +236,14 @@ func daemonize(idleTimeout time.Duration) {
 		fmt.Sprintf("--idle-timeout=%s", idleTimeout)}
 	if headless {
 		args = append(args, "--headless")
+	}
+
+	// Forward connect flags to child process
+	if connectFlag != "" {
+		args = append(args, fmt.Sprintf("--connect=%s", connectFlag))
+	}
+	for _, h := range headerFlags {
+		args = append(args, fmt.Sprintf("--connect-header=%s", h))
 	}
 
 	cmd := exec.Command(exe, args...)
