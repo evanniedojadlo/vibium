@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+// platformChromeArgs returns Windows-specific Chrome launch arguments.
+func platformChromeArgs() []string {
+	// Chrome for Testing sandbox cannot access its own executable in AppData
+	// due to Windows filesystem permission restrictions.
+	return []string{"--no-sandbox"}
+}
+
 // setProcGroup is a no-op on Windows.
 func setProcGroup(cmd *exec.Cmd) {
 	// Windows doesn't use process groups the same way

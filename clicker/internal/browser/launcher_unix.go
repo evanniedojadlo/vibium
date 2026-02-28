@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+// platformChromeArgs returns Unix-specific Chrome launch arguments.
+func platformChromeArgs() []string {
+	return nil
+}
+
 // setProcGroup sets the process group for the command (Unix only).
 func setProcGroup(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

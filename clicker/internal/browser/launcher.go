@@ -246,6 +246,7 @@ func chromeArgs(headless bool) []string {
 		"--password-store=basic",
 		"--use-mock-keychain",
 	}
+	args = append(args, platformChromeArgs()...)
 	if headless {
 		args = append(args, "--headless=new")
 	}
