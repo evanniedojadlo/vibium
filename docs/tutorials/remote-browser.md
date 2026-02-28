@@ -149,30 +149,19 @@ These work everywhere — CLI commands, daemon auto-start, and the MCP server.
 
 ## How It Works
 
-**CLI / MCP** — the daemon connects directly to the remote chromedriver:
+```
+┌────────── Your Machine ──────────┐              ┌──── Remote Machine ─────┐
+│                                  │              │                         │
+│  ┌──────────┐    ┌──────────┐    │  WebSocket   │    ┌─────────────┐      │
+│  │ your code│◄──►│  vibium  │◄───┼──────────────┼───►│ chromedriver│      │
+│  └──────────┘    └──────────┘    │              │    └──────┬──────┘      │
+│                                  │              │           │             │
+│                                  │              │    ┌──────▼──────┐      │
+│                                  │              │    │   Chrome    │      │
+│                                  │              │    └─────────────┘      │
+└──────────────────────────────────┘              └─────────────────────────┘
+```
 
-```
-Your machine                     Server machine
-┌──────────┐   unix socket   ┌─────────┐   WebSocket   ┌─────────────┐
-│ vibium   │ ──────────────► │ vibium  │ ────────────► │ chromedriver│
-│ (CLI)    │                 │ (daemon)│               └──────┬──────┘
-└──────────┘                 └─────────┘                      │
-                                                       ┌──────▼──────┐
-                                                       │   Chrome    │
-                                                       └─────────────┘
-```
-
-**JS / Python clients** — the client library spawns a vibium pipe process:
-
-```
-Your machine                     Server machine
-┌──────────┐   stdin/stdout   ┌─────────┐   WebSocket   ┌─────────────┐
-│ your code│ ──── pipes ────► │ vibium  │ ────────────► │ chromedriver│
-└──────────┘                  └─────────┘               └──────┬──────┘
-                                                               │
-                                                        ┌──────▼──────┐
-                                                        │   Chrome    │
-                                                        └─────────────┘
-```
+Your code talks to a local vibium process, which proxies to the remote chromedriver over WebSocket. The transport between your code and vibium depends on the interface: IPC for CLI, stdin/stdout pipes for JS/Python clients.
 
 All vibium features (auto-wait, screenshots, tracing) work over remote connections.
