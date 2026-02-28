@@ -5,6 +5,7 @@ package browser
 import (
 	"os/exec"
 	"syscall"
+	"time"
 )
 
 // setProcGroup sets the process group for the command (Unix only).
@@ -17,7 +18,20 @@ func killByPid(pid int) {
 	syscall.Kill(pid, syscall.SIGKILL)
 }
 
-// skipGracefulShutdown returns false on Unix. The graceful DELETE request
-// works fine because Unix process trees are stable and killByPid uses
-// SIGKILL on individual PIDs found via pgrep.
-func skipGracefulShutdown() bool { return false }
+// waitForProcessesDead polls until all PIDs have exited or timeout is reached.
+func waitForProcessesDead(pids []int, timeout time.Duration) {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		allDead := true
+		for _, pid := range pids {
+			if syscall.Kill(pid, 0) == nil {
+				allDead = false
+				break
+			}
+		}
+		if allDead {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}

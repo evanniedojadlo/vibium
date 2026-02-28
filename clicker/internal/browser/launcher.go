@@ -333,20 +333,6 @@ func createSession(baseURL, chromePath string, headless, verbose bool) (string, 
 func (r *LaunchResult) Close() error {
 	log.Debug("closing browser", "sessionId", r.SessionID)
 
-	// Delete session first (tells chromedriver to quit Chrome gracefully).
-	// Skip when session was created via BiDi (browser.close / process kill handles it).
-	// Skip on Windows: the DELETE can cause chromedriver to exit before
-	// taskkill /T runs, orphaning Chrome children. taskkill /T handles cleanup.
-	if r.BidiConn == nil && !skipGracefulShutdown() && r.SessionID != "" && r.Port > 0 {
-		req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:%d/session/%s", r.Port, r.SessionID), nil)
-		if req != nil {
-			client := &http.Client{Timeout: 5 * time.Second}
-			client.Do(req)
-		}
-		// Give Chrome a moment to quit gracefully
-		time.Sleep(500 * time.Millisecond)
-	}
-
 	// Kill chromedriver and all its descendants
 	if r.ChromedriverCmd != nil && r.ChromedriverCmd.Process != nil {
 		pid := r.ChromedriverCmd.Process.Pid
@@ -385,13 +371,16 @@ func killProcessTree(pid int) {
 	// Kill the root process
 	killByPid(pid)
 
-	// Wait a moment for processes to die
-	time.Sleep(100 * time.Millisecond)
+	// Wait for all processes to actually die (up to 2s) rather than
+	// sleeping a fixed duration — prevents lingering Chrome processes
+	// from causing resource contention in subsequent test runs.
+	waitForProcessesDead(append(descendants, pid), 2*time.Second)
 
 	// Kill any orphaned Chrome processes that escaped
 	// (Chrome helpers sometimes get reparented to init before we can kill them)
 	KillOrphanedChromeProcesses()
 }
+
 
 // getDescendants returns all descendant PIDs of a process (recursive).
 func getDescendants(pid int) []int {
