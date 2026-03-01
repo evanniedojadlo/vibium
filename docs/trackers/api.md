@@ -1,6 +1,6 @@
 # Vibium API
 
-167 commands across 23 categories, tracked across 6 implementation targets.
+161 commands across 22 categories, tracked across 6 implementation targets.
 
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
@@ -60,17 +60,6 @@
 | `find({testid: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `find({xpath: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `find({role, text}) combo` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-
-## Locator Chaining & Filtering
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `el.first()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.last()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.nth(index)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.count()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.filter({hasText})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.filter({has})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
 ## Element Interaction
 
