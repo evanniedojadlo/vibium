@@ -140,11 +140,14 @@ export class SyncBridge {
       }
     }
 
+    // Reset signal[0] BEFORE posting the decision to avoid a race condition:
+    // If we reset after postMessage, the worker might receive the decision,
+    // prepare the next callback, and set signal[0]=2 before our reset —
+    // overwriting it back to 0 and causing a deadlock.
+    Atomics.store(this.signal, 0, 0);
+
     // Post decision back to worker via port
     this.callbackPortMain.postMessage({ decision });
-
-    // Reset signal[0] so we can wait for the next signal
-    Atomics.store(this.signal, 0, 0);
   }
 
   call<T = unknown>(method: string, args: unknown[] = []): T {
