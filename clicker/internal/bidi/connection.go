@@ -19,11 +19,15 @@ type Connection struct {
 	conn   *websocket.Conn
 	mu     sync.Mutex
 	closed bool
+	done   chan struct{} // closed on Close() to stop the ping loop
 }
 
 // readDeadline is the timeout for each WebSocket read operation.
-// Long enough for legitimate long operations but short enough to detect dead connections.
+// Must be longer than pingInterval so pongs have time to arrive.
 const readDeadline = 120 * time.Second
+
+// pingInterval is how often we send WebSocket pings to keep the connection alive.
+const pingInterval = 30 * time.Second
 
 // Connect establishes a WebSocket connection to the given URL.
 func Connect(url string) (*Connection, error) {
@@ -52,9 +56,37 @@ func ConnectWithHeaders(url string, headers http.Header) (*Connection, error) {
 		return nil
 	})
 
-	return &Connection{
+	c := &Connection{
 		conn: conn,
-	}, nil
+		done: make(chan struct{}),
+	}
+	go c.pingLoop()
+	return c, nil
+}
+
+// pingLoop sends WebSocket pings at regular intervals to keep the connection
+// alive and allow the pong handler to extend the read deadline.
+func (c *Connection) pingLoop() {
+	ticker := time.NewTicker(pingInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.done:
+			return
+		case <-ticker.C:
+			c.mu.Lock()
+			if c.closed {
+				c.mu.Unlock()
+				return
+			}
+			err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
+			c.mu.Unlock()
+			if err != nil {
+				return
+			}
+		}
+	}
 }
 
 // Send sends a text message over the WebSocket.
@@ -101,6 +133,7 @@ func (c *Connection) Close() error {
 	}
 
 	c.closed = true
+	close(c.done)
 
 	// Send close message
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
