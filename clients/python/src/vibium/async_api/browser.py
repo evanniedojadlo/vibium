@@ -25,6 +25,9 @@ class Browser:
         # Listen for browsingContext.contextCreated events
         self._client.on_event(self._handle_event)
 
+    def __repr__(self) -> str:
+        return "Browser(connected=True)"
+
     def _handle_event(self, event: Dict[str, Any]) -> None:
         if event.get("method") != "browsingContext.contextCreated":
             return

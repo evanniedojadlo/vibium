@@ -20,6 +20,9 @@ class Browser:
         self._async = async_browser
         self._loop = loop_thread
 
+    def __repr__(self) -> str:
+        return "Browser(connected=True)"
+
     def page(self) -> Page:
         """Get the default page (first browsing context)."""
         async_page = self._loop.run(self._async.page())

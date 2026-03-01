@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as nodePath from 'path';
 import { SyncBridge } from './bridge';
 import { ElementSync } from './element';
-import { ElementListSync } from './element-list';
 import { KeyboardSync, MouseSync, TouchSync } from './keyboard';
 import { ClockSync } from './clock';
 import { BrowserContextSync } from './context';
@@ -10,6 +9,8 @@ import { RouteSync, RouteRequest } from './route';
 import { DialogSync, DialogData } from './dialog';
 import { ElementInfo, SelectorOptions } from '../element';
 import { A11yNode, ScreenshotOptions, FindOptions } from '../page';
+
+const customInspect = Symbol.for('nodejs.util.inspect.custom');
 
 export interface RequestData {
   url: string;
@@ -133,6 +134,16 @@ export class PageSync {
     );
   }
 
+  [customInspect](): string {
+    try {
+      const u = this.url();
+      const t = this.title();
+      return `Page { url: '${u}', title: '${t}' }`;
+    } catch {
+      return `Page { id: ${this._pageId} }`;
+    }
+  }
+
   /** The parent BrowserContext that owns this page. */
   get context(): BrowserContextSync {
     if (!this._cachedContext) {
@@ -184,9 +195,9 @@ export class PageSync {
     return new ElementSync(this._bridge, result.elementId, result.info);
   }
 
-  findAll(selector: string | SelectorOptions, options?: FindOptions): ElementListSync {
-    const result = this._bridge.call<{ listId: number; elementIds: number[]; count: number }>('page.findAll', [this._pageId, selector, options]);
-    return new ElementListSync(this._bridge, result.listId);
+  findAll(selector: string | SelectorOptions, options?: FindOptions): ElementSync[] {
+    const result = this._bridge.call<{ elements: { elementId: number; info: ElementInfo }[] }>('page.findAll', [this._pageId, selector, options]);
+    return result.elements.map(e => new ElementSync(this._bridge, e.elementId, e.info));
   }
 
   // --- Waiting ---

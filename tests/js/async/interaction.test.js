@@ -63,8 +63,7 @@ describe('Interaction: Checkpoint', () => {
     await vibe.go(baseURL + '/hovers');
 
     const figures = await vibe.findAll('.figure');
-    const first = figures.first();
-    await first.hover();
+    await figures[0].hover();
 
     // Poll for CSS transition to complete (opacity 0 → 1)
     const visible = await vibe.evaluate(`new Promise(resolve => {
@@ -232,7 +231,7 @@ describe('Interaction: findAll index bug fix', () => {
     await vibe.go(baseURL + '/checkboxes');
 
     const checkboxes = await vibe.findAll('input[type="checkbox"]');
-    assert.strictEqual(checkboxes.count(), 2, 'Should find 2 checkboxes');
+    assert.strictEqual(checkboxes.length, 2, 'Should find 2 checkboxes');
 
     // Second checkbox starts checked
     const secondChecked = await vibe.evaluate(`
@@ -241,7 +240,7 @@ describe('Interaction: findAll index bug fix', () => {
     assert.strictEqual(secondChecked, true, 'Second checkbox starts checked');
 
     // Click the second one (index 1) to uncheck it
-    await checkboxes.nth(1).click();
+    await checkboxes[1].click();
 
     const afterClick = await vibe.evaluate(`
       document.querySelectorAll('input[type="checkbox"]')[1].checked;

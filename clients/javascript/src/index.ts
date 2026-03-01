@@ -4,7 +4,6 @@ export { Clock, ClockInstallOptions } from './clock';
 export { BrowserContext, Cookie, SetCookieParam, StorageState, OriginState } from './context';
 export { Tracing, TracingStartOptions, TracingStopOptions } from './tracing';
 export { Element, BoundingBox, ElementInfo, ActionOptions, SelectorOptions, FluentElement, fluent } from './element';
-export { ElementList, FilterOptions } from './element-list';
 export { Route } from './route';
 export { Request, Response } from './network';
 export { Dialog } from './dialog';
@@ -17,7 +16,6 @@ export {
   BrowserSync,
   PageSync,
   ElementSync,
-  ElementListSync,
   KeyboardSync,
   MouseSync,
   TouchSync,

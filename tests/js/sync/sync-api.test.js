@@ -187,12 +187,12 @@ describe('Sync API: Element finding', () => {
     assert.match(link.info.tag, /^a$/i);
   });
 
-  test('findAll() returns ElementListSync', () => {
+  test('findAll() returns an array', () => {
     const vibe = bro.page();
     vibe.go(`${baseURL}/links`);
     const links = vibe.findAll('a.link');
-    assert.ok(links, 'Should return an ElementListSync');
-    assert.strictEqual(links.count(), 4);
+    assert.ok(Array.isArray(links), 'Should return an array');
+    assert.strictEqual(links.length, 4);
   });
 
   test('find() auto-waits for element', () => {
@@ -203,22 +203,22 @@ describe('Sync API: Element finding', () => {
   });
 });
 
-describe('Sync API: ElementListSync', () => {
+describe('Sync API: findAll array', () => {
 
-  test('count(), first(), last(), nth()', () => {
+  test('length, [0], .at(-1), [i]', () => {
     const vibe = bro.page();
     vibe.go(`${baseURL}/links`);
     const items = vibe.findAll('a.link');
 
-    assert.strictEqual(items.count(), 4);
+    assert.strictEqual(items.length, 4);
 
-    const first = items.first();
+    const first = items[0];
     assert.ok(first.text().includes('Link 1'));
 
-    const last = items.last();
+    const last = items.at(-1);
     assert.ok(last.text().includes('Link 4'));
 
-    const second = items.nth(1);
+    const second = items[1];
     assert.ok(second.text().includes('Link 2'));
   });
 
@@ -232,14 +232,6 @@ describe('Sync API: ElementListSync', () => {
       assert.ok(item, 'Each item should be an ElementSync');
     }
     assert.strictEqual(count, 4);
-  });
-
-  test('filter()', () => {
-    const vibe = bro.page();
-    vibe.go(`${baseURL}/links`);
-    const all = vibe.findAll('a.link');
-    const filtered = all.filter({ hasText: 'Link 4' });
-    assert.strictEqual(filtered.count(), 1);
   });
 });
 
@@ -389,7 +381,7 @@ describe('Sync API: Scoped find', () => {
     vibe.go(`${baseURL}/links`);
     const nested = vibe.find('#nested');
     const spans = nested.findAll('.inner');
-    assert.strictEqual(spans.count(), 2);
+    assert.strictEqual(spans.length, 2);
   });
 });
 

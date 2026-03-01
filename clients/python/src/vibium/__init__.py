@@ -18,8 +18,7 @@ Usage (async):
 from .sync_api.browser import browser, Browser
 from .sync_api.page import Page
 from .sync_api.element import Element
-from .sync_api.element_list import ElementList
 from .sync_api.context import BrowserContext
 
 __version__ = "26.2.0"
-__all__ = ["browser", "Browser", "Page", "Element", "ElementList", "BrowserContext"]
+__all__ = ["browser", "Browser", "Page", "Element", "BrowserContext"]

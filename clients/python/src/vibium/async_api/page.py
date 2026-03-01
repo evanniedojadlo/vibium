@@ -10,7 +10,6 @@ from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from .._types import A11yNode, BoundingBox, ElementInfo
 from .element import Element
-from .element_list import ElementList
 from .clock import Clock
 from .route import Route
 from .network import Request, Response
@@ -127,6 +126,9 @@ class Page:
         self._event_handler = self._handle_event
         self._client.on_event(self._event_handler)
 
+    def __repr__(self) -> str:
+        return f"Page(context='{self._context_id}')"
+
     @property
     def id(self) -> str:
         return self._context_id
@@ -220,7 +222,7 @@ class Page:
         xpath: Optional[str] = None,
         near: Optional[str] = None,
         timeout: Optional[int] = None,
-    ) -> ElementList:
+    ) -> List[Element]:
         """Find all elements matching a selector or semantic options."""
         params: Dict[str, Any] = {"context": self._context_id, "timeout": timeout}
         if selector is not None:
@@ -241,7 +243,7 @@ class Page:
         for el in result["elements"]:
             info = ElementInfo(tag=el["tag"], text=el["text"], box=BoundingBox(**el["box"]))
             elements.append(Element(self._client, self._context_id, sel_str, info, el.get("index"), sel_params))
-        return ElementList(self._client, self._context_id, selector or params, elements)
+        return elements
 
     # --- Waiting ---
 

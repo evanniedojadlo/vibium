@@ -9,7 +9,6 @@ from .._types import BoundingBox
 if TYPE_CHECKING:
     from .._sync_base import _EventLoopThread
     from ..async_api.element import Element as AsyncElement
-    from .element_list import ElementList
 
 
 class Element:
@@ -19,6 +18,12 @@ class Element:
         self._async = async_element
         self._loop = loop_thread
         self.info = async_element.info
+
+    def __repr__(self) -> str:
+        text = self.info.text
+        if len(text) > 50:
+            text = text[:50] + "..."
+        return f"Element(tag='{self.info.tag}', text='{text}')"
 
     # --- Interaction ---
 
@@ -168,10 +173,9 @@ class Element:
         xpath: Optional[str] = None,
         near: Optional[str] = None,
         timeout: Optional[int] = None,
-    ) -> ElementList:
-        from .element_list import ElementList
-        async_list = self._loop.run(self._async.find_all(
+    ) -> List[Element]:
+        async_elements = self._loop.run(self._async.find_all(
             selector, role=role, text=text, label=label, placeholder=placeholder,
             alt=alt, title=title, testid=testid, xpath=xpath, near=near, timeout=timeout,
         ))
-        return ElementList(async_list, self._loop)
+        return [Element(el, self._loop) for el in async_elements]

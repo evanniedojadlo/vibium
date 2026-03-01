@@ -1,5 +1,6 @@
 import { BiDiClient } from './bidi';
-import { ElementList, ElementListInfo } from './element-list';
+
+const customInspect = Symbol.for('nodejs.util.inspect.custom');
 
 export interface BoundingBox {
   x: number;
@@ -343,7 +344,7 @@ export class Element {
   }
 
   /** Find all child elements by CSS selector or semantic options. Scoped to this element. */
-  async findAll(selector: string | SelectorOptions, options?: { timeout?: number }): Promise<ElementList> {
+  async findAll(selector: string | SelectorOptions, options?: { timeout?: number }): Promise<Element[]> {
     const params: Record<string, unknown> = {
       context: this.context,
       scope: this.selector,
@@ -364,12 +365,15 @@ export class Element {
 
     const selectorStr = typeof selector === 'string' ? selector : '';
     const selectorParams = typeof selector === 'string' ? { selector } : { ...selector };
-    const elements = result.elements.map((el) => {
+    return result.elements.map((el) => {
       const info: ElementInfo = { tag: el.tag, text: el.text, box: el.box };
       return new Element(this.client, this.context, selectorStr, info, el.index, selectorParams);
     });
+  }
 
-    return new ElementList(this.client, this.context, selector, elements);
+  [customInspect](): string {
+    const text = this.info.text.length > 50 ? this.info.text.slice(0, 50) + '...' : this.info.text;
+    return `Element { tag: '${this.info.tag}', text: '${text}' }`;
   }
 
   private getCenter(): { x: number; y: number } {
@@ -419,7 +423,7 @@ export type FluentElement = Promise<Element> & {
   waitUntil(state?: string, options?: { timeout?: number }): Promise<void>;
   // Finding
   find(selector: string | SelectorOptions, options?: { timeout?: number }): FluentElement;
-  findAll(selector: string | SelectorOptions, options?: { timeout?: number }): Promise<ElementList>;
+  findAll(selector: string | SelectorOptions, options?: { timeout?: number }): Promise<Element[]>;
 };
 
 export function fluent(promise: Promise<Element>): FluentElement {
@@ -464,5 +468,3 @@ export function fluent(promise: Promise<Element>): FluentElement {
   p.findAll = (sel, opts?) => promise.then(el => el.findAll(sel, opts));
   return p;
 }
-
-export { ElementList } from './element-list';

@@ -6,13 +6,13 @@ import pytest
 async def test_find_all_multiple(async_page, test_server):
     await async_page.go(test_server + "/links")
     els = await async_page.find_all(".link")
-    assert els.count() == 4
+    assert len(els) == 4
 
 
 async def test_first(async_page, test_server):
     await async_page.go(test_server + "/links")
     els = await async_page.find_all(".link")
-    first = els.first()
+    first = els[0]
     text = await first.text()
     assert text == "Link 1"
 
@@ -20,7 +20,7 @@ async def test_first(async_page, test_server):
 async def test_last(async_page, test_server):
     await async_page.go(test_server + "/links")
     els = await async_page.find_all(".link")
-    last = els.last()
+    last = els[-1]
     text = await last.text()
     assert text == "Link 4"
 
@@ -28,7 +28,7 @@ async def test_last(async_page, test_server):
 async def test_nth(async_page, test_server):
     await async_page.go(test_server + "/links")
     els = await async_page.find_all(".link")
-    second = els.nth(1)
+    second = els[1]
     text = await second.text()
     assert text == "Link 2"
 
@@ -36,7 +36,6 @@ async def test_nth(async_page, test_server):
 async def test_count(async_page, test_server):
     await async_page.go(test_server + "/links")
     els = await async_page.find_all(".link")
-    assert els.count() == 4
     assert len(els) == 4
 
 

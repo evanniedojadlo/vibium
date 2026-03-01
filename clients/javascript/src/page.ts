@@ -1,6 +1,5 @@
 import { BiDiClient, BiDiEvent, ScreenshotResult } from './bidi';
 import { Element, ElementInfo, SelectorOptions, FluentElement, fluent } from './element';
-import { ElementList, ElementListInfo } from './element-list';
 import { BrowserContext } from './context';
 import { Route } from './route';
 import { Request, Response } from './network';
@@ -36,9 +35,11 @@ interface VibiumFindResult {
 }
 
 interface VibiumFindAllResult {
-  elements: ElementListInfo[];
+  elements: Array<{ tag: string; text: string; box: { x: number; y: number; width: number; height: number }; index: number }>;
   count: number;
 }
+
+const customInspect = Symbol.for('nodejs.util.inspect.custom');
 
 /** Page-level keyboard input. */
 export class Keyboard {
@@ -315,6 +316,10 @@ export class Page {
   /** The browsing context ID for this page. */
   get id(): string {
     return this.contextId;
+  }
+
+  [customInspect](): string {
+    return `Page { contextId: '${this.contextId}' }`;
   }
 
   /** The parent BrowserContext that owns this page. */
@@ -648,7 +653,7 @@ export class Page {
   }
 
   /** Find all elements matching a CSS selector or semantic options. Waits for at least one. */
-  async findAll(selector: string | SelectorOptions, options?: FindOptions): Promise<ElementList> {
+  async findAll(selector: string | SelectorOptions, options?: FindOptions): Promise<Element[]> {
     const params: Record<string, unknown> = {
       context: this.contextId,
       timeout: options?.timeout,
@@ -667,12 +672,10 @@ export class Page {
 
     const selectorStr = typeof selector === 'string' ? selector : '';
     const selectorParams = typeof selector === 'string' ? { selector } : { ...selector };
-    const elements = result.elements.map((el) => {
+    return result.elements.map((el) => {
       const info: ElementInfo = { tag: el.tag, text: el.text, box: el.box };
       return new Element(this.client, this.contextId, selectorStr, info, el.index, selectorParams);
     });
-
-    return new ElementList(this.client, this.contextId, selector, elements);
   }
 
   // --- Network Interception ---

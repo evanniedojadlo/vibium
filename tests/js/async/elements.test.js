@@ -51,47 +51,47 @@ describe('Element Finding', () => {
     await vibe.go(baseURL);
 
     const paragraphs = await vibe.findAll('p');
-    assert.ok(paragraphs.count() > 0, 'Should find at least one paragraph');
+    assert.ok(paragraphs.length > 0, 'Should find at least one paragraph');
   });
 
-  test('findAll().first() returns first element', async () => {
+  test('findAll()[0] returns first element', async () => {
     const vibe = await bro.page();
     await vibe.go(baseURL);
 
     const paragraphs = await vibe.findAll('p');
-    const first = paragraphs.first();
+    const first = paragraphs[0];
     assert.ok(first, 'Should return first element');
     assert.ok(first.info.tag === 'p', 'First element should be a <p>');
   });
 
-  test('findAll().last() returns last element', async () => {
+  test('findAll().at(-1) returns last element', async () => {
     const vibe = await bro.page();
     await vibe.go(baseURL);
 
     const paragraphs = await vibe.findAll('p');
-    const last = paragraphs.last();
+    const last = paragraphs.at(-1);
     assert.ok(last, 'Should return last element');
     assert.ok(last.info.tag === 'p', 'Last element should be a <p>');
   });
 
-  test('findAll().nth(0) returns element at index', async () => {
+  test('findAll()[0] returns element at index', async () => {
     const vibe = await bro.page();
     await vibe.go(baseURL);
 
     const paragraphs = await vibe.findAll('p');
-    const zeroth = paragraphs.nth(0);
+    const zeroth = paragraphs[0];
     assert.ok(zeroth, 'Should return element at index 0');
     assert.ok(zeroth.info.tag === 'p', 'Element at index 0 should be a <p>');
   });
 
-  test('findAll().count() returns number', async () => {
+  test('findAll().length returns number', async () => {
     const vibe = await bro.page();
     await vibe.go(baseURL);
 
     const paragraphs = await vibe.findAll('p');
-    const count = paragraphs.count();
-    assert.ok(typeof count === 'number', 'count() should return a number');
-    assert.ok(count > 0, 'count() should be > 0');
+    const count = paragraphs.length;
+    assert.ok(typeof count === 'number', 'length should return a number');
+    assert.ok(count > 0, 'length should be > 0');
   });
 
   // --- Scoped find ---
@@ -140,7 +140,7 @@ describe('Element Finding', () => {
 
   // --- Iterator ---
 
-  test('ElementList is iterable', async () => {
+  test('findAll result is iterable', async () => {
     const vibe = await bro.page();
     await vibe.go(baseURL);
 
@@ -151,6 +151,6 @@ describe('Element Finding', () => {
       count++;
     }
     assert.ok(count > 0, 'Should iterate over at least one element');
-    assert.strictEqual(count, paragraphs.count(), 'Iterator count should match count()');
+    assert.strictEqual(count, paragraphs.length, 'Iterator count should match length');
   });
 });

@@ -103,8 +103,8 @@ async def test_dispatch_event(async_page, test_server):
 async def test_find_all_nth_click_correct(async_page, test_server):
     await async_page.go(test_server + "/links")
     links = await async_page.find_all(".link")
-    assert links.count() == 4
-    third = links.nth(2)
+    assert len(links) == 4
+    third = links[2]
     text = await third.text()
     assert text == "Link 3"
 

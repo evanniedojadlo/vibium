@@ -4,6 +4,8 @@ import { Page } from './page';
 import { BrowserContext } from './context';
 import { debug, info } from './utils/debug';
 
+const customInspect = Symbol.for('nodejs.util.inspect.custom');
+
 export interface LaunchOptions {
   headless?: boolean;
   executablePath?: string;
@@ -46,6 +48,10 @@ export class Browser {
         }
       }
     });
+  }
+
+  [customInspect](): string {
+    return 'Browser { connected: true }';
   }
 
   /** Get the default page (first browsing context). */

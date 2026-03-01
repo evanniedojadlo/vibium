@@ -3,7 +3,6 @@ import { browser, Browser } from '../browser';
 import { Page } from '../page';
 import { BrowserContext } from '../context';
 import { Element, SelectorOptions } from '../element';
-import { ElementList, FilterOptions } from '../element-list';
 
 interface WorkerData {
   signal: Int32Array;
@@ -59,7 +58,6 @@ let nextId = 1;
 const pages = new Map<number, Page>();
 const contexts = new Map<number, BrowserContext>();
 const elements = new Map<number, Element>();
-const elementLists = new Map<number, ElementList>();
 const pageContextMap = new Map<number, number>(); // pageId → contextId (sync worker IDs)
 
 // Default page ID (first page from launch)
@@ -85,12 +83,6 @@ function getElement(id: number): Element {
   const el = elements.get(id);
   if (!el) throw new Error(`Element ${id} not found`);
   return el;
-}
-
-function getElementList(id: number): ElementList {
-  const list = elementLists.get(id);
-  if (!list) throw new Error(`ElementList ${id} not found`);
-  return list;
 }
 
 function storePage(page: Page): number {
@@ -126,11 +118,6 @@ function storeElement(el: Element): number {
   return id;
 }
 
-function storeElementList(list: ElementList): number {
-  const id = allocId();
-  elementLists.set(id, list);
-  return id;
-}
 
 // --- Event buffers ---
 // Events are buffered here during command processing. After the command completes,
@@ -177,7 +164,6 @@ const handlers: Record<string, Handler> = {
     pages.clear();
     contexts.clear();
     elements.clear();
-    elementLists.clear();
     return { success: true };
   },
 
@@ -399,13 +385,12 @@ const handlers: Record<string, Handler> = {
 
   'page.findAll': async (args) => {
     const [pageId, selector, options] = args as [number, string | SelectorOptions, unknown];
-    const list = await getPage(pageId).findAll(selector, options as any);
-    const listId = storeElementList(list);
-    const elementIds: number[] = [];
-    for (const el of list.toArray()) {
-      elementIds.push(storeElement(el));
+    const arr = await getPage(pageId).findAll(selector, options as any);
+    const elements: { elementId: number; info: ElementInfo }[] = [];
+    for (const el of arr) {
+      elements.push({ elementId: storeElement(el), info: el.info });
     }
-    return { listId, elementIds, count: list.count() };
+    return { elements };
   },
 
   'page.wait': async (args) => {
@@ -1358,64 +1343,12 @@ const handlers: Record<string, Handler> = {
 
   'element.findAll': async (args) => {
     const [elementId, selector, options] = args as [number, string | SelectorOptions, any];
-    const list = await getElement(elementId).findAll(selector, options);
-    const listId = storeElementList(list);
-    const elementIds: number[] = [];
-    for (const el of list.toArray()) {
-      elementIds.push(storeElement(el));
-    }
-    return { listId, elementIds, count: list.count() };
-  },
-
-  // ========================
-  // ElementList commands
-  // ========================
-
-  'elementList.count': async (args) => {
-    const [listId] = args as [number];
-    return { count: getElementList(listId).count() };
-  },
-
-  'elementList.first': async (args) => {
-    const [listId] = args as [number];
-    const el = getElementList(listId).first();
-    const id = storeElement(el);
-    return { elementId: id, info: el.info };
-  },
-
-  'elementList.last': async (args) => {
-    const [listId] = args as [number];
-    const el = getElementList(listId).last();
-    const id = storeElement(el);
-    return { elementId: id, info: el.info };
-  },
-
-  'elementList.nth': async (args) => {
-    const [listId, index] = args as [number, number];
-    const el = getElementList(listId).nth(index);
-    const id = storeElement(el);
-    return { elementId: id, info: el.info };
-  },
-
-  'elementList.filter': async (args) => {
-    const [listId, opts] = args as [number, FilterOptions];
-    const filtered = await getElementList(listId).filter(opts);
-    const newListId = storeElementList(filtered);
-    const elementIds: number[] = [];
-    for (const el of filtered.toArray()) {
-      elementIds.push(storeElement(el));
-    }
-    return { listId: newListId, elementIds, count: filtered.count() };
-  },
-
-  'elementList.toArray': async (args) => {
-    const [listId] = args as [number];
-    const arr = getElementList(listId).toArray();
-    const elementIds: number[] = [];
+    const arr = await getElement(elementId).findAll(selector, options);
+    const elements: { elementId: number; info: ElementInfo }[] = [];
     for (const el of arr) {
-      elementIds.push(storeElement(el));
+      elements.push({ elementId: storeElement(el), info: el.info });
     }
-    return { elementIds };
+    return { elements };
   },
 
   // ========================
@@ -1429,7 +1362,6 @@ const handlers: Record<string, Handler> = {
     pages.clear();
     contexts.clear();
     elements.clear();
-    elementLists.clear();
     return { success: true };
   },
 };

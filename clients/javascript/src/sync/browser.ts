@@ -2,6 +2,8 @@ import { SyncBridge } from './bridge';
 import { PageSync } from './page';
 import { BrowserContextSync } from './context';
 
+const customInspect = Symbol.for('nodejs.util.inspect.custom');
+
 export interface LaunchOptions {
   headless?: boolean;
 }
@@ -19,6 +21,10 @@ export class BrowserSync {
 
   constructor(bridge: SyncBridge) {
     this._bridge = bridge;
+  }
+
+  [customInspect](): string {
+    return 'Browser { connected: true }';
   }
 
   page(): PageSync {

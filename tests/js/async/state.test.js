@@ -154,8 +154,8 @@ describe('Element State: enabled/checked/editable', () => {
 
     const checkboxes = await vibe.findAll('input[type="checkbox"]');
     // First checkbox is unchecked, second is checked
-    const firstChecked = await checkboxes.first().isChecked();
-    const secondChecked = await checkboxes.nth(1).isChecked();
+    const firstChecked = await checkboxes[0].isChecked();
+    const secondChecked = await checkboxes[1].isChecked();
     assert.strictEqual(firstChecked, false, 'First checkbox should be unchecked');
     assert.strictEqual(secondChecked, true, 'Second checkbox should be checked');
   });

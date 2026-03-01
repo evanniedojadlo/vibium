@@ -7,7 +7,6 @@ from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from .._types import A11yNode
 from .element import Element
-from .element_list import ElementList
 from .clock import Clock
 from .route import Route
 
@@ -88,6 +87,14 @@ class Page:
         self._errors: List[Dict[str, str]] = []
         self._cached_context: Optional[BrowserContextType] = None
 
+    def __repr__(self) -> str:
+        try:
+            url = self.url()
+            title = self.title()
+            return f"Page(url='{url}', title='{title}')"
+        except Exception:
+            return f"Page(context='{self._async.id}')"
+
     @property
     def id(self) -> str:
         return self._async.id
@@ -164,12 +171,12 @@ class Page:
         xpath: Optional[str] = None,
         near: Optional[str] = None,
         timeout: Optional[int] = None,
-    ) -> ElementList:
-        async_list = self._loop.run(self._async.find_all(
+    ) -> List[Element]:
+        async_elements = self._loop.run(self._async.find_all(
             selector, role=role, text=text, label=label, placeholder=placeholder,
             alt=alt, title=title, testid=testid, xpath=xpath, near=near, timeout=timeout,
         ))
-        return ElementList(async_list, self._loop)
+        return [Element(el, self._loop) for el in async_elements]
 
     # --- Waiting ---
 

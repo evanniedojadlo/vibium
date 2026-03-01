@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from vibium import browser, Browser, Page, Element, ElementList, BrowserContext
+from vibium import browser, Browser, Page, Element, BrowserContext
 
 
 # ---------------------------------------------------------------------------
@@ -146,8 +146,8 @@ def test_find_all(bro, test_server):
     vibe = bro.page()
     vibe.go(test_server + "/links")
     els = vibe.find_all(".link")
-    assert isinstance(els, ElementList)
-    assert els.count() == 4
+    assert isinstance(els, list)
+    assert len(els) == 4
 
 
 def test_find_auto_waits(bro, test_server):
@@ -161,16 +161,16 @@ def test_find_auto_waits(bro, test_server):
 # ElementList (3)
 # ===========================================================================
 
-def test_count_first_last_nth(bro, test_server):
+def test_len_index_slicing(bro, test_server):
     vibe = bro.page()
     vibe.go(test_server + "/links")
     els = vibe.find_all(".link")
-    assert els.count() == 4
-    first = els.first()
+    assert len(els) == 4
+    first = els[0]
     assert first.info.text == "Link 1"
-    last = els.last()
+    last = els[-1]
     assert last.info.text == "Link 4"
-    second = els.nth(1)
+    second = els[1]
     assert second.info.text == "Link 2"
 
 
@@ -181,14 +181,6 @@ def test_iteration(bro, test_server):
     texts = [el.info.text for el in els]
     assert len(texts) == 4
     assert texts[0] == "Link 1"
-
-
-def test_filter(bro, test_server):
-    vibe = bro.page()
-    vibe.go(test_server + "/links")
-    els = vibe.find_all(".link")
-    filtered = els.filter(has_text="Link 4")
-    assert filtered.count() >= 1
 
 
 # ===========================================================================
@@ -325,7 +317,7 @@ def test_element_find_all_scoped(bro, test_server):
     vibe.go(test_server + "/links")
     nested = vibe.find("#nested")
     spans = nested.find_all(".inner")
-    assert spans.count() == 2
+    assert len(spans) == 2
 
 
 # ===========================================================================

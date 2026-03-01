@@ -1,6 +1,7 @@
 import { SyncBridge } from './bridge';
-import { ElementListSync } from './element-list';
 import { ActionOptions, BoundingBox, ElementInfo, SelectorOptions } from '../element';
+
+const customInspect = Symbol.for('nodejs.util.inspect.custom');
 
 export class ElementSync {
   private bridge: SyncBridge;
@@ -11,6 +12,11 @@ export class ElementSync {
     this.bridge = bridge;
     this.elementId = elementId;
     this.info = info;
+  }
+
+  [customInspect](): string {
+    const text = this.info.text.length > 50 ? this.info.text.slice(0, 50) + '...' : this.info.text;
+    return `Element { tag: '${this.info.tag}', text: '${text}' }`;
   }
 
   /**
@@ -193,8 +199,8 @@ export class ElementSync {
     return new ElementSync(this.bridge, result.elementId, result.info);
   }
 
-  findAll(selector: string | SelectorOptions, options?: { timeout?: number }): ElementListSync {
-    const result = this.bridge.call<{ listId: number; elementIds: number[]; count: number }>('element.findAll', [this.elementId, selector, options]);
-    return new ElementListSync(this.bridge, result.listId);
+  findAll(selector: string | SelectorOptions, options?: { timeout?: number }): ElementSync[] {
+    const result = this.bridge.call<{ elements: { elementId: number; info: ElementInfo }[] }>('element.findAll', [this.elementId, selector, options]);
+    return result.elements.map(e => new ElementSync(this.bridge, e.elementId, e.info));
   }
 }

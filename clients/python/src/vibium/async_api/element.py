@@ -9,7 +9,6 @@ from .._types import BoundingBox, ElementInfo
 
 if TYPE_CHECKING:
     from ..client import BiDiClient
-    from .element_list import ElementList
 
 
 class Element:
@@ -30,6 +29,12 @@ class Element:
         self.info = info
         self._index = index
         self._params = params or {}
+
+    def __repr__(self) -> str:
+        text = self.info.text
+        if len(text) > 50:
+            text = text[:50] + "..."
+        return f"Element(tag='{self.info.tag}', text='{text}')"
 
     def _command_params(self, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Build the common params sent to vibium: commands."""
@@ -248,9 +253,7 @@ class Element:
         xpath: Optional[str] = None,
         near: Optional[str] = None,
         timeout: Optional[int] = None,
-    ) -> ElementList:
-        from .element_list import ElementList
-
+    ) -> List[Element]:
         params: Dict[str, Any] = {
             "context": self._context,
             "scope": self._selector,
@@ -274,4 +277,4 @@ class Element:
         for el in result["elements"]:
             info = ElementInfo(tag=el["tag"], text=el["text"], box=BoundingBox(**el["box"]))
             elements.append(Element(self._client, self._context, sel_str, info, el.get("index"), sel_params))
-        return ElementList(self._client, self._context, selector or params, elements)
+        return elements

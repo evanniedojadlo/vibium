@@ -11,7 +11,6 @@ Usage:
 from .browser import browser, Browser
 from .page import Page, Keyboard, Mouse, Touch
 from .element import Element
-from .element_list import ElementList
 from .context import BrowserContext
 from .clock import Clock
 from .tracing import Tracing
@@ -30,7 +29,6 @@ __all__ = [
     "Mouse",
     "Touch",
     "Element",
-    "ElementList",
     "BrowserContext",
     "Clock",
     "Tracing",
