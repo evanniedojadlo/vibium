@@ -77,6 +77,26 @@ func (r *Router) resolveElementRef(session *BrowserSession, context string, ep E
 // buildRefFindScript builds a JS function that finds an element and returns it directly
 // (not JSON-stringified). BiDi will serialize the returned DOM node with a sharedId.
 func buildRefFindScript(ep ElementParams) (string, []map[string]interface{}) {
+	if hasSemantic(ep) {
+		args := buildElSemanticArgs(ep)
+		script := `
+			(scope, selector, role, text, label, placeholder, alt, title, testid, xpath, index, hasIndex) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return null;
+		` + semanticMatchesHelper() + `
+				const found = collectMatches(root, selector, role, text, label, placeholder, alt, title, testid, xpath);
+				let el;
+				if (hasIndex) {
+					el = found[index];
+				} else {
+					el = pickBest(found, text);
+				}
+				return el || null;
+			}
+		`
+		return script, args
+	}
+
 	args := []map[string]interface{}{
 		{"type": "string", "value": ep.Scope},
 		{"type": "string", "value": ep.Selector},
@@ -154,13 +174,16 @@ func ExtractElementParams(params map[string]interface{}) ElementParams {
 	return ep
 }
 
+// hasSemantic returns true if any semantic selector params are set.
+func hasSemantic(ep ElementParams) bool {
+	return ep.Role != "" || ep.Text != "" || ep.Label != "" || ep.Placeholder != "" ||
+		ep.Alt != "" || ep.Title != "" || ep.Testid != "" || ep.Xpath != ""
+}
+
 // buildActionFindScript builds a JS function that finds an element (by CSS or semantic selectors),
 // supports index for querySelectorAll, scrolls it into view, and returns its bounding box.
 func buildActionFindScript(ep ElementParams) (string, []map[string]interface{}) {
-	hasSemantic := ep.Role != "" || ep.Text != "" || ep.Label != "" || ep.Placeholder != "" ||
-		ep.Alt != "" || ep.Title != "" || ep.Testid != "" || ep.Xpath != ""
-
-	if !hasSemantic && ep.Selector != "" {
+	if !hasSemantic(ep) && ep.Selector != "" {
 		// CSS path with index support
 		args := []map[string]interface{}{
 			{"type": "string", "value": ep.Scope},
@@ -188,7 +211,7 @@ func buildActionFindScript(ep ElementParams) (string, []map[string]interface{}) 
 				const rect = el.getBoundingClientRect();
 				return JSON.stringify({
 					tag: el.tagName.toLowerCase(),
-					text: (el.textContent || '').trim().substring(0, 100),
+					text: (el.innerText || '').trim(),
 					box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
 				});
 			}

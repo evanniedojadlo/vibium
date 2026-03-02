@@ -100,7 +100,7 @@ func buildCSSActionableScript(ep ElementParams, checkVisible, checkReceivesEvent
 			return JSON.stringify({
 				status:'ok',
 				tag: el.tagName.toLowerCase(),
-				text: (el.textContent || '').trim().substring(0, 100),
+				text: (el.innerText || '').trim(),
 				box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
 			});
 		}
@@ -152,7 +152,7 @@ func buildSemanticActionableScript(ep ElementParams, checkVisible, checkReceives
 			return JSON.stringify({
 				status:'ok',
 				tag: el.tagName.toLowerCase(),
-				text: (el.textContent || '').trim().substring(0, 100),
+				text: (el.innerText || '').trim(),
 				box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
 			});
 		}

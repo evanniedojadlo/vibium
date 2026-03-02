@@ -16,7 +16,7 @@ func (r *Router) handleVibiumElText(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	script, args := buildElStateScript(ep, `(el.textContent || '').trim()`)
+	script, args := buildElStateScript(ep, `(el.innerText || '').trim()`)
 	val, err := r.evalElementScript(session, context, script, args)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -89,23 +89,48 @@ func (r *Router) handleVibiumElAttr(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	args := buildElBaseArgs(ep)
-	args = append(args, map[string]interface{}{"type": "string", "value": name})
-	script := `
-		(scope, selector, index, hasIndex, name) => {
-			const root = scope ? document.querySelector(scope) : document;
-			if (!root) return JSON.stringify({error: 'root not found'});
-			let el;
-			if (hasIndex) {
-				el = root.querySelectorAll(selector)[index];
-			} else {
-				el = root.querySelector(selector);
+	var args []map[string]interface{}
+	var script string
+
+	if hasSemantic(ep) {
+		args = buildElSemanticArgs(ep)
+		args = append(args, map[string]interface{}{"type": "string", "value": name})
+		script = `
+			(scope, selector, role, text, label, placeholder, alt, title, testid, xpath, index, hasIndex, name) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return JSON.stringify({error: 'root not found'});
+		` + semanticMatchesHelper() + `
+				const found = collectMatches(root, selector, role, text, label, placeholder, alt, title, testid, xpath);
+				let el;
+				if (hasIndex) {
+					el = found[index];
+				} else {
+					el = pickBest(found, text);
+				}
+				if (!el) return JSON.stringify({error: 'element not found'});
+				const v = el.getAttribute(name);
+				return JSON.stringify({value: v});
 			}
-			if (!el) return JSON.stringify({error: 'element not found'});
-			const v = el.getAttribute(name);
-			return JSON.stringify({value: v});
-		}
-	`
+		`
+	} else {
+		args = buildElBaseArgs(ep)
+		args = append(args, map[string]interface{}{"type": "string", "value": name})
+		script = `
+			(scope, selector, index, hasIndex, name) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return JSON.stringify({error: 'root not found'});
+				let el;
+				if (hasIndex) {
+					el = root.querySelectorAll(selector)[index];
+				} else {
+					el = root.querySelector(selector);
+				}
+				if (!el) return JSON.stringify({error: 'element not found'});
+				const v = el.getAttribute(name);
+				return JSON.stringify({value: v});
+			}
+		`
+	}
 
 	resp, err := r.sendInternalCommand(session, "script.callFunction", map[string]interface{}{
 		"functionDeclaration": script,
@@ -544,9 +569,48 @@ func buildElBaseArgs(ep ElementParams) []map[string]interface{} {
 	}
 }
 
+// buildElSemanticArgs returns the 12-arg list for semantic element resolution.
+func buildElSemanticArgs(ep ElementParams) []map[string]interface{} {
+	return []map[string]interface{}{
+		{"type": "string", "value": ep.Scope},
+		{"type": "string", "value": ep.Selector},
+		{"type": "string", "value": ep.Role},
+		{"type": "string", "value": ep.Text},
+		{"type": "string", "value": ep.Label},
+		{"type": "string", "value": ep.Placeholder},
+		{"type": "string", "value": ep.Alt},
+		{"type": "string", "value": ep.Title},
+		{"type": "string", "value": ep.Testid},
+		{"type": "string", "value": ep.Xpath},
+		{"type": "number", "value": ep.Index},
+		{"type": "boolean", "value": ep.HasIndex},
+	}
+}
+
 // buildElStateScript builds a script that finds an element and evaluates an expression.
 // The expression receives `el` as the found element and should return a string.
 func buildElStateScript(ep ElementParams, expr string) (string, []map[string]interface{}) {
+	if hasSemantic(ep) {
+		args := buildElSemanticArgs(ep)
+		script := fmt.Sprintf(`
+			(scope, selector, role, text, label, placeholder, alt, title, testid, xpath, index, hasIndex) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return null;
+		`+semanticMatchesHelper()+`
+				const found = collectMatches(root, selector, role, text, label, placeholder, alt, title, testid, xpath);
+				let el;
+				if (hasIndex) {
+					el = found[index];
+				} else {
+					el = pickBest(found, text);
+				}
+				if (!el) return null;
+				return %s;
+			}
+		`, expr)
+		return script, args
+	}
+
 	args := buildElBaseArgs(ep)
 	script := fmt.Sprintf(`
 		(scope, selector, index, hasIndex) => {
@@ -568,6 +632,28 @@ func buildElStateScript(ep ElementParams, expr string) (string, []map[string]int
 // buildElBoolScript builds a script that finds an element and evaluates a boolean expression.
 // The body receives `el` and should use `return true/false;`.
 func buildElBoolScript(ep ElementParams, body string) (string, []map[string]interface{}) {
+	if hasSemantic(ep) {
+		args := buildElSemanticArgs(ep)
+		script := fmt.Sprintf(`
+			(scope, selector, role, text, label, placeholder, alt, title, testid, xpath, index, hasIndex) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return 'error:root not found';
+		`+semanticMatchesHelper()+`
+				const found = collectMatches(root, selector, role, text, label, placeholder, alt, title, testid, xpath);
+				let el;
+				if (hasIndex) {
+					el = found[index];
+				} else {
+					el = pickBest(found, text);
+				}
+				if (!el) return 'error:element not found';
+				const _check = (el) => { %s };
+				return _check(el) ? 'true' : 'false';
+			}
+		`, body)
+		return script, args
+	}
+
 	args := buildElBaseArgs(ep)
 	script := fmt.Sprintf(`
 		(scope, selector, index, hasIndex) => {
@@ -590,6 +676,27 @@ func buildElBoolScript(ep ElementParams, body string) (string, []map[string]inte
 // buildElJSONScript builds a script that finds an element and returns JSON.
 // The body receives `el` and should use `return JSON.stringify(...)`.
 func buildElJSONScript(ep ElementParams, body string) (string, []map[string]interface{}) {
+	if hasSemantic(ep) {
+		args := buildElSemanticArgs(ep)
+		script := fmt.Sprintf(`
+			(scope, selector, role, text, label, placeholder, alt, title, testid, xpath, index, hasIndex) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return JSON.stringify({error: 'root not found'});
+		`+semanticMatchesHelper()+`
+				const found = collectMatches(root, selector, role, text, label, placeholder, alt, title, testid, xpath);
+				let el;
+				if (hasIndex) {
+					el = found[index];
+				} else {
+					el = pickBest(found, text);
+				}
+				if (!el) return JSON.stringify({error: 'element not found'});
+				%s
+			}
+		`, body)
+		return script, args
+	}
+
 	args := buildElBaseArgs(ep)
 	script := fmt.Sprintf(`
 		(scope, selector, index, hasIndex) => {
@@ -664,9 +771,9 @@ func (r *Router) resolveElementNoWait(session *BrowserSession, context string, e
 // Exported standalone state query functions — usable from both proxy and MCP.
 // ---------------------------------------------------------------------------
 
-// GetText returns the textContent of an element.
+// GetText returns the visible text of an element (innerText).
 func GetText(s Session, context string, ep ElementParams) (string, error) {
-	script, args := buildElStateScript(ep, `(el.textContent || '').trim()`)
+	script, args := buildElStateScript(ep, `(el.innerText || '').trim()`)
 	return EvalElementScript(s, context, script, args)
 }
 
@@ -696,23 +803,49 @@ func GetValue(s Session, context string, ep ElementParams) (string, error) {
 
 // GetAttribute returns the value of an HTML attribute on an element.
 func GetAttribute(s Session, context string, ep ElementParams, name string) (string, error) {
-	args := buildElBaseArgs(ep)
-	args = append(args, map[string]interface{}{"type": "string", "value": name})
-	script := `
-		(scope, selector, index, hasIndex, name) => {
-			const root = scope ? document.querySelector(scope) : document;
-			if (!root) return null;
-			let el;
-			if (hasIndex) {
-				el = root.querySelectorAll(selector)[index];
-			} else {
-				el = root.querySelector(selector);
+	var args []map[string]interface{}
+	var script string
+
+	if hasSemantic(ep) {
+		args = buildElSemanticArgs(ep)
+		args = append(args, map[string]interface{}{"type": "string", "value": name})
+		script = `
+			(scope, selector, role, text, label, placeholder, alt, title, testid, xpath, index, hasIndex, name) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return null;
+		` + semanticMatchesHelper() + `
+				const found = collectMatches(root, selector, role, text, label, placeholder, alt, title, testid, xpath);
+				let el;
+				if (hasIndex) {
+					el = found[index];
+				} else {
+					el = pickBest(found, text);
+				}
+				if (!el) return null;
+				const v = el.getAttribute(name);
+				return v === null ? '' : v;
 			}
-			if (!el) return null;
-			const v = el.getAttribute(name);
-			return v === null ? '' : v;
-		}
-	`
+		`
+	} else {
+		args = buildElBaseArgs(ep)
+		args = append(args, map[string]interface{}{"type": "string", "value": name})
+		script = `
+			(scope, selector, index, hasIndex, name) => {
+				const root = scope ? document.querySelector(scope) : document;
+				if (!root) return null;
+				let el;
+				if (hasIndex) {
+					el = root.querySelectorAll(selector)[index];
+				} else {
+					el = root.querySelector(selector);
+				}
+				if (!el) return null;
+				const v = el.getAttribute(name);
+				return v === null ? '' : v;
+			}
+		`
+	}
+
 	return EvalElementScript(s, context, script, args)
 }
 

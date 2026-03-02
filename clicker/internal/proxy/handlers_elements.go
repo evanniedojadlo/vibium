@@ -154,7 +154,7 @@ func buildCSSFindScript() string {
 			const rect = el.getBoundingClientRect();
 			return JSON.stringify({
 				tag: el.tagName.toLowerCase(),
-				text: (el.textContent || '').trim().substring(0, 100),
+				text: (el.innerText || '').trim(),
 				box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
 			});
 		}
@@ -177,7 +177,7 @@ func buildCSSFindAllScript() string {
 				const rect = el.getBoundingClientRect();
 				return {
 					tag: el.tagName.toLowerCase(),
-					text: (el.textContent || '').trim().substring(0, 100),
+					text: (el.innerText || '').trim(),
 					box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
 					index: i
 				};
@@ -272,7 +272,7 @@ func semanticMatchesHelper() string {
 				const rect = el.getBoundingClientRect();
 				return {
 					tag: el.tagName.toLowerCase(),
-					text: (el.textContent || '').trim().substring(0, 100),
+					text: (el.innerText || '').trim(),
 					box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
 				};
 			}
