@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
@@ -16,9 +17,13 @@ func platformChromeArgs() []string {
 	return []string{"--no-sandbox"}
 }
 
-// setProcGroup is a no-op on Windows.
+// setProcGroup prevents chromedriver from inheriting the parent's console
+// window on Windows. This stops Chrome's stderr messages (GPU errors,
+// "DevTools listening on...") from leaking into the terminal.
 func setProcGroup(cmd *exec.Cmd) {
-	// Windows doesn't use process groups the same way
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+	}
 }
 
 // killByPid kills a process tree by PID on Windows.

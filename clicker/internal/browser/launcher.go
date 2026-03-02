@@ -265,7 +265,7 @@ func buildCapabilities(chromePath string, headless bool) map[string]interface{} 
 			"goog:chromeOptions": map[string]interface{}{
 				"binary":          chromePath,
 				"args":            chromeArgs(headless),
-				"excludeSwitches": []string{"enable-automation"},
+				"excludeSwitches": []string{"enable-automation", "enable-logging"},
 				"prefs": map[string]interface{}{
 					"credentials_enable_service":                          false,
 					"profile.password_manager_enabled":                    false,
