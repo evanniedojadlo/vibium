@@ -374,13 +374,31 @@ func (t *TraceRecorder) RecordAction(callId, method string, params map[string]in
 // RecordActionEnd records the end of a vibium command action in the trace.
 // The callId must match the value returned by NextCallId(). afterSnapshot is the
 // snapshot name (from AddFrameSnapshot) to link, or "" if none. endTime is the
-// actual handler completion time (before screenshot captures).
-func (t *TraceRecorder) RecordActionEnd(callId, afterSnapshot string, endTime time.Time) {
+// actual handler completion time (before screenshot captures). box is the bounding
+// box of the element that was interacted with, or nil for non-element actions.
+func (t *TraceRecorder) RecordActionEnd(callId, afterSnapshot string, endTime time.Time, box *BoxInfo) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if !t.recording || callId == "" {
 		return
+	}
+
+	// Emit a Playwright-compatible "input" event with point and box when an
+	// element was resolved. Playwright's trace viewer reads point from this
+	// event type (keyed by callId) to render click-dot overlays.
+	if box != nil {
+		t.events = append(t.events, traceEvent{
+			"type":   "input",
+			"callId": callId,
+			"point": map[string]interface{}{
+				"x": box.X + box.Width/2,
+				"y": box.Y + box.Height/2,
+			},
+			"box": map[string]interface{}{
+				"x": box.X, "y": box.Y, "width": box.Width, "height": box.Height,
+			},
+		})
 	}
 
 	ev := traceEvent{

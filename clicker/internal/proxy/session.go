@@ -25,6 +25,9 @@ type Session interface {
 	// "current" context it returns that; otherwise it fetches the first context
 	// from browsingContext.getTree.
 	GetContextID() (string, error)
+
+	// SetLastElementBox stores the bounding box of the last resolved element for trace recording.
+	SetLastElementBox(box *BoxInfo)
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +61,10 @@ func (p *ProxySession) GetContextID() (string, error) {
 		return p.Context, nil
 	}
 	return p.Router.getContext(p.Session)
+}
+
+func (p *ProxySession) SetLastElementBox(box *BoxInfo) {
+	p.Session.SetLastElementBox(box)
 }
 
 // ---------------------------------------------------------------------------
@@ -102,6 +109,8 @@ func (m *MCPSession) SendBidiCommandWithTimeout(method string, params map[string
 	}
 	return wrapped, nil
 }
+
+func (m *MCPSession) SetLastElementBox(box *BoxInfo) {}
 
 func (m *MCPSession) GetContextID() (string, error) {
 	tree, err := m.Client.GetTree()

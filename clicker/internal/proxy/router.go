@@ -43,9 +43,17 @@ type BrowserSession struct {
 
 	// Tracing support
 	traceRecorder      *TraceRecorder
-	lastContext        string // last browsing context resolved by a command
-	lastURL            string // last known page URL, updated from load/navigation events
-	screenshotInFlight int32  // atomic; 1 = screenshot capture in progress
+	lastContext        string   // last browsing context resolved by a command
+	lastURL            string   // last known page URL, updated from load/navigation events
+	lastElementBox     *BoxInfo // last resolved element box, for trace recording
+	screenshotInFlight int32    // atomic; 1 = screenshot capture in progress
+}
+
+// SetLastElementBox stores the bounding box of the last resolved element for trace recording.
+func (s *BrowserSession) SetLastElementBox(box *BoxInfo) {
+	s.mu.Lock()
+	s.lastElementBox = box
+	s.mu.Unlock()
 }
 
 // BiDi command structure for parsing incoming messages
@@ -231,6 +239,12 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 		// Capture endTime immediately after handler returns, before screenshot captures
 		endTime := time.Now()
 
+		// Read and clear the element box stashed by resolveWithActionability/ResolveElement
+		session.mu.Lock()
+		box := session.lastElementBox
+		session.lastElementBox = nil
+		session.mu.Unlock()
+
 		if recorder != nil && recorder.IsRecording() {
 			opts := recorder.Options()
 
@@ -247,7 +261,7 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 				atomic.StoreInt32(&session.screenshotInFlight, 0)
 			}
 
-			recorder.RecordActionEnd(callId, afterSnapshot, endTime)
+			recorder.RecordActionEnd(callId, afterSnapshot, endTime, box)
 		}
 	}()
 }

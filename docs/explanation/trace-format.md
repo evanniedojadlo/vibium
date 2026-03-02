@@ -92,6 +92,7 @@ Every vibium command emits a `before`/`after` pair automatically — both mutati
 {"type":"before","callId":"call@1","title":"Page.navigate","class":"Page","method":"vibium:page.navigate","pageId":"ABCDEF123","params":{"url":"https://example.com"},"wallTime":1708000000300,"startTime":1708000000300}
 {"type":"after","callId":"call@1","afterSnapshot":"after@call@1","endTime":1708000000400}
 {"type":"before","callId":"call@2","beforeSnapshot":"before@call@2","title":"Element.click","class":"Element","method":"vibium:click","pageId":"ABCDEF123","params":{"selector":"#login"},"wallTime":1708000000500,"startTime":1708000000500}
+{"type":"input","callId":"call@2","point":{"x":640,"y":360},"box":{"x":600,"y":340,"width":80,"height":40}}
 {"type":"after","callId":"call@2","endTime":1708000000600}
 {"type":"before","callId":"call@3","title":"Element.text","class":"Element","method":"vibium:el.text","pageId":"ABCDEF123","params":{"selector":".result"},"wallTime":1708000000700,"startTime":1708000000700}
 {"type":"after","callId":"call@3","afterSnapshot":"after@call@3","endTime":1708000000750}
@@ -109,6 +110,16 @@ Every vibium command emits a `before`/`after` pair automatically — both mutati
 | `pageId` | string | Browsing context ID of the page the action targets. Present on actions, absent on groups. |
 | `parentId` | string | `call@<N>` of the enclosing action group, if the action is inside a `startGroup()`/`stopGroup()` span. Absent for top-level actions. |
 | `beforeSnapshot` | string | `"before@call@<N>"` — references the `snapshotName` of a `frame-snapshot` event captured before the action ran. Present on `click` actions (which mutate the DOM), absent on other actions. Mutually exclusive with `afterSnapshot` on the corresponding `after` event. |
+
+**`input` fields** (emitted for element-targeting actions only):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `callId` | string | `call@<N>` — matches the corresponding `before`/`after` pair. |
+| `point` | object | `{x, y}` — center of the resolved element's bounding box (viewport coordinates). Compatible with Playwright's trace viewer click-dot overlay. |
+| `box` | object | `{x, y, width, height}` — full bounding box of the resolved element (viewport coordinates). Used by the trace viewer to draw a highlight rectangle. |
+
+Present for actions that resolve an element (`click`, `fill`, `hover`, `type`, `check`, etc.). Absent for non-element actions (`page.navigate`, `page.eval`, etc.) and action groups.
 
 **`after` fields:**
 

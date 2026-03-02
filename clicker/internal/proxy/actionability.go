@@ -297,5 +297,9 @@ func resolveWithActionability(s Session, context string, ep ElementParams, check
 	if ep.Force || len(checks) == 0 {
 		return ResolveElement(s, context, ep)
 	}
-	return WaitForActionable(s, context, ep, checks)
+	info, err := WaitForActionable(s, context, ep, checks)
+	if err == nil && info != nil {
+		s.SetLastElementBox(&info.Box)
+	}
+	return info, err
 }

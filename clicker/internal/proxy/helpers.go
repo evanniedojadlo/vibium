@@ -307,7 +307,11 @@ func CallScript(s Session, context, fn string, args []map[string]interface{}) (j
 // ResolveElement finds an element using the given params, polling until found or timeout.
 func ResolveElement(s Session, context string, ep ElementParams) (*ElementInfo, error) {
 	script, args := buildActionFindScript(ep)
-	return WaitForElementWithScript(s, context, script, args, ep.Timeout)
+	info, err := WaitForElementWithScript(s, context, script, args, ep.Timeout)
+	if err == nil && info != nil {
+		s.SetLastElementBox(&info.Box)
+	}
+	return info, err
 }
 
 // ResolveElementRef finds an element and returns its BiDi sharedId.
