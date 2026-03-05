@@ -148,6 +148,19 @@ func (r *Router) OnClientConnect(client ClientTransport) {
 	// Create a BiDi client for handling custom commands
 	bidiClient := bidi.NewClient(bidiConn)
 
+	// Remote mode: create a BiDi session (chromedriver requires this before any commands).
+	// Local mode skips this because browser.Launch() already called SessionNew internally.
+	if r.connectURL != "" {
+		_, err = bidiClient.SessionNew(map[string]interface{}{})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[router] Failed to create remote session for client %d: %v\n", client.ID(), err)
+			bidiConn.Close()
+			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to create remote session: %s"}}`, err.Error()))
+			client.Close()
+			return
+		}
+	}
+
 	session := &BrowserSession{
 		LaunchResult:   launchResult,
 		BidiConn:       bidiConn,
