@@ -213,7 +213,16 @@ func extractZip(zipPath, destDir string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		fpath := filepath.Join(destDir, f.Name)
+		// Strip the top-level directory (e.g. "chrome-mac-arm64/..." → "...")
+		name := f.Name
+		if i := strings.IndexByte(name, '/'); i >= 0 {
+			name = name[i+1:]
+		}
+		if name == "" {
+			continue
+		}
+
+		fpath := filepath.Join(destDir, name)
 
 		// Security check: prevent zip slip
 		if !strings.HasPrefix(fpath, filepath.Clean(destDir)+string(os.PathSeparator)) {

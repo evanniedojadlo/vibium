@@ -113,27 +113,23 @@ func GetChromedriverPath() (string, error) {
 
 // getChromePathInVersion returns the Chrome executable path within a version directory.
 func getChromePathInVersion(versionDir string) string {
-	platform := getPlatformString()
-
 	switch runtime.GOOS {
 	case "darwin":
-		return filepath.Join(versionDir, "chrome-"+platform, "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing")
+		return filepath.Join(versionDir, "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing")
 	case "windows":
-		return filepath.Join(versionDir, "chrome-"+platform, "chrome.exe")
+		return filepath.Join(versionDir, "chrome.exe")
 	default: // linux
-		return filepath.Join(versionDir, "chrome-"+platform, "chrome")
+		return filepath.Join(versionDir, "chrome")
 	}
 }
 
 // getChromedriverPathInVersion returns the chromedriver path within a version directory.
 func getChromedriverPathInVersion(versionDir string) string {
-	platform := getPlatformString()
-
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(versionDir, "chromedriver-"+platform, "chromedriver.exe")
+		return filepath.Join(versionDir, "chromedriver.exe")
 	default:
-		return filepath.Join(versionDir, "chromedriver-"+platform, "chromedriver")
+		return filepath.Join(versionDir, "chromedriver")
 	}
 }
 
