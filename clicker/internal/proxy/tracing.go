@@ -26,7 +26,7 @@ type TracingStartOptions struct {
 	Title       string  `json:"title"`
 	Bidi        bool    `json:"bidi"`
 	Format      string  `json:"format"`  // "png" or "jpeg" (default "jpeg")
-	Quality     float64 `json:"quality"` // 0.0-1.0 for JPEG (default 0.8)
+	Quality     float64 `json:"quality"` // 0.0-1.0 for JPEG (default 0.5)
 }
 
 // traceEvent is a generic trace event stored as a JSON-friendly map.

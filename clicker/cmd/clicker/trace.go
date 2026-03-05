@@ -18,7 +18,7 @@ func newTraceCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start recording a trace",
 		Example: `  vibium trace start --screenshots
-  # Start trace with periodic screenshots (JPEG, quality 0.8)
+  # Start trace with periodic screenshots (JPEG, quality 0.5)
 
   vibium trace start --screenshots --snapshots
   # Start trace with screenshots and HTML snapshots
@@ -53,7 +53,7 @@ func newTraceCmd() *cobra.Command {
 			if format != "jpeg" {
 				callArgs["format"] = format
 			}
-			if quality != 0.8 {
+			if quality != 0.5 {
 				callArgs["quality"] = quality
 			}
 			result, err := daemonCall("browser_trace_start", callArgs)
@@ -69,7 +69,7 @@ func newTraceCmd() *cobra.Command {
 	startCmd.Flags().Bool("bidi", false, "Record raw BiDi commands in the trace")
 	startCmd.Flags().String("name", "", "Name for the trace")
 	startCmd.Flags().String("format", "jpeg", "Screenshot format: jpeg or png")
-	startCmd.Flags().Float64("quality", 0.8, "JPEG quality 0.0-1.0 (ignored for png)")
+	startCmd.Flags().Float64("quality", 0.5, "JPEG quality 0.0-1.0 (ignored for png)")
 
 	stopCmd := &cobra.Command{
 		Use:   "stop",

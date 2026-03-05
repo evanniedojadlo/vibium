@@ -35,7 +35,7 @@ func (r *Router) handleTracingStart(session *BrowserSession, cmd bidiCommand) {
 	if f, ok := cmd.Params["format"].(string); ok && (f == "png" || f == "jpeg") {
 		opts.Format = f
 	}
-	opts.Quality = 0.8
+	opts.Quality = 0.5
 	if q, ok := cmd.Params["quality"].(float64); ok && q >= 0 && q <= 1 {
 		opts.Quality = q
 	}

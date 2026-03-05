@@ -31,7 +31,7 @@ class Tracing:
 
         Args:
             format: Screenshot format — 'jpeg' (default, faster/smaller) or 'png' (lossless).
-            quality: JPEG quality 0.0-1.0 (default 0.8). Ignored for PNG.
+            quality: JPEG quality 0.0-1.0 (default 0.5). Ignored for PNG.
         """
         params: Dict[str, Any] = {"userContext": self._user_context_id}
         if name is not None:

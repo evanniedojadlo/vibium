@@ -86,11 +86,11 @@ To reduce trace size, use JPEG format with a lower quality setting:
 await ctx.tracing.start({
   screenshots: true,
   format: 'jpeg',
-  quality: 0.4,
+  quality: 0.3,
 })
 ```
 
-The default format is JPEG at 0.8 quality. Lowering `quality` produces smaller files — useful for long-running traces or CI where file size matters.
+The default format is JPEG at 0.5 quality. Lowering `quality` produces smaller files — useful for long-running traces or CI where file size matters.
 
 ---
 
@@ -229,7 +229,7 @@ CLI tracing uses the daemon, which is automatically started when needed.
 | `sources` | boolean | `false` | Reserved for future use |
 | `bidi` | boolean | `false` | Record raw BiDi commands in the trace |
 | `format` | `'jpeg'` \| `'png'` | `'jpeg'` | Screenshot image format |
-| `quality` | number | `0.8` | JPEG quality 0.0–1.0 (ignored for PNG) |
+| `quality` | number | `0.5` | JPEG quality 0.0–1.0 (ignored for PNG) |
 
 ### stop() / stopChunk() Options
 

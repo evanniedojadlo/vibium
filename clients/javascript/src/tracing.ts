@@ -9,7 +9,7 @@ export interface TracingStartOptions {
   bidi?: boolean;
   /** Screenshot format: 'jpeg' (default, faster/smaller) or 'png' (lossless). */
   format?: 'jpeg' | 'png';
-  /** JPEG quality 0.0-1.0 (default 0.8). Ignored for PNG. */
+  /** JPEG quality 0.0-1.0 (default 0.5). Ignored for PNG. */
   quality?: number;
 }
 
