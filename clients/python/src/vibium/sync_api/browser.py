@@ -61,46 +61,30 @@ class Browser:
         """Remove all listeners for 'page', 'popup', or all."""
         self._async.remove_all_listeners(event)
 
-    def close(self) -> None:
-        """Close the browser and clean up."""
-        self._loop.run(self._async.close())
+    def stop(self) -> None:
+        """Stop the browser and clean up."""
+        self._loop.run(self._async.stop())
         self._loop.stop()
 
 
 class _BrowserLauncher:
     """Module-level sync browser launcher object."""
 
-    def launch(
+    def start(
         self,
+        url: Optional[str] = None,
+        *,
         headless: bool = False,
-        executable_path: Optional[str] = None,
-    ) -> Browser:
-        """Launch a new browser instance."""
-        from .._sync_base import _EventLoopThread
-        from ..async_api.browser import browser as async_browser_launcher
-
-        loop_thread = _EventLoopThread()
-        loop_thread.start()
-
-        async_browser = loop_thread.run(
-            async_browser_launcher.launch(
-                headless=headless,
-                executable_path=executable_path,
-            )
-        )
-        return Browser(async_browser, loop_thread)
-
-    def connect(
-        self,
-        url: str,
         headers: Optional[dict] = None,
         executable_path: Optional[str] = None,
     ) -> Browser:
-        """Connect to a remote browser via vibium proxy.
+        """Start a browser session.
 
         Args:
-            url: Remote BiDi WebSocket URL (e.g. ws://remote:9515).
-            headers: HTTP headers for the WebSocket connection (e.g. auth tokens).
+            url: Remote BiDi WebSocket URL. If not provided, checks
+                VIBIUM_CONNECT_URL env var, then falls back to local launch.
+            headless: Run browser in headless mode (local launch only).
+            headers: HTTP headers for remote connection (e.g. auth tokens).
             executable_path: Path to vibium binary (default: auto-detect).
         """
         from .._sync_base import _EventLoopThread
@@ -110,8 +94,9 @@ class _BrowserLauncher:
         loop_thread.start()
 
         async_browser = loop_thread.run(
-            async_browser_launcher.connect(
+            async_browser_launcher.start(
                 url,
+                headless=headless,
                 headers=headers,
                 executable_path=executable_path,
             )

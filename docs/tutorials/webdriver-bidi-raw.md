@@ -250,7 +250,7 @@ You had to manually:
 - Connect to the WebSocket
 - Track context IDs
 
-Vibium does this automatically. `browser.launch()` handles everything.
+Vibium does this automatically. `browser.start()` handles everything.
 
 ### 2. Actionability Checks
 

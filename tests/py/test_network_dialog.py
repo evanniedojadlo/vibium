@@ -12,9 +12,9 @@ import pytest_asyncio
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
 async def net_browser():
     from vibium.async_api import browser
-    bro = await browser.launch(headless=True)
+    bro = await browser.start(headless=True)
     yield bro
-    await bro.close()
+    await bro.stop()
 
 
 # Helper: fire-and-forget an async route action on the running event loop

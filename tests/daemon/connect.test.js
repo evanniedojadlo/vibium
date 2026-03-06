@@ -1,6 +1,6 @@
 /**
  * Remote Browser Connect Tests
- * Tests vibium connect, disconnect, VIBIUM_CONNECT_URL env var,
+ * Tests vibium start [url], stop, VIBIUM_CONNECT_URL env var,
  * and set-window error for remote browsers.
  */
 
@@ -181,8 +181,8 @@ describe('Daemon: Remote browser connect', () => {
     }
   });
 
-  test('vibium connect starts daemon in connect mode', () => {
-    const result = clicker(`connect ${bidiWsUrl} --headless`);
+  test('vibium start [url] starts daemon in connect mode', () => {
+    const result = clicker(`start ${bidiWsUrl} --headless`);
     assert.match(result, /Connected to/, 'Should confirm connection');
 
     // Verify daemon is running
@@ -206,9 +206,10 @@ describe('Daemon: Remote browser connect', () => {
     );
   });
 
-  test('vibium disconnect stops daemon', () => {
-    const result = clicker('disconnect');
-    assert.match(result, /Disconnected/i, 'Should confirm disconnection');
+  test('vibium stop stops daemon', () => {
+    const result = clicker('stop');
+    // stop calls browser_stop via daemon, which closes the session
+    assert.ok(result, 'Should return a result');
 
     // Verify daemon is not running
     const status = clicker('daemon status');

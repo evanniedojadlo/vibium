@@ -82,7 +82,7 @@ Create a file called `hello.py`:
 from vibium import browser
 
 # Launch a browser (you'll see it open!)
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.page()
 
 # Go to a website
@@ -102,7 +102,7 @@ link.click()
 print("Clicked!")
 
 # Close the browser
-bro.close()
+bro.stop()
 print("Done!")
 ```
 
@@ -128,14 +128,14 @@ Check your folder - there's now a `screenshot.png` file!
 
 | Line | What It Does |
 |------|--------------|
-| `browser.launch()` | Opens Chrome, returns a Browser |
+| `browser.start()` | Opens Chrome, returns a Browser |
 | `bro.page()` | Gets the default page (tab) |
 | `vibe.go(url)` | Navigates to a URL |
 | `vibe.screenshot()` | Captures the page as PNG bytes |
 | `vibe.find(selector)` | Finds an element by CSS selector |
 | `link.text()` | Gets the element's text content |
 | `link.click()` | Clicks the element |
-| `bro.close()` | Closes the browser |
+| `bro.stop()` | Closes the browser |
 
 ---
 
@@ -143,7 +143,7 @@ Check your folder - there's now a `screenshot.png` file!
 
 **Hide the browser** (run headless):
 ```python
-bro = browser.launch(headless=True)
+bro = browser.start(headless=True)
 ```
 
 **Use async/await** (for more complex scripts):
@@ -152,11 +152,11 @@ import asyncio
 from vibium.async_api import browser
 
 async def main():
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.page()
     await vibe.go("https://example.com")
     # ...
-    await bro.close()
+    await bro.stop()
 
 asyncio.run(main())
 ```
@@ -194,7 +194,7 @@ pip install vibium
 
 Try running with headless mode disabled (it's disabled by default, but just in case):
 ```python
-bro = browser.launch(headless=False)
+bro = browser.start(headless=False)
 ```
 
 ### Permission denied (Linux)

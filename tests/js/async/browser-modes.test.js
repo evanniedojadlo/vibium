@@ -21,14 +21,14 @@ after(() => {
 
 describe('JS Browser Modes', () => {
   test('headless mode works', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
       const screenshot = await vibe.screenshot();
       assert.ok(screenshot.length > 1000, 'Should capture screenshot in headless mode');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
@@ -39,14 +39,14 @@ describe('JS Browser Modes', () => {
       return;
     }
 
-    const bro = await browser.launch({ headless: false });
+    const bro = await browser.start({ headless: false });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
       const screenshot = await vibe.screenshot();
       assert.ok(screenshot.length > 1000, 'Should capture screenshot in headed mode');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
@@ -57,15 +57,15 @@ describe('JS Browser Modes', () => {
       return;
     }
 
-    // browser.launch() without options should default to visible
-    const bro = await browser.launch();
+    // browser.start() without options should default to visible
+    const bro = await browser.start();
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
       const title = await vibe.evaluate('document.title');
       assert.match(title, /The Internet/i, 'Should work with default options');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 });

@@ -19,7 +19,7 @@ vibium install
 ```python
 from vibium import browser
 
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.page()
 vibe.go("https://example.com")
 
@@ -33,7 +33,7 @@ link = vibe.find("a")
 print(link.text())
 link.click()
 
-bro.close()
+bro.stop()
 ```
 
 ## Async API
@@ -43,14 +43,14 @@ import asyncio
 from vibium.async_api import browser
 
 async def main():
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.page()
     await vibe.go("https://example.com")
 
     link = await vibe.find("a")
     await link.click()
 
-    await bro.close()
+    await bro.stop()
 
 asyncio.run(main())
 ```

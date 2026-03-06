@@ -21,7 +21,7 @@ after(() => {
 
 describe('JS Auto-Wait', () => {
   test('find() waits for element to appear', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL + '/dynamic_loading/1');
@@ -35,12 +35,12 @@ describe('JS Auto-Wait', () => {
       assert.ok(result, 'Should find the dynamically loaded element');
       assert.strictEqual(result.info.text, 'Hello World!', 'Should have correct text');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('click() waits for element to be actionable', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL + '/add_remove_elements/');
@@ -53,12 +53,12 @@ describe('JS Auto-Wait', () => {
       const deleteBtn = await vibe.find('.added-manually', { timeout: 5000 });
       assert.ok(deleteBtn, 'Delete button should have appeared after click');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('find() times out for non-existent element', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL + '/');
@@ -71,12 +71,12 @@ describe('JS Auto-Wait', () => {
         'Should throw timeout error'
       );
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('timeout error message is clear', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL + '/');
@@ -92,12 +92,12 @@ describe('JS Auto-Wait', () => {
         );
       }
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('navigation error message is clear', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await assert.rejects(
@@ -108,7 +108,7 @@ describe('JS Auto-Wait', () => {
         'Should throw error for invalid domain'
       );
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 });

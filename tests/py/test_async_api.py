@@ -3,7 +3,7 @@
 import pytest
 
 
-async def test_browser_launch_returns_browser(async_browser):
+async def test_browser_start_returns_browser(async_browser):
     from vibium.async_api import Browser
     assert isinstance(async_browser, Browser)
 

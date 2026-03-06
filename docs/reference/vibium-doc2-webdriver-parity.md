@@ -21,7 +21,7 @@ In practice, building Doc #1's Tier 1 and Tier 2 gets us ~80% of WebDriver spec 
 
 | WebDriver Concept | Vibium | Notes |
 |-------------------|--------|-------|
-| Session | `browser` (Browser) | `browser.launch()` creates browser process |
+| Session | `browser` (Browser) | `browser.start()` creates browser process |
 | User Context | `context` (Context) | `browser.newContext()` — isolated cookies/storage |
 | Browsing Context | `page` (Page) | `browser.newPage()` or `context.newPage()` |
 | Element | `Element` | `page.find()` returns Element |
@@ -30,15 +30,15 @@ In practice, building Doc #1's Tier 1 and Tier 2 gets us ~80% of WebDriver spec 
 ```javascript
 import { browser } from 'vibium'
 
-const bro = await browser.launch()     // ≈ New Session (browser process)
+const bro = await browser.start()     // ≈ New Session (browser process)
 const ctx = await bro.newContext()     // ≈ User Context (isolated state)
 const vibe = await ctx.newPage()      // ≈ browsing context
 await vibe.go('https://example.com')   // ≈ Navigate To
 await vibe.find('#btn').click()        // ≈ Find Element + Element Click
-await bro.close()                      // ≈ Delete Session
+await bro.stop()                      // ≈ Delete Session
 
 // Shorthand — most users skip the context layer
-const bro = await browser.launch()
+const bro = await browser.start()
 const vibe = await bro.newPage()       // default context, new page
 ```
 
@@ -50,8 +50,8 @@ const vibe = await bro.newPage()       // default context, new page
 
 | WebDriver Command | Vibium API | Status | Notes |
 |-------------------|-----------|--------|-------|
-| New Session | `browser.launch(caps?)` | ⬜ | BiDi: session.new |
-| Delete Session | `browser.close()` | ⬜ | BiDi: session.end |
+| New Session | `browser.start(caps?)` | ⬜ | BiDi: session.new |
+| Delete Session | `browser.stop()` | ⬜ | BiDi: session.end |
 | Status | `browser.status()` | ⬜ | Server readiness check |
 | Get Timeouts | `browser.timeouts()` | ⬜ | |
 | Set Timeouts | `browser.setTimeouts(t)` | ⬜ | Implicit/page load/script |
@@ -186,7 +186,7 @@ const vibe = await bro.newPage()       // default context, new page
 
 | BiDi Module | Vibium Coverage | Notes |
 |-------------|----------------|-------|
-| session | `browser.launch()`, `browser.close()` | Core |
+| session | `browser.start()`, `browser.stop()` | Core |
 | browser | `browser.newContext()` (createUserContext) | Core |
 | browsingContext | Pages, navigation, frames, screenshots | Core |
 | script | `page.evaluate()`, `expose()`, `addInitScript()` | Core |

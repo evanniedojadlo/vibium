@@ -33,11 +33,11 @@ before(async () => {
     setTimeout(() => reject(new Error('Server startup timeout')), 5000);
   });
 
-  bro = browser.launch({ headless: true });
+  bro = browser.start({ headless: true });
 });
 
 after(() => {
-  bro.close();
+  bro.stop();
   if (serverProcess) serverProcess.kill();
 });
 

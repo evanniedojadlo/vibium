@@ -124,7 +124,7 @@ import { browser } from 'vibium'
 const fs = require('fs')
 const { browser } = require('vibium/sync')
 
-const bro = browser.launch()
+const bro = browser.start()
 const vibe = bro.page()
 vibe.go('https://example.com')
 
@@ -133,14 +133,14 @@ fs.writeFileSync('screenshot.png', png)
 
 const link = vibe.find('a')
 link.click()
-bro.close()
+bro.stop()
 ```
 
 **Async API:**
 ```javascript
 import { browser } from 'vibium'
 
-const bro = await browser.launch()
+const bro = await browser.start()
 const vibe = await bro.page()
 await vibe.go('https://example.com')
 
@@ -149,7 +149,7 @@ await fs.writeFile('screenshot.png', png)
 
 const link = await vibe.find('a')
 await link.click()
-await bro.close()
+await bro.stop()
 ```
 
 ### Python Client
@@ -166,7 +166,7 @@ from vibium.async_api import browser
 ```python
 from vibium import browser
 
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.page()
 vibe.go("https://example.com")
 
@@ -176,7 +176,7 @@ with open("screenshot.png", "wb") as f:
 
 link = vibe.find("a")
 link.click()
-bro.close()
+bro.stop()
 ```
 
 **Async API:**
@@ -185,7 +185,7 @@ import asyncio
 from vibium.async_api import browser
 
 async def main():
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.page()
     await vibe.go("https://example.com")
 
@@ -195,7 +195,7 @@ async def main():
 
     link = await vibe.find("a")
     await link.click()
-    await bro.close()
+    await bro.stop()
 
 asyncio.run(main())
 ```

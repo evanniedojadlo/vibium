@@ -2,10 +2,10 @@
 
 Usage:
     from vibium.async_api import browser
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.new_page()
     await vibe.go("https://example.com")
-    await bro.close()
+    await bro.stop()
 """
 
 from .browser import browser, Browser

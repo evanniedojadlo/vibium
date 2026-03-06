@@ -69,7 +69,7 @@ after(() => {
 
 describe('Downloads: page.onDownload', () => {
   test('onDownload() fires when download link clicked', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -83,12 +83,12 @@ describe('Downloads: page.onDownload', () => {
       assert.ok(downloads.length >= 1, `Expected at least 1 download, got ${downloads.length}`);
       assert.strictEqual(downloads[0].suggestedFilename(), 'test-file.txt');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('download.url() returns the download URL', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -102,12 +102,12 @@ describe('Downloads: page.onDownload', () => {
       assert.ok(downloads.length >= 1);
       assert.ok(downloads[0].url().includes('/download'), `Expected URL to contain /download, got: ${downloads[0].url()}`);
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('download.saveAs(path) saves file with correct content', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-dl-test-'));
     const savePath = path.join(tmpDir, 'saved-file.txt');
     try {
@@ -127,7 +127,7 @@ describe('Downloads: page.onDownload', () => {
       const content = fs.readFileSync(savePath, 'utf-8');
       assert.strictEqual(content, DOWNLOAD_CONTENT);
     } finally {
-      await bro.close();
+      await bro.stop();
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
@@ -137,7 +137,7 @@ describe('Downloads: page.onDownload', () => {
 
 describe('Element: el.setFiles', () => {
   test('setFiles() sets file on input type=file', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-sf-test-'));
     const testFile = path.join(tmpDir, 'upload-test.txt');
     fs.writeFileSync(testFile, 'test upload content');
@@ -151,7 +151,7 @@ describe('Element: el.setFiles', () => {
       const fileName = await vibe.find('#file-name').text();
       assert.strictEqual(fileName, 'upload-test.txt');
     } finally {
-      await bro.close();
+      await bro.stop();
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
@@ -161,7 +161,7 @@ describe('Element: el.setFiles', () => {
 
 describe('removeAllListeners for download', () => {
   test('removeAllListeners("download") clears download callbacks', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -176,7 +176,7 @@ describe('removeAllListeners for download', () => {
 
       assert.strictEqual(downloads.length, 0, 'Should not capture downloads after removeAllListeners');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 });

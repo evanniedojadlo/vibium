@@ -66,7 +66,7 @@ after(() => {
 
 describe('WebSocket Monitoring: page.onWebSocket', () => {
   test('onWebSocket fires when page creates a WebSocket', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -82,12 +82,12 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
 
       assert.ok(wsCreated, 'onWebSocket should have fired');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('ws.url() returns the correct URL', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -103,12 +103,12 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
 
       assert.strictEqual(capturedUrl, wsURL);
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('ws.onMessage() captures sent messages (direction: sent)', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -133,12 +133,12 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       assert.ok(sent.length > 0, `Should have captured sent messages, got: ${JSON.stringify(messages)}`);
       assert.strictEqual(sent[0].data, 'hello');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('ws.onMessage() captures received messages (direction: received)', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -163,12 +163,12 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       assert.ok(received.length > 0, `Should have captured received messages, got: ${JSON.stringify(messages)}`);
       assert.strictEqual(received[0].data, 'echo-me');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('ws.onClose() fires when connection closes', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -193,12 +193,12 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       assert.ok(closeFired, 'onClose should have fired');
       assert.strictEqual(closeCode, 1000);
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('ws.isClosed() returns true after close', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -219,12 +219,12 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       assert.ok(wsInfo, 'Should have captured a WebSocket');
       assert.strictEqual(wsInfo.isClosed(), true);
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test('monitoring survives page navigation (preload script persists)', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -250,12 +250,12 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       await vibe.wait(500);
       assert.strictEqual(wsCount, 2, 'Should have captured 2 WS total after navigation');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 
   test("removeAllListeners('websocket') clears callbacks", async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     try {
       const vibe = await bro.page();
       await vibe.go(baseURL);
@@ -278,7 +278,7 @@ describe('WebSocket Monitoring: page.onWebSocket', () => {
       await vibe.wait(500);
       assert.strictEqual(wsCount, 1, 'Should still be 1 after removing listeners');
     } finally {
-      await bro.close();
+      await bro.stop();
     }
   });
 });

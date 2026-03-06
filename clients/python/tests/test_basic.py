@@ -5,7 +5,7 @@ from vibium import browser
 
 def test_sync_api():
     """Test the synchronous API with new object model."""
-    bro = browser.launch(headless=True)
+    bro = browser.start(headless=True)
     try:
         vibe = bro.new_page()
         vibe.go("https://example.com")
@@ -48,7 +48,7 @@ def test_sync_api():
         link.click()
 
     finally:
-        bro.close()
+        bro.stop()
 
 
 if __name__ == "__main__":

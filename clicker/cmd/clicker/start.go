@@ -11,39 +11,59 @@ import (
 	"github.com/vibium/clicker/internal/paths"
 )
 
-func newConnectCmd() *cobra.Command {
+func newStartCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "connect <url>",
-		Short: "Connect to a remote browser",
-		Long: `Stop any running daemon and start a new one connected to a remote
-BiDi WebSocket endpoint. Subsequent commands will use the remote browser.
+		Use:   "start [url]",
+		Short: "Start a browser session",
+		Long: `Start a browser session. Without arguments, launches a local browser.
+With a URL argument, connects to a remote BiDi WebSocket endpoint.
+
+If no URL is given, checks VIBIUM_CONNECT_URL env var before falling
+back to a local browser launch.
 
 Set VIBIUM_CONNECT_API_KEY to send an Authorization: Bearer header.`,
-		Example: `  vibium connect ws://remote:9515/session
-  vibium go https://example.com
-  vibium disconnect
+		Example: `  vibium start
+  # Start with a local browser
 
-  # With authentication
+  vibium start ws://remote:9515/session
+  # Connect to a remote browser
+
+  export VIBIUM_CONNECT_URL=wss://cloud.example.com/session
   export VIBIUM_CONNECT_API_KEY=my-api-key
-  vibium connect wss://cloud.example.com/session`,
-		Args: cobra.ExactArgs(1),
+  vibium start
+  # Connect using env vars`,
+		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			connectURL := args[0]
+			// Determine connect URL: arg > env > local
+			var connectURL string
+			if len(args) > 0 {
+				connectURL = args[0]
+			} else {
+				connectURL, _ = connectFromEnv()
+			}
 
-			// Stop existing daemon if running
+			if connectURL == "" {
+				// Local launch — just ensure daemon is running (lazy browser launch)
+				result, err := daemonCall("browser_start", map[string]interface{}{})
+				if err != nil {
+					printError(err)
+					return
+				}
+				printResult(result)
+				return
+			}
+
+			// Remote connect — stop existing daemon and start fresh with --connect
 			if daemon.IsRunning() {
 				if err := daemon.Shutdown(); err != nil {
 					fmt.Fprintf(os.Stderr, "Error stopping existing daemon: %v\n", err)
 					os.Exit(1)
 				}
-				// Wait briefly for socket cleanup
 				time.Sleep(200 * time.Millisecond)
 			}
 
-			// Clean stale files
 			daemon.CleanStale()
 
-			// Start a new daemon with --connect
 			exe, err := os.Executable()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error finding executable: %v\n", err)
@@ -56,7 +76,6 @@ Set VIBIUM_CONNECT_API_KEY to send an Authorization: Bearer header.`,
 				daemonArgs = append(daemonArgs, "--headless")
 			}
 
-			// Forward API key from env
 			_, envHeaders := connectFromEnv()
 			for key, vals := range envHeaders {
 				for _, v := range vals {
@@ -75,7 +94,6 @@ Set VIBIUM_CONNECT_API_KEY to send an Authorization: Bearer header.`,
 				os.Exit(1)
 			}
 
-			// Wait for socket
 			socketPath, _ := paths.GetSocketPath()
 			if err := waitForSocket(socketPath, 5*time.Second); err != nil {
 				fmt.Fprintf(os.Stderr, "Daemon failed to start: %v\n", err)
@@ -83,28 +101,6 @@ Set VIBIUM_CONNECT_API_KEY to send an Authorization: Bearer header.`,
 			}
 
 			fmt.Printf("Connected to %s (daemon pid %d)\n", connectURL, child.Process.Pid)
-		},
-	}
-}
-
-func newDisconnectCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "disconnect",
-		Short: "Disconnect from a remote browser",
-		Long: `Stop the daemon. The next command will auto-start a new daemon
-with a local browser (unless VIBIUM_CONNECT_URL is set).`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if !daemon.IsRunning() {
-				fmt.Println("No daemon running.")
-				return
-			}
-
-			if err := daemon.Shutdown(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error stopping daemon: %v\n", err)
-				os.Exit(1)
-			}
-
-			fmt.Println("Disconnected.")
 		},
 	}
 }

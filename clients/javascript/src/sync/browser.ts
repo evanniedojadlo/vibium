@@ -4,11 +4,8 @@ import { BrowserContextSync } from './context';
 
 const customInspect = Symbol.for('nodejs.util.inspect.custom');
 
-export interface LaunchOptions {
+export interface StartOptions {
   headless?: boolean;
-}
-
-export interface ConnectOptions {
   headers?: Record<string, string>;
 }
 
@@ -97,27 +94,23 @@ export class BrowserSync {
     this._bridge.call('browser.removeAllListeners', [event]);
   }
 
-  close(): void {
+  stop(): void {
     this._bridge.tryQuit();
   }
 }
 
 export const browser = {
-  launch(options: LaunchOptions = {}): BrowserSync {
-    const bridge = SyncBridge.create();
-    try {
-      bridge.call('browser.launch', [options]);
-    } catch (e) {
-      bridge.terminate();
-      throw e;
+  start(urlOrOptions?: string | StartOptions, options: StartOptions = {}): BrowserSync {
+    let url: string | undefined;
+    if (typeof urlOrOptions === 'object') {
+      options = urlOrOptions;
+      url = undefined;
+    } else {
+      url = urlOrOptions;
     }
-    return new BrowserSync(bridge);
-  },
-
-  connect(url: string, options: ConnectOptions = {}): BrowserSync {
     const bridge = SyncBridge.create();
     try {
-      bridge.call('browser.connect', [url, options]);
+      bridge.call('browser.start', [url, options]);
     } catch (e) {
       bridge.terminate();
       throw e;

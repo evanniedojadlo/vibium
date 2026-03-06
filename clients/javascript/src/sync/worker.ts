@@ -141,25 +141,17 @@ const handlers: Record<string, Handler> = {
   // Browser commands
   // ========================
 
-  'browser.launch': async (args) => {
-    const [options] = args as [{ headless?: boolean } | undefined];
-    browserInstance = await browser.launch(options);
+  'browser.start': async (args) => {
+    const [url, options] = args as [string | undefined, { headless?: boolean; headers?: Record<string, string> } | undefined];
+    browserInstance = await browser.start(url, options);
     const page = await browserInstance.page();
     defaultPageId = storePage(page);
     return { pageId: defaultPageId };
   },
 
-  'browser.connect': async (args) => {
-    const [url, options] = args as [string, { headers?: Record<string, string> } | undefined];
-    browserInstance = await browser.connect(url, options);
-    const page = await browserInstance.page();
-    defaultPageId = storePage(page);
-    return { pageId: defaultPageId };
-  },
-
-  'browser.close': async () => {
+  'browser.stop': async () => {
     if (!browserInstance) throw new Error('Browser not launched');
-    await browserInstance.close();
+    await browserInstance.stop();
     browserInstance = null;
     pages.clear();
     contexts.clear();
@@ -1357,7 +1349,7 @@ const handlers: Record<string, Handler> = {
 
   'quit': async () => {
     if (!browserInstance) throw new Error('Browser not launched');
-    await browserInstance.close();
+    await browserInstance.stop();
     browserInstance = null;
     pages.clear();
     contexts.clear();

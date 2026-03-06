@@ -146,9 +146,9 @@ def test_remove_all_listeners_sync(fresh_sync_browser):
 
 async def test_browser_close(test_server):
     from vibium.async_api import browser
-    bro = await browser.launch(headless=True)
+    bro = await browser.start(headless=True)
     vibe = await bro.page()
     await vibe.go(test_server)
-    await bro.close()
+    await bro.stop()
     # After close, should not be able to use the browser
     # (we just verify close completes without error)

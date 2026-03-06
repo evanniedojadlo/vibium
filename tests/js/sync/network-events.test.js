@@ -38,8 +38,8 @@ after(() => {
 
 describe('Sync API: onRequest/onResponse', () => {
   let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
+  before(() => { bro = browser.start({ headless: true }); });
+  after(() => { bro.stop(); });
 
   test('onRequest fires for fetch requests', () => {
     const vibe = bro.newPage();

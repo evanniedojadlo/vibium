@@ -29,18 +29,18 @@ def test_server():
 def sync_browser():
     """Launch a shared headless sync browser for a test module."""
     from vibium import browser
-    bro = browser.launch(headless=True)
+    bro = browser.start(headless=True)
     yield bro
-    bro.close()
+    bro.stop()
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
 async def async_browser():
     """Launch a shared headless async browser for a test module."""
     from vibium.async_api import browser
-    bro = await browser.launch(headless=True)
+    bro = await browser.start(headless=True)
     yield bro
-    await bro.close()
+    await bro.stop()
 
 
 # ---------------------------------------------------------------------------
@@ -68,9 +68,9 @@ async def async_page(async_browser):
 def fresh_sync_browser():
     """Launch a fresh headless sync browser for a single test."""
     from vibium import browser
-    bro = browser.launch(headless=True)
+    bro = browser.start(headless=True)
     yield bro
-    bro.close()
+    bro.stop()
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
@@ -81,9 +81,9 @@ async def fresh_async_browser():
     Each test should create its own page via ``await fresh_async_browser.page()``.
     """
     from vibium.async_api import browser
-    bro = await browser.launch(headless=True)
+    bro = await browser.start(headless=True)
     yield bro
-    await bro.close()
+    await bro.stop()
 
 
 # ---------------------------------------------------------------------------

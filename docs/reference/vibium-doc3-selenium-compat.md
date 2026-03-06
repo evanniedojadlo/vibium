@@ -72,7 +72,7 @@ The Selenium `driver` object wraps a Vibium `browser` + default context + defaul
 ```python
 class WebDriver:
     def __init__(self):
-        self._bro = browser.launch()             # browser process
+        self._bro = browser.start()             # browser process
         self._ctx = self._bro.new_context()      # default context (cookie jar)
         self._page = self._ctx.new_page()        # default page
         self._current_page = self._page           # for window switching
@@ -129,7 +129,7 @@ class SwitchTo:
 | `element.is_displayed()` | `el.isVisible()` | Low |
 | `element.is_enabled()` | `el.isEnabled()` | Low |
 | `element.is_selected()` | `el.isChecked()` | Low |
-| `driver.quit()` | `browser.close()` | Low |
+| `driver.quit()` | `browser.stop()` | Low |
 | `driver.close()` | `page.close()` | Low |
 
 ### Priority 2 — Common Operations

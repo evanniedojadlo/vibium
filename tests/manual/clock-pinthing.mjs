@@ -14,7 +14,7 @@ function sleep(ms) {
 }
 
 async function main() {
-    const b = await browser.launch();
+    const b = await browser.start();
     const page = await b.page();
 
     console.log("1. Navigating to pinthing.com...");

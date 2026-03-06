@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 from .page import Page
@@ -77,10 +78,10 @@ class Browser:
         if not event or event == "popup":
             self._popup_callbacks.clear()
 
-    async def close(self) -> None:
-        """Close the browser and clean up."""
+    async def stop(self) -> None:
+        """Stop the browser and clean up."""
         try:
-            await self._client.send("vibium:browser.close", {})
+            await self._client.send("vibium:browser.stop", {})
         except Exception:
             pass  # Browser or connection may already be closed
         await self._client.close()
@@ -91,43 +92,43 @@ class Browser:
 class _BrowserLauncher:
     """Module-level browser launcher object."""
 
-    async def launch(
+    async def start(
         self,
+        url: Optional[str] = None,
+        *,
         headless: bool = False,
-        executable_path: Optional[str] = None,
-    ) -> Browser:
-        """Launch a new browser instance."""
-        from ..binary import VibiumProcess
-        from ..client import BiDiClient
-
-        process = await VibiumProcess.start(
-            headless=headless,
-            executable_path=executable_path,
-        )
-        client = await BiDiClient.connect(process)
-        return Browser(client, process)
-
-    async def connect(
-        self,
-        url: str,
         headers: Optional[Dict[str, str]] = None,
         executable_path: Optional[str] = None,
     ) -> Browser:
-        """Connect to a remote browser via vibium proxy.
+        """Start a browser session.
 
         Args:
-            url: Remote BiDi WebSocket URL (e.g. ws://remote:9515).
-            headers: HTTP headers for the WebSocket connection (e.g. auth tokens).
+            url: Remote BiDi WebSocket URL. If not provided, checks
+                VIBIUM_CONNECT_URL env var, then falls back to local launch.
+            headless: Run browser in headless mode (local launch only).
+            headers: HTTP headers for remote connection (e.g. auth tokens).
             executable_path: Path to vibium binary (default: auto-detect).
         """
         from ..binary import VibiumProcess
         from ..client import BiDiClient
 
-        process = await VibiumProcess.start(
-            connect_url=url,
-            connect_headers=headers,
-            executable_path=executable_path,
-        )
+        connect_url = url or os.environ.get("VIBIUM_CONNECT_URL")
+        if connect_url:
+            env_headers: Dict[str, str] = {}
+            api_key = os.environ.get("VIBIUM_CONNECT_API_KEY")
+            if api_key:
+                env_headers["Authorization"] = f"Bearer {api_key}"
+            merged = {**env_headers, **(headers or {})}
+            process = await VibiumProcess.start(
+                connect_url=connect_url,
+                connect_headers=merged or None,
+                executable_path=executable_path,
+            )
+        else:
+            process = await VibiumProcess.start(
+                headless=headless,
+                executable_path=executable_path,
+            )
         client = await BiDiClient.connect(process)
         return Browser(client, process)
 

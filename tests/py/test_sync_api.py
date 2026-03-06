@@ -19,9 +19,9 @@ from vibium import browser, Browser, Page, Element, BrowserContext
 
 @pytest.fixture(scope="module")
 def bro():
-    b = browser.launch(headless=True)
+    b = browser.start(headless=True)
     yield b
-    b.close()
+    b.stop()
 
 
 @pytest.fixture
@@ -36,9 +36,9 @@ def vibe(bro, test_server):
 # ===========================================================================
 
 def test_launch_and_close():
-    b = browser.launch(headless=True)
+    b = browser.start(headless=True)
     assert isinstance(b, Browser)
-    b.close()
+    b.stop()
 
 
 def test_page_returns_default(bro):

@@ -25,7 +25,7 @@ This is the primary design document. Doc #2 (WebDriver spec parity) and Doc #3 (
 ## Object Model
 
 ```
-browser.launch()        → Browser   (the browser process)
+browser.start()        → Browser   (the browser process)
 browser.newContext()    → Context   (isolated cookie jar / storage)
 browser.newPage()       → Page      (default context + newPage)
 context.newPage()       → Page      (page in a specific context)
@@ -43,17 +43,17 @@ Three levels exist, but most users only see two (`browser` + `page`). The defaul
 ```javascript
 import { browser } from 'vibium'
 
-const bro = await browser.launch()
+const bro = await browser.start()
 const vibe = await bro.newPage()     // uses default context internally
 await vibe.go('https://example.com')
 await vibe.check('the page loaded')
-await bro.close()
+await bro.stop()
 ```
 
 ### Multi-Page
 
 ```javascript
-const bro = await browser.launch()
+const bro = await browser.start()
 const vibe1 = await bro.newPage()
 const vibe2 = await bro.newPage()
 
@@ -67,7 +67,7 @@ await vibe2.check('dark mode is enabled')
 ### Isolated Contexts (multi-user, test isolation)
 
 ```javascript
-const bro = await browser.launch()
+const bro = await browser.start()
 
 // Each context has its own cookies, localStorage, state
 const alice = await bro.newContext()
@@ -83,7 +83,7 @@ await bobVibe.go('https://chat.app/login')
 
 ```javascript
 // Test isolation — fresh state per test, one browser process
-const bro = await browser.launch()
+const bro = await browser.start()
 
 test('adds to cart', async () => {
   const ctx = await bro.newContext()
@@ -106,11 +106,11 @@ test('checkout flow', async () => {
 from vibium import browser
 
 # Sync — the default, no ceremony
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.new_page()
 vibe.go("https://example.com")
 vibe.check("the page loaded")
-bro.close()
+bro.stop()
 
 # Isolated contexts
 alice = bro.new_context()
@@ -121,7 +121,7 @@ bob_vibe = bob.new_page()
 # Async — opt-in
 from vibium.async_api import browser
 
-bro = await browser.launch()
+bro = await browser.start()
 vibe = await bro.new_page()
 await vibe.go("https://example.com")
 ```
@@ -163,7 +163,7 @@ await vibe.go("https://example.com")
 | `context.newPage()` | `context.newPage()` | BiDi: `browsingContext.create` (in user context) | Returns a Page |
 | `browser.pages()` | `browser.contexts()` → pages | BiDi: `browsingContext.getTree` | Returns Page[] |
 | `context.close()` | `context.close()` | BiDi: close all pages in context | |
-| `browser.close()` | `browser.close()` | BiDi: close all contexts + end | |
+| `browser.stop()` | `browser.stop()` | BiDi: close all contexts + end | |
 | `browser.onPage(fn)` | `context.on('page')` | BiDi: `browsingContext.contextCreated` | New tab/window |
 | `browser.onPopup(fn)` | `page.on('popup')` | BiDi: `browsingContext.contextCreated` (opener) | New popup window |
 | `browser.removeAllListeners(event?)` | `browser.removeAllListeners()` | Client-side: clear callback arrays | Clears 'page' and/or 'popup' listeners |

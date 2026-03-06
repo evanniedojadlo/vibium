@@ -91,7 +91,8 @@ func main() {
 	rootCmd.AddCommand(newBackCmd())
 	rootCmd.AddCommand(newForwardCmd())
 	rootCmd.AddCommand(newReloadCmd())
-	rootCmd.AddCommand(newQuitCmd())
+	rootCmd.AddCommand(newStartCmd())
+	rootCmd.AddCommand(newStopCmd())
 	rootCmd.AddCommand(newFillCmd())
 	rootCmd.AddCommand(newPressCmd())
 	rootCmd.AddCommand(newCheckCmd())
@@ -137,8 +138,6 @@ func main() {
 	rootCmd.AddCommand(newStorageStateCmd())
 	rootCmd.AddCommand(newRestoreStorageCmd())
 	rootCmd.AddCommand(newDownloadCmd())
-	rootCmd.AddCommand(newConnectCmd())
-	rootCmd.AddCommand(newDisconnectCmd())
 
 	rootCmd.Version = version
 	rootCmd.SetVersionTemplate(progName + " v{{.Version}}\n")

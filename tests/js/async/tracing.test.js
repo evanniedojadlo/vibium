@@ -111,7 +111,7 @@ function readNetworkEvents(extractedDir) {
 
 describe('Tracing: basic start/stop', () => {
   test('start and stop produces valid trace zip', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
@@ -142,13 +142,13 @@ describe('Tracing: basic start/stop', () => {
 
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir) cleanupDir(tmpDir);
     }
   });
 
   test('page.context.tracing shortcut produces valid trace', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       // Use bro.page() instead of explicit newContext() → newPage()
@@ -173,13 +173,13 @@ describe('Tracing: basic start/stop', () => {
       assert.ok(events.length > 0, 'should have trace events');
       assert.strictEqual(events[0].type, 'context-options');
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir) cleanupDir(tmpDir);
     }
   });
 
   test('stop with path writes trace to file', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-trace-path-'));
     const tracePath = path.join(tmpDir, 'my-trace.zip');
     try {
@@ -196,7 +196,7 @@ describe('Tracing: basic start/stop', () => {
 
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       cleanupDir(tmpDir);
     }
   });
@@ -204,7 +204,7 @@ describe('Tracing: basic start/stop', () => {
 
 describe('Tracing: screenshots', () => {
   test('screenshots option captures PNG resources', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
@@ -238,7 +238,7 @@ describe('Tracing: screenshots', () => {
 
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir) cleanupDir(tmpDir);
     }
   });
@@ -246,7 +246,7 @@ describe('Tracing: screenshots', () => {
 
 describe('Tracing: snapshots', () => {
   test('snapshots option produces frame-snapshot events with DOM arrays', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
@@ -314,7 +314,7 @@ describe('Tracing: snapshots', () => {
 
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir) cleanupDir(tmpDir);
     }
   });
@@ -322,7 +322,7 @@ describe('Tracing: snapshots', () => {
 
 describe('Tracing: chunks', () => {
   test('startChunk/stopChunk produces separate trace zips', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir1, tmpDir2;
     try {
       const ctx = await bro.newContext();
@@ -360,7 +360,7 @@ describe('Tracing: chunks', () => {
       await ctx.tracing.stop();
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir1) cleanupDir(tmpDir1);
       if (tmpDir2) cleanupDir(tmpDir2);
     }
@@ -369,7 +369,7 @@ describe('Tracing: chunks', () => {
 
 describe('Tracing: groups', () => {
   test('startGroup/stopGroup adds group markers to trace', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
@@ -399,7 +399,7 @@ describe('Tracing: groups', () => {
 
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir) cleanupDir(tmpDir);
     }
   });
@@ -407,7 +407,7 @@ describe('Tracing: groups', () => {
 
 describe('Tracing: network events', () => {
   test('trace records network events as HAR resource-snapshots', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
@@ -468,7 +468,7 @@ describe('Tracing: network events', () => {
 
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir) cleanupDir(tmpDir);
     }
   });
@@ -476,7 +476,7 @@ describe('Tracing: network events', () => {
 
 describe('Tracing: zip structure', () => {
   test('trace zip has correct Playwright-compatible structure', async () => {
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
@@ -507,7 +507,7 @@ describe('Tracing: zip structure', () => {
 
       await ctx.close();
     } finally {
-      await bro.close();
+      await bro.stop();
       if (tmpDir) cleanupDir(tmpDir);
     }
   });

@@ -94,7 +94,7 @@ const fs = require('fs')
 const { browser } = require('vibium/sync')
 
 // Launch a browser (you'll see it open!)
-const bro = browser.launch()
+const bro = browser.start()
 const vibe = bro.page()
 
 // Go to a website
@@ -113,7 +113,7 @@ link.click()
 console.log('Clicked!')
 
 // Close the browser
-bro.close()
+bro.stop()
 console.log('Done!')
 ```
 
@@ -139,13 +139,13 @@ Check your folder - there's now a `screenshot.png` file!
 
 | Line | What It Does |
 |------|--------------|
-| `browser.launch()` | Opens Chrome, returns a Browser |
+| `browser.start()` | Opens Chrome, returns a Browser |
 | `bro.page()` | Gets the default page (tab) |
 | `vibe.go(url)` | Navigates to a URL |
 | `vibe.screenshot()` | Captures the page as PNG |
 | `vibe.find(selector)` | Finds an element by CSS selector |
 | `link.click()` | Clicks the element |
-| `bro.close()` | Closes the browser |
+| `bro.stop()` | Closes the browser |
 
 ---
 
@@ -153,7 +153,7 @@ Check your folder - there's now a `screenshot.png` file!
 
 **Hide the browser** (run headless):
 ```javascript
-const bro = browser.launch({ headless: true })
+const bro = browser.start({ headless: true })
 ```
 
 **Use async/await** (for more complex scripts):
@@ -161,11 +161,11 @@ const bro = browser.launch({ headless: true })
 const { browser } = require('vibium')
 
 async function main() {
-  const bro = await browser.launch()
+  const bro = await browser.start()
   const vibe = await bro.page()
   await vibe.go('https://example.com')
   // ...
-  await bro.close()
+  await bro.stop()
 }
 
 main()
@@ -193,7 +193,7 @@ Run `npm install vibium` in your project folder.
 
 Try running with headless mode disabled (it's disabled by default, but just in case):
 ```javascript
-const bro = browser.launch({ headless: false })
+const bro = browser.start({ headless: false })
 ```
 
 ### Permission denied (Linux)

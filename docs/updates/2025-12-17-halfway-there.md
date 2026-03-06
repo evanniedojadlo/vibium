@@ -38,7 +38,7 @@ the js/ts client is alive:
 ```typescript
 import { browser } from 'vibium';
 
-const vibe = await browser.launch();
+const vibe = await browser.start();
 await vibe.go('https://example.com');
 const shot = await vibe.screenshot();
 require('fs').writeFileSync('test.png', shot);
@@ -56,7 +56,7 @@ cd clients/javascript && node --experimental-repl-await
 
 ```javascript
 const { browser } = await import('./dist/index.mjs')
-const vibe = await browser.launch({ headless: false }) // see the browser!
+const vibe = await browser.start({ headless: false }) // see the browser!
 await vibe.go('https://example.com')
 const shot = await vibe.screenshot()
 require('fs').writeFileSync('test.png', shot)
@@ -70,7 +70,7 @@ await vibe.quit()
 ```
 ┌─────────────────────────────────────┐
 │  your code                          │
-│  const vibe = await browser.launch()│
+│  const vibe = await browser.start()│
 └──────────────┬──────────────────────┘
                │ spawns
 ┌──────────────▼──────────────────────┐

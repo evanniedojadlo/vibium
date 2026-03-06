@@ -1,6 +1,6 @@
 /**
  * JS Library Tests: Async API
- * Tests browser.launch() and Browser → Page methods.
+ * Tests browser.start() and Browser → Page methods.
  *
  * Uses a local HTTP server — no external network dependencies.
  */
@@ -60,13 +60,13 @@ after(() => {
 describe('JS Async API', () => {
   let bro;
   before(async () => {
-    bro = await browser.launch({ headless: true });
+    bro = await browser.start({ headless: true });
   });
   after(async () => {
-    await bro.close();
+    await bro.stop();
   });
 
-  test('browser.launch() returns a Browser instance', async () => {
+  test('browser.start() returns a Browser instance', async () => {
     assert.ok(bro, 'Should return a Browser instance');
   });
 

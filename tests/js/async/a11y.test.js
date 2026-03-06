@@ -11,12 +11,12 @@ const { browser } = require('../../../clients/javascript/dist');
 let bro, vibe;
 
 before(async () => {
-  bro = await browser.launch({ headless: true });
+  bro = await browser.start({ headless: true });
   vibe = await bro.page();
 });
 
 after(async () => {
-  if (bro) await bro.close();
+  if (bro) await bro.stop();
 });
 
 // --- el.role() ---

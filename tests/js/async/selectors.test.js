@@ -13,13 +13,13 @@ let server, baseURL, bro, vibe;
 
 before(async () => {
   ({ server, baseURL } = await createTestServer());
-  bro = await browser.launch({ headless: true });
+  bro = await browser.start({ headless: true });
   vibe = await bro.page();
   await vibe.go(`${baseURL}/selectors`);
 });
 
 after(async () => {
-  if (bro) await bro.close();
+  if (bro) await bro.stop();
   if (server) server.close();
 });
 

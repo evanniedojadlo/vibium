@@ -34,7 +34,7 @@ cd clients/javascript && node --experimental-repl-await
 **async api:**
 ```javascript
 const { browser } = await import('./dist/index.mjs')
-const vibe = await browser.launch({ headless: false })
+const vibe = await browser.start({ headless: false })
 await vibe.go('https://example.com')
 const link = await vibe.find('a')
 console.log(await link.text())  // "Learn more"

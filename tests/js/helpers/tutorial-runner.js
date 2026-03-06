@@ -145,11 +145,11 @@ function runTutorial(mdPath, { browser, mode, serverCode, helpers: extraHelpers,
   let _browser = null;
   if (!standalone) {
     if (mode === 'async') {
-      before(async () => { _browser = await browser.launch({ headless: true }); });
-      after(async () => { if (_browser) await _browser.close(); });
+      before(async () => { _browser = await browser.start({ headless: true }); });
+      after(async () => { if (_browser) await _browser.stop(); });
     } else {
-      before(() => { _browser = browser.launch({ headless: true }); });
-      after(() => { if (_browser) _browser.close(); });
+      before(() => { _browser = browser.start({ headless: true }); });
+      after(() => { if (_browser) _browser.stop(); });
     }
   }
 

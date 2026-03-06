@@ -66,13 +66,13 @@ function sleep(ms) {
 }
 
 describe('JS Sync Process Cleanup', () => {
-  test('sync API cleans up Chrome on close()', async () => {
+  test('sync API cleans up Chrome on stop()', async () => {
     const pidsBefore = getClickerChromePids();
 
-    const bro = browserSync.launch({ headless: true });
+    const bro = browserSync.start({ headless: true });
     const vibe = bro.page();
     vibe.go(baseURL);
-    bro.close();
+    bro.stop();
 
     await sleep(2000);
 

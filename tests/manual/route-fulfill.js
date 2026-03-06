@@ -50,7 +50,7 @@ async function main() {
     });
     console.log(`${INFO} Test server running at ${baseURL}`);
 
-    const b = await browser.launch({ headless: false });
+    const b = await browser.start({ headless: false });
 
     try {
         const page = await b.page();
@@ -201,7 +201,7 @@ async function main() {
     } catch (err) {
         console.error(`\n${FAIL} Error: ${err.message}`);
         console.error(err.stack);
-        await b.close();
+        await b.stop();
         server.close();
         process.exit(1);
     }

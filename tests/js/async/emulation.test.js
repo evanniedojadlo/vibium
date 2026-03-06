@@ -13,11 +13,11 @@ describe('JS Emulation', () => {
   let bro;
 
   test('setup', async () => {
-    bro = await browser.launch({ headless: true });
+    bro = await browser.start({ headless: true });
   });
 
   after(async () => {
-    if (bro) await bro.close().catch(() => {});
+    if (bro) await bro.stop().catch(() => {});
   });
 
   // --- setViewport / viewport ---

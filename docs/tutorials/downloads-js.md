@@ -37,7 +37,7 @@ Then in another terminal, run the download script:
 const { browser } = require('vibium');
 
 async function main() {
-  const bro = await browser.launch();
+  const bro = await browser.start();
   const vibe = await bro.page();
   await vibe.go('http://localhost:3000');
 
@@ -48,7 +48,7 @@ async function main() {
   console.log(download.suggestedFilename()); // hello.txt
   await download.saveAs('/tmp/hello.txt');
 
-  await bro.close();
+  await bro.stop();
 }
 
 main();
@@ -60,7 +60,7 @@ main();
 ```javascript
 const { browser } = require('vibium/sync');
 
-const bro = browser.launch();
+const bro = browser.start();
 const vibe = bro.page();
 vibe.go('http://localhost:3000');
 
@@ -71,7 +71,7 @@ const result = vibe.capture.download(() => {
 console.log(result.suggestedFilename); // hello.txt
 result.saveAs('/tmp/hello.txt');
 
-bro.close();
+bro.stop();
 ```
 
 </details>
@@ -87,7 +87,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const bro = await browser.launch({ headless: true });
+const bro = await browser.start({ headless: true });
 const vibe = await bro.page();
 await vibe.go(baseURL);
 
@@ -106,7 +106,7 @@ try {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
-await bro.close();
+await bro.stop();
 ```
 
 <details>
@@ -119,7 +119,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const bro = browser.launch({ headless: true });
+const bro = browser.start({ headless: true });
 const vibe = bro.page();
 vibe.go(baseURL);
 
@@ -139,7 +139,7 @@ try {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
-bro.close();
+bro.stop();
 ```
 
 </details>
@@ -152,7 +152,7 @@ For ongoing monitoring, `onDownload()` fires on every download:
 ```javascript
 const { browser } = require('vibium');
 
-const bro = await browser.launch({ headless: true });
+const bro = await browser.start({ headless: true });
 const vibe = await bro.page();
 await vibe.go(baseURL);
 
@@ -165,7 +165,7 @@ await vibe.wait(1000);
 assert.ok(downloads.length >= 1);
 assert.strictEqual(downloads[0].suggestedFilename(), 'hello.txt');
 
-await bro.close();
+await bro.stop();
 ```
 
 <details>
@@ -175,7 +175,7 @@ await bro.close();
 ```javascript
 const { browser } = require('vibium/sync');
 
-const bro = browser.launch({ headless: true });
+const bro = browser.start({ headless: true });
 const vibe = bro.page();
 vibe.go(baseURL);
 
@@ -189,7 +189,7 @@ assert.ok(downloads.length >= 1);
 assert.strictEqual(downloads[0].suggestedFilename, 'hello.txt');
 assert.ok(downloads[0].path, 'download should have path');
 
-bro.close();
+bro.stop();
 ```
 
 </details>

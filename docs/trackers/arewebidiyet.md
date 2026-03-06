@@ -10,8 +10,8 @@ Vibium's coverage of the WebDriver spec (W3C + BiDi). Maps every WebDriver comma
 
 | WebDriver | Vibium | Status |
 |-----------|--------|--------|
-| New Session | `browser.launch(caps?)` | ⬜ |
-| Delete Session | `browser.close()` | ⬜ |
+| New Session | `browser.start(caps?)` | ⬜ |
+| Delete Session | `browser.stop()` | ⬜ |
 | Status | `browser.status()` | ⬜ |
 | Get Timeouts | `browser.timeouts()` | ⬜ |
 | Set Timeouts | `browser.setTimeouts(t)` | ⬜ |

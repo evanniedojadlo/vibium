@@ -14,11 +14,11 @@ let server, baseURL, bro;
 
 before(async () => {
   ({ server, baseURL } = await createTestServer());
-  bro = await browser.launch({ headless: true });
+  bro = await browser.start({ headless: true });
 });
 
 after(async () => {
-  await bro.close();
+  await bro.stop();
   if (server) server.close();
 });
 

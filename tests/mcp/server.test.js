@@ -144,8 +144,8 @@ describe('MCP Server: Protocol', () => {
 
     const toolNames = response.result.tools.map(t => t.name);
     const expectedTools = [
-      'browser_launch', 'browser_navigate', 'browser_click', 'browser_type',
-      'browser_screenshot', 'browser_find', 'browser_evaluate', 'browser_quit',
+      'browser_start', 'browser_navigate', 'browser_click', 'browser_type',
+      'browser_screenshot', 'browser_find', 'browser_evaluate', 'browser_stop',
       'browser_get_text', 'browser_get_url', 'browser_get_title',
       'browser_get_html', 'browser_find_all', 'browser_wait',
       'browser_hover', 'browser_select', 'browser_scroll', 'browser_keys',
@@ -226,9 +226,9 @@ describe('MCP Server: Browser Tools', () => {
     );
   });
 
-  test('browser_launch when already running returns success', async () => {
+  test('browser_start when already running returns success', async () => {
     const response = await client.call('tools/call', {
-      name: 'browser_launch',
+      name: 'browser_start',
       arguments: { headless: true },
     });
 
@@ -316,9 +316,9 @@ describe('MCP Server: Browser Tools', () => {
     );
   });
 
-  test('browser_quit closes session', async () => {
+  test('browser_stop closes session', async () => {
     const response = await client.call('tools/call', {
-      name: 'browser_quit',
+      name: 'browser_stop',
       arguments: {},
     });
 
@@ -330,9 +330,9 @@ describe('MCP Server: Browser Tools', () => {
     );
   });
 
-  test('browser_quit when no session returns gracefully', async () => {
+  test('browser_stop when no session returns gracefully', async () => {
     const response = await client.call('tools/call', {
-      name: 'browser_quit',
+      name: 'browser_stop',
       arguments: {},
     });
 

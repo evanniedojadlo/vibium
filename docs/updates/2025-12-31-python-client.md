@@ -42,7 +42,7 @@ import asyncio
 from vibium import browser
 
 async def main():
-    vibe = await browser.launch()
+    vibe = await browser.start()
     await vibe.go("https://example.com")
     await vibe.quit()
 

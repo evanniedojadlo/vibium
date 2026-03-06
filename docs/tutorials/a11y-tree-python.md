@@ -22,14 +22,14 @@ Learn how to inspect page structure with `a11y_tree()` and use the results to fi
 ```python
 from vibium import browser
 
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.page()
 vibe.go("https://example.com")
 
 tree = vibe.a11y_tree()
 print(tree)
 
-bro.close()
+bro.stop()
 ```
 
 **Async:**
@@ -39,14 +39,14 @@ import asyncio
 from vibium.async_api import browser
 
 async def main():
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.page()
     await vibe.go("https://example.com")
 
     tree = await vibe.a11y_tree()
     print(tree)
 
-    await bro.close()
+    await bro.stop()
 
 asyncio.run(main())
 ```
@@ -451,7 +451,7 @@ Here's the full pattern: inspect the tree, then use what you learn to find and i
 ```python
 from vibium import browser
 
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.page()
 
 vibe.set_content("""
@@ -486,7 +486,7 @@ vibe.find(role="button", label=btn["name"]).click()
 # 5. Read state using CSS selectors
 print("Heading:", vibe.find("h1").text())
 
-bro.close()
+bro.stop()
 ```
 
 **Async:**
@@ -496,7 +496,7 @@ import asyncio
 from vibium.async_api import browser
 
 async def main():
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.page()
 
     await vibe.set_content("""
@@ -534,7 +534,7 @@ async def main():
     heading = await vibe.find("h1")
     print("Heading:", await heading.text())
 
-    await bro.close()
+    await bro.stop()
 
 asyncio.run(main())
 ```

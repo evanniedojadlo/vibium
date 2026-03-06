@@ -57,11 +57,11 @@ describe('JS Frames', () => {
     const s = await startServer();
     srv = s.server;
     baseUrl = s.url;
-    bro = await browser.launch({ headless: true });
+    bro = await browser.start({ headless: true });
   });
 
   after(async () => {
-    if (bro) await bro.close().catch(() => {});
+    if (bro) await bro.stop().catch(() => {});
     if (srv) srv.close();
   });
 

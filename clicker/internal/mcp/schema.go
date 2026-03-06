@@ -4,8 +4,8 @@ package mcp
 func GetToolSchemas() []Tool {
 	return []Tool{
 		{
-			Name:        "browser_launch",
-			Description: "Launch a new browser session",
+			Name:        "browser_start",
+			Description: "Start a browser session",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -153,8 +153,8 @@ func GetToolSchemas() []Tool {
 			},
 		},
 		{
-			Name:        "browser_quit",
-			Description: "Close the browser session",
+			Name:        "browser_stop",
+			Description: "Stop the browser session",
 			InputSchema: map[string]interface{}{
 				"type":                 "object",
 				"properties":           map[string]interface{}{},

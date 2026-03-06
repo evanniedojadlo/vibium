@@ -22,7 +22,7 @@ function section(title) {
 }
 
 async function main() {
-    const b = await browser.launch({ headless: false });
+    const b = await browser.start({ headless: false });
 
     try {
         // ─── 1. route.abort — block images ───
@@ -278,7 +278,7 @@ async function main() {
     } catch (err) {
         console.error(`\n${FAIL} Error: ${err.message}`);
         console.error(err.stack);
-        await b.close();
+        await b.stop();
         process.exit(1);
     }
 }

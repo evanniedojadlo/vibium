@@ -40,7 +40,7 @@ Then in another terminal, run the download script:
 ```python
 from vibium import browser
 
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.page()
 vibe.go("http://localhost:3000")
 
@@ -49,7 +49,7 @@ result = vibe.capture.download(lambda: vibe.find("#dl-link").click())
 print(result["suggested_filename"])  # hello.txt
 result.save_as("/tmp/hello.txt")
 
-bro.close()
+bro.stop()
 ```
 
 <details>
@@ -60,7 +60,7 @@ import asyncio
 from vibium.async_api import browser
 
 async def main():
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.page()
     await vibe.go("http://localhost:3000")
 
@@ -72,7 +72,7 @@ async def main():
     print(download.suggested_filename())  # hello.txt
     await download.save_as("/tmp/hello.txt")
 
-    await bro.close()
+    await bro.stop()
 
 asyncio.run(main())
 ```
@@ -92,7 +92,7 @@ import tempfile
 import shutil
 from vibium import browser
 
-bro = browser.launch(headless=True)
+bro = browser.start(headless=True)
 vibe = bro.page()
 vibe.go(base_url)
 
@@ -110,7 +110,7 @@ try:
 finally:
     shutil.rmtree(tmp_dir)
 
-bro.close()
+bro.stop()
 ```
 
 <details>
@@ -123,7 +123,7 @@ import tempfile
 import shutil
 from vibium.async_api import browser
 
-bro = await browser.launch(headless=True)
+bro = await browser.start(headless=True)
 vibe = await bro.page()
 await vibe.go(base_url)
 
@@ -143,7 +143,7 @@ try:
 finally:
     shutil.rmtree(tmp_dir)
 
-await bro.close()
+await bro.stop()
 ```
 
 </details>
@@ -157,7 +157,7 @@ For ongoing monitoring, `on_download()` fires on every download:
 import time
 from vibium import browser
 
-bro = browser.launch(headless=True)
+bro = browser.start(headless=True)
 vibe = bro.page()
 vibe.go(base_url)
 
@@ -171,7 +171,7 @@ assert len(downloads) >= 1
 assert downloads[0].suggested_filename() == "hello.txt"
 assert downloads[0]["path"] is not None
 
-bro.close()
+bro.stop()
 ```
 
 <details>
@@ -182,7 +182,7 @@ bro.close()
 import asyncio
 from vibium.async_api import browser
 
-bro = await browser.launch(headless=True)
+bro = await browser.start(headless=True)
 vibe = await bro.page()
 await vibe.go(base_url)
 
@@ -196,7 +196,7 @@ await asyncio.sleep(1)
 assert len(downloads) >= 1
 assert downloads[0].suggested_filename() == "hello.txt"
 
-await bro.close()
+await bro.stop()
 ```
 
 </details>

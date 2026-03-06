@@ -129,7 +129,7 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 	log.Debug("tool call", "name", name, "args", args)
 
 	switch name {
-	case "browser_launch":
+	case "browser_start":
 		return h.browserLaunch(args)
 	case "browser_navigate":
 		return h.browserNavigate(args)
@@ -143,7 +143,7 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserFind(args)
 	case "browser_evaluate":
 		return h.browserEvaluate(args)
-	case "browser_quit":
+	case "browser_stop":
 		return h.browserQuit(args)
 	case "browser_get_text":
 		return h.browserGetText(args)

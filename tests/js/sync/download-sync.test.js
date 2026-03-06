@@ -40,8 +40,8 @@ after(() => {
 
 describe('Sync API: onDownload', () => {
   let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
+  before(() => { bro = browser.start({ headless: true }); });
+  after(() => { bro.stop(); });
 
   test('onDownload fires when download link clicked', () => {
     const vibe = bro.newPage();

@@ -20,14 +20,14 @@ This runs a JSON-RPC 2.0 server over stdin/stdout, designed for integration
 with LLM agents like Claude Code.
 
 The server provides browser automation tools:
-  - browser_launch: Start a browser session
+  - browser_start: Start a browser session
   - browser_navigate: Go to a URL
   - browser_click: Click an element
   - browser_type: Type into an element
   - browser_screenshot: Capture the page
   - browser_find: Find element info
   - browser_evaluate: Execute JavaScript
-  - browser_quit: Close the browser
+  - browser_stop: Stop the browser
   - browser_get_text: Get page/element text
   - browser_get_url: Get current URL
   - browser_get_title: Get page title

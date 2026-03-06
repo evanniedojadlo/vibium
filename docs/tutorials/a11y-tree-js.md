@@ -22,14 +22,14 @@ Learn how to inspect page structure with `a11yTree()` and use the results to fin
 ```javascript
 const { browser } = require('vibium/sync')
 
-const bro = browser.launch()
+const bro = browser.start()
 const vibe = bro.page()
 vibe.go('https://example.com')
 
 const tree = vibe.a11yTree()
 console.log(JSON.stringify(tree, null, 2))
 
-bro.close()
+bro.stop()
 ```
 
 **Async:**
@@ -38,14 +38,14 @@ bro.close()
 const { browser } = require('vibium')
 
 async function main() {
-  const bro = await browser.launch()
+  const bro = await browser.start()
   const vibe = await bro.page()
   await vibe.go('https://example.com')
 
   const tree = await vibe.a11yTree()
   console.log(JSON.stringify(tree, null, 2))
 
-  await bro.close()
+  await bro.stop()
 }
 
 main()
@@ -450,7 +450,7 @@ Here's the full pattern: inspect the tree, then use what you learn to find and i
 ```javascript
 const { browser } = require('vibium/sync')
 
-const bro = browser.launch()
+const bro = browser.start()
 const vibe = bro.page()
 
 vibe.setContent(`
@@ -484,7 +484,7 @@ vibe.find({ role: 'button', label: btn.name }).click()
 // 5. Read state using CSS selectors
 console.log('Heading:', vibe.find('h1').text())
 
-bro.close()
+bro.stop()
 ```
 
 **Async:**
@@ -493,7 +493,7 @@ bro.close()
 const { browser } = require('vibium')
 
 async function main() {
-  const bro = await browser.launch()
+  const bro = await browser.start()
   const vibe = await bro.page()
 
   await vibe.setContent(`
@@ -527,7 +527,7 @@ async function main() {
   // 5. Read state using CSS selectors
   console.log('Heading:', await vibe.find('h1').text())
 
-  await bro.close()
+  await bro.stop()
 }
 
 main()

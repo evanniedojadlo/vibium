@@ -18,7 +18,7 @@ This automatically downloads Chrome for Testing on first install.
 import { browser } from 'vibium'
 import { writeFile } from 'fs/promises'
 
-const bro = await browser.launch()
+const bro = await browser.start()
 const vibe = await bro.page()
 await vibe.go('https://example.com')
 
@@ -29,7 +29,7 @@ await link.click()
 const screenshot = await vibe.screenshot()
 await writeFile('screenshot.png', screenshot)
 
-await bro.close()
+await bro.stop()
 ```
 
 ### Sync API
@@ -38,7 +38,7 @@ await bro.close()
 const { browser } = require('vibium/sync')
 const { writeFileSync } = require('fs')
 
-const bro = browser.launch()
+const bro = browser.start()
 const vibe = bro.page()
 vibe.go('https://example.com')
 
@@ -49,17 +49,17 @@ link.click()
 const screenshot = vibe.screenshot()
 writeFileSync('screenshot.png', screenshot)
 
-bro.close()
+bro.stop()
 ```
 
 ## API Reference
 
-### browser.launch(options?)
+### browser.start(options?)
 
-Launch a new browser session. Returns a `Browser`.
+Start a new browser session. Returns a `Browser`.
 
 ```javascript
-const bro = await browser.launch({ headless: true })
+const bro = await browser.start({ headless: true })
 ```
 
 | Option | Type | Default | Description |
@@ -102,12 +102,12 @@ Capture a screenshot. Returns a `Buffer` (PNG).
 const png = await vibe.screenshot()
 ```
 
-### bro.close()
+### bro.stop()
 
 Close the browser session.
 
 ```javascript
-await bro.close()
+await bro.stop()
 ```
 
 ### element.click(options?)

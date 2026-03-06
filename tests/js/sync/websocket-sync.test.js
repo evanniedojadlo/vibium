@@ -51,8 +51,8 @@ after(async () => {
 
 describe('Sync API: onWebSocket', () => {
   let bro;
-  before(() => { bro = browser.launch({ headless: true }); });
-  after(() => { bro.close(); });
+  before(() => { bro = browser.start({ headless: true }); });
+  after(() => { bro.stop(); });
 
   test('onWebSocket fires when page creates a WebSocket', () => {
     const vibe = bro.newPage();

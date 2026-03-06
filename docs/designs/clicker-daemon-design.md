@@ -10,7 +10,7 @@
 Every `clicker` CLI command today is one-shot: launch Chrome → execute action → tear down. This means:
 
 - **No session continuity.** An agent that wants to navigate, then find an element, then click, then read text must pay the browser startup cost each time and loses all state between commands.
-- **MCP tools are isolated.** `browser_launch` starts a browser, but the MCP server running in stdio mode already manages its own lifecycle — the CLI and MCP are two separate worlds that can't share a session.
+- **MCP tools are isolated.** `browser_start` starts a browser, but the MCP server running in stdio mode already manages its own lifecycle — the CLI and MCP are two separate worlds that can't share a session.
 - **Impossible to build multi-step workflows.** The CLI is useless for anything beyond single-action screenshots. Agents need a living browser they can interact with over time.
 - **MCP locks out most agents.** MCP requires explicit client support — the agent framework has to implement the protocol. A CLI tool that persists state and outputs JSON works with *every* agent that can shell out. That's all of them.
 
@@ -217,7 +217,7 @@ Every CLI subcommand maps to exactly one MCP tool call. The CLI binary is a thin
 | `clicker wait <selector> [timeout]` | `browser_wait` | `{selector, timeout?}` | New |
 | `clicker tabs` | `browser_list_tabs` | `{}` | New |
 | `clicker keys <keys>` | `browser_keys` | `{keys}` | New |
-| `clicker quit` | `browser_quit` | `{}` | ✅ Exists |
+| `clicker quit` | `browser_stop` | `{}` | ✅ Exists |
 
 **Output modes:**
 - Default: human-readable (just the text content, for interactive use)
@@ -291,8 +291,8 @@ The daemon manages Chrome lazily:
 
 1. **Daemon starts** → no Chrome process yet.
 2. **First tool call arrives** (e.g., `browser_navigate`) → daemon launches Chrome, creates default context, executes the command.
-3. **`browser_quit` received** → Chrome process terminates, session state cleared. Next tool call launches a fresh Chrome.
-4. **`browser_launch` received while Chrome is running** → no-op (returns current session info). This maintains compatibility with the existing MCP flow where agents call `browser_launch` first.
+3. **`browser_stop` received** → Chrome process terminates, session state cleared. Next tool call launches a fresh Chrome.
+4. **`browser_start` received while Chrome is running** → no-op (returns current session info). This maintains compatibility with the existing MCP flow where agents call `browser_start` first.
 
 This means the daemon itself is extremely cheap when idle — just a process listening on a socket.
 
@@ -692,7 +692,7 @@ These are explicitly out of scope for this design but noted for future considera
 
 ## 10. Open Questions
 
-1. **Should `browser_launch` become a no-op?** Currently agents call `browser_launch` as their first action. With the daemon, Chrome launches lazily on first use. Should `browser_launch` still exist as an explicit "ensure browser is ready" signal, or should it be silently accepted and ignored?
+1. **Should `browser_start` become a no-op?** Currently agents call `browser_start` as their first action. With the daemon, Chrome launches lazily on first use. Should `browser_start` still exist as an explicit "ensure browser is ready" signal, or should it be silently accepted and ignored?
 
 2. **Socket vs. TCP for local communication.** Unix sockets are faster and don't require port allocation, but add platform-specific code. Named pipes on Windows behave differently. Is it worth supporting TCP as a fallback even on Unix for simplicity?
 

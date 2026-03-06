@@ -592,8 +592,8 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 		r.dispatch(session, cmd, r.handleVibiumElLabel)
 		return
 
-	case "vibium:browser.close":
-		r.dispatch(session, cmd, r.handleBrowserClose)
+	case "vibium:browser.stop":
+		r.dispatch(session, cmd, r.handleBrowserStop)
 		return
 	case "vibium:page.activate":
 		r.dispatch(session, cmd, r.handlePageActivate)

@@ -2,17 +2,17 @@
 
 Usage (sync, default):
     from vibium import browser
-    bro = browser.launch()
+    bro = browser.start()
     vibe = bro.new_page()
     vibe.go("https://example.com")
-    bro.close()
+    bro.stop()
 
 Usage (async):
     from vibium.async_api import browser
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.new_page()
     await vibe.go("https://example.com")
-    await bro.close()
+    await bro.stop()
 """
 
 from .sync_api.browser import browser, Browser

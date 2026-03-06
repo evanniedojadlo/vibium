@@ -7,9 +7,9 @@ from vibium import browser, Browser, Page, BrowserContext
 
 @pytest.fixture(scope="module")
 def bro():
-    b = browser.launch(headless=True)
+    b = browser.start(headless=True)
     yield b
-    b.close()
+    b.stop()
 
 
 def test_launch_returns_browser(bro):

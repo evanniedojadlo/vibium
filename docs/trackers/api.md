@@ -28,8 +28,8 @@
 | `context.newPage()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 | `browser.pages()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.close()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `browser.connect(url)` | ✅ | ✅ | ✅ | ✅ | — | ✅ |
-| `browser.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `browser.start(url)` | ✅ | ✅ | ✅ | ✅ | — | ✅ |
+| `browser.stop()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `browser.onPage(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `browser.onPopup(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `browser.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |

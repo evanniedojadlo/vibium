@@ -18,7 +18,7 @@ The fastest way to trace a session — use `page.context` to access tracing with
 const { browser } = require('vibium')
 
 async function main() {
-  const bro = await browser.launch()
+  const bro = await browser.start()
   const vibe = await bro.page()
 
   await vibe.context.tracing.start({ screenshots: true })
@@ -27,7 +27,7 @@ async function main() {
   await vibe.find('a').click()
 
   await vibe.context.tracing.stop({ path: 'trace.zip' })
-  await bro.close()
+  await bro.stop()
 }
 
 main()
@@ -45,7 +45,7 @@ Tracing lives on `BrowserContext`, not `Page`. The Quick Start above uses `page.
 const { browser } = require('vibium')
 
 async function main() {
-  const bro = await browser.launch()
+  const bro = await browser.start()
   const ctx = await bro.newContext()
   const vibe = await ctx.newPage()
 
@@ -57,7 +57,7 @@ async function main() {
   const zip = await ctx.tracing.stop()
   require('fs').writeFileSync('trace.zip', zip)
 
-  await bro.close()
+  await bro.stop()
 }
 
 main()

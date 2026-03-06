@@ -35,11 +35,11 @@ before(async () => {
     });
   });
 
-  bro = await browser.launch({ headless: true });
+  bro = await browser.start({ headless: true });
 });
 
 after(async () => {
-  await bro.close();
+  await bro.stop();
   if (server) server.close();
 });
 

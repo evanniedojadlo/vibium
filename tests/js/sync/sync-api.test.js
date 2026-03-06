@@ -1,6 +1,6 @@
 /**
  * JS Library Tests: Sync API
- * Tests browser.launch() and BrowserSync → PageSync → ElementSync.
+ * Tests browser.start() and BrowserSync → PageSync → ElementSync.
  *
  * The HTTP server runs in a child process because the sync API blocks
  * the main thread with Atomics.wait(), which would deadlock an in-process server.
@@ -35,21 +35,21 @@ before(async () => {
     setTimeout(() => reject(new Error('Server startup timeout')), 5000);
   });
 
-  bro = browser.launch({ headless: true });
+  bro = browser.start({ headless: true });
 });
 
 after(() => {
-  bro.close();
+  bro.stop();
   if (serverProcess) serverProcess.kill();
 });
 
 // --- Tests ---
 
 describe('Sync API: Browser lifecycle', () => {
-  test('browser.launch() and close()', () => {
-    const bro = browser.launch({ headless: true });
+  test('browser.start() and stop()', () => {
+    const bro = browser.start({ headless: true });
     assert.ok(bro, 'Should return a BrowserSync instance');
-    bro.close();
+    bro.stop();
   });
 
   test('browser.page() returns default page', () => {
@@ -679,7 +679,7 @@ describe('Sync API: Dialog handler callback', () => {
 
 describe('Sync API: onPage/onPopup', () => {
   test('onPage fires for new tabs', () => {
-    const bro = browser.launch({ headless: true });
+    const bro = browser.start({ headless: true });
     try {
       const pages = [];
       bro.onPage((p) => pages.push(p));
@@ -687,12 +687,12 @@ describe('Sync API: onPage/onPopup', () => {
       assert.strictEqual(pages.length, 1);
       assert.ok(pages[0], 'Should receive a PageSync');
     } finally {
-      bro.close();
+      bro.stop();
     }
   });
 
   test('onPopup fires for window.open', () => {
-    const bro = browser.launch({ headless: true });
+    const bro = browser.start({ headless: true });
     try {
       const popups = [];
       bro.onPopup((p) => popups.push(p));
@@ -701,12 +701,12 @@ describe('Sync API: onPage/onPopup', () => {
       assert.strictEqual(popups.length, 1);
       assert.ok(popups[0], 'Should receive a PageSync');
     } finally {
-      bro.close();
+      bro.stop();
     }
   });
 
   test('removeAllListeners stops onPage callbacks', () => {
-    const bro = browser.launch({ headless: true });
+    const bro = browser.start({ headless: true });
     try {
       const pages = [];
       bro.onPage((p) => pages.push(p));
@@ -717,7 +717,7 @@ describe('Sync API: onPage/onPopup', () => {
       bro.newPage();
       assert.strictEqual(pages.length, 1, 'Should still be 1 after removing listener');
     } finally {
-      bro.close();
+      bro.stop();
     }
   });
 });

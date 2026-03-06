@@ -48,11 +48,11 @@ vibium text h1      # "Example Domain"
 ```
 
 ```bash
-# Or use the connect command
-vibium connect ws://your-server:9515/session
+# Or use the start command with a URL
+vibium start ws://your-server:9515/session
 vibium go https://example.com
 vibium title
-vibium disconnect
+vibium stop
 ```
 
 ### MCP Server
@@ -84,14 +84,14 @@ Or in your Claude Desktop / Claude Code config:
 ```javascript
 const { browser } = require('vibium/sync')
 
-const bro = browser.connect('ws://your-server:9515/session')
+const bro = browser.start('ws://your-server:9515/session')
 const page = bro.page()
 
 page.go('https://example.com')
 console.log(page.title())        // "Example Domain"
 console.log(page.find('h1').text())  // "Example Domain"
 
-bro.close()
+bro.stop()
 ```
 
 ### Python
@@ -103,14 +103,14 @@ pip install vibium
 ```python
 from vibium.sync_api import browser
 
-bro = browser.connect("ws://your-server:9515/session")
+bro = browser.start("ws://your-server:9515/session")
 page = bro.page()
 
 page.go("https://example.com")
 print(page.title())          # "Example Domain"
 print(page.find("h1").text())    # "Example Domain"
 
-bro.close()
+bro.stop()
 ```
 
 ---
@@ -137,7 +137,7 @@ vibium daemon start --connect wss://cloud.example.com/session \
 **JavaScript:**
 
 ```javascript
-const bro = browser.connect('wss://cloud.example.com/bidi', {
+const bro = browser.start('wss://cloud.example.com/bidi', {
   headers: { 'Authorization': 'Bearer my-token' }
 })
 ```
@@ -145,7 +145,7 @@ const bro = browser.connect('wss://cloud.example.com/bidi', {
 **Python:**
 
 ```python
-bro = browser.connect("wss://cloud.example.com/bidi", headers={
+bro = browser.start("wss://cloud.example.com/bidi", headers={
     "Authorization": "Bearer my-token",
 })
 ```

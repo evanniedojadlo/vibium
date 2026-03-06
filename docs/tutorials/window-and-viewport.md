@@ -21,7 +21,7 @@ Use `setViewport()` to control the CSS layout size. This is what you want for re
 const { browser } = require('vibium');
 
 async function main() {
-  const b = await browser.launch();
+  const b = await browser.start();
   const page = await b.page();
 
   // Simulate a mobile screen
@@ -29,7 +29,7 @@ async function main() {
   const vp = await page.viewport();
   console.log(vp); // { width: 375, height: 812 }
 
-  await b.close();
+  await b.stop();
 }
 
 main();
@@ -45,7 +45,7 @@ Use `setWindow()` to control the OS browser window — resize it, move it, or ch
 const { browser } = require('vibium');
 
 async function main() {
-  const b = await browser.launch();
+  const b = await browser.start();
   const page = await b.page();
 
   // Resize the window
@@ -62,7 +62,7 @@ async function main() {
   console.log(win);
   // { state: 'normal', width: 800, height: 600, x: 100, y: 100 }
 
-  await b.close();
+  await b.stop();
 }
 
 main();

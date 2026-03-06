@@ -57,13 +57,13 @@ function sleep(ms) {
 }
 
 describe('JS Async Process Cleanup', () => {
-  test('async API cleans up Chrome on close()', async () => {
+  test('async API cleans up Chrome on stop()', async () => {
     const pidsBefore = getClickerChromePids();
 
-    const bro = await browser.launch({ headless: true });
+    const bro = await browser.start({ headless: true });
     const vibe = await bro.page();
     await vibe.go(baseURL);
-    await bro.close();
+    await bro.stop();
 
     await sleep(2000);
 
@@ -82,10 +82,10 @@ describe('JS Async Process Cleanup', () => {
 
     // Run 3 sessions sequentially
     for (let i = 0; i < 3; i++) {
-      const bro = await browser.launch({ headless: true });
+      const bro = await browser.start({ headless: true });
       const vibe = await bro.page();
       await vibe.go(baseURL);
-      await bro.close();
+      await bro.stop();
     }
 
     await sleep(2000);

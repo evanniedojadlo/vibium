@@ -6,12 +6,8 @@ import { debug, info } from './utils/debug';
 
 const customInspect = Symbol.for('nodejs.util.inspect.custom');
 
-export interface LaunchOptions {
+export interface StartOptions {
   headless?: boolean;
-  executablePath?: string;
-}
-
-export interface ConnectOptions {
   headers?: Record<string, string>;
   executablePath?: string;
 }
@@ -101,10 +97,10 @@ export class Browser {
     }
   }
 
-  /** Close the browser and clean up. */
-  async close(): Promise<void> {
+  /** Stop the browser and clean up. */
+  async stop(): Promise<void> {
     try {
-      await this.client.send('vibium:browser.close', {});
+      await this.client.send('vibium:browser.stop', {});
     } catch {
       // Browser or connection may already be closed
     }
@@ -115,46 +111,58 @@ export class Browser {
   }
 }
 
+function envHeaders(): Record<string, string> {
+  const apiKey = process.env.VIBIUM_CONNECT_API_KEY;
+  return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+}
+
 export const browser = {
-  async launch(options: LaunchOptions = {}): Promise<Browser> {
+  async start(urlOrOptions?: string | StartOptions, options: StartOptions = {}): Promise<Browser> {
+    let url: string | undefined;
+    if (typeof urlOrOptions === 'object') {
+      options = urlOrOptions;
+      url = undefined;
+    } else {
+      url = urlOrOptions;
+    }
+    const connectURL = url || process.env.VIBIUM_CONNECT_URL;
+    if (connectURL) {
+      const headers = { ...envHeaders(), ...options.headers };
+      debug('connecting to remote browser', { url: connectURL });
+
+      const proc = await VibiumProcess.start({
+        connectURL,
+        connectHeaders: Object.keys(headers).length ? headers : undefined,
+        executablePath: options.executablePath,
+      });
+      debug('vibium started (connect mode)');
+
+      const client = BiDiClient.fromStreams(
+        proc.stdin,
+        proc.stdout,
+        proc.preReadyLines,
+      );
+      info('browser connected (pipe → remote)');
+
+      return new Browser(client, proc);
+    }
+
     const { headless = false, executablePath } = options;
     debug('launching browser', { headless, executablePath });
 
-    // Start the vibium pipe process
-    const process = await VibiumProcess.start({
+    const proc = await VibiumProcess.start({
       headless,
       executablePath,
     });
     debug('vibium started');
 
-    // Create BiDi client from stdin/stdout pipes
     const client = BiDiClient.fromStreams(
-      process.stdin,
-      process.stdout,
-      process.preReadyLines,
+      proc.stdin,
+      proc.stdout,
+      proc.preReadyLines,
     );
     info('browser launched (pipe)');
 
-    return new Browser(client, process);
-  },
-
-  async connect(url: string, options: ConnectOptions = {}): Promise<Browser> {
-    debug('connecting to remote browser', { url });
-
-    const process = await VibiumProcess.start({
-      connectURL: url,
-      connectHeaders: options.headers,
-      executablePath: options.executablePath,
-    });
-    debug('vibium started (connect mode)');
-
-    const client = BiDiClient.fromStreams(
-      process.stdin,
-      process.stdout,
-      process.preReadyLines,
-    );
-    info('browser connected (pipe → remote)');
-
-    return new Browser(client, process);
+    return new Browser(client, proc);
   },
 };
