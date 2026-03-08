@@ -10,7 +10,7 @@ Browser automation started with Selenium in 2004. It injected JavaScript into pa
 
 WebDriver emerged as a cleaner approach: a separate process (the "driver") that controls the browser through a native API. Each browser vendor ships their own driver (chromedriver, geckodriver, etc.).
 
-In 2018, WebDriver became a W3C standard. The protocol uses HTTP + JSON: send a POST request to click a button, get a JSON response. Simple, but fundamentally **one-way** — the client asks, the browser answers.
+In 2018, WebDriver became a W3C standard. The protocol uses HTTP + JSON: send a POST request to click a button, get a JSON response. Simple, but strictly request-response: the client drives every interaction, and the browser can never push events unprompted.
 
 ### The CDP Era (2017-present)
 
