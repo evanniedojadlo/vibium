@@ -1,4 +1,4 @@
-"""Sync Tracing wrapper."""
+"""Sync Recording wrapper."""
 
 from __future__ import annotations
 
@@ -6,14 +6,14 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .._sync_base import _EventLoopThread
-    from ..async_api.tracing import Tracing as AsyncTracing
+    from ..async_api.recording import Recording as AsyncRecording
 
 
-class Tracing:
-    """Synchronous wrapper for async Tracing."""
+class Recording:
+    """Synchronous wrapper for async Recording."""
 
-    def __init__(self, async_tracing: AsyncTracing, loop_thread: _EventLoopThread) -> None:
-        self._async = async_tracing
+    def __init__(self, async_recording: AsyncRecording, loop_thread: _EventLoopThread) -> None:
+        self._async = async_recording
         self._loop = loop_thread
 
     def start(

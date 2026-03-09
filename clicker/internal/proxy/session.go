@@ -26,7 +26,7 @@ type Session interface {
 	// from browsingContext.getTree.
 	GetContextID() (string, error)
 
-	// SetLastElementBox stores the bounding box of the last resolved element for trace recording.
+	// SetLastElementBox stores the bounding box of the last resolved element for recording.
 	SetLastElementBox(box *BoxInfo)
 }
 

@@ -1,6 +1,6 @@
 import { BiDiClient } from './bidi';
 
-export interface TracingStartOptions {
+export interface RecordingStartOptions {
   name?: string;
   screenshots?: boolean;
   snapshots?: boolean;
@@ -13,11 +13,11 @@ export interface TracingStartOptions {
   quality?: number;
 }
 
-export interface TracingStopOptions {
+export interface RecordingStopOptions {
   path?: string;
 }
 
-export class Tracing {
+export class Recording {
   private client: BiDiClient;
   private userContextId: string;
 
@@ -26,17 +26,17 @@ export class Tracing {
     this.userContextId = userContextId;
   }
 
-  /** Start trace recording. */
-  async start(options: TracingStartOptions = {}): Promise<void> {
-    await this.client.send('vibium:tracing.start', {
+  /** Start recording. */
+  async start(options: RecordingStartOptions = {}): Promise<void> {
+    await this.client.send('vibium:recording.start', {
       userContext: this.userContextId,
       ...options,
     });
   }
 
-  /** Stop trace recording and return the trace zip as a Buffer. */
-  async stop(options: TracingStopOptions = {}): Promise<Buffer> {
-    const result = await this.client.send<{ path?: string; data?: string }>('vibium:tracing.stop', {
+  /** Stop recording and return the recording zip as a Buffer. */
+  async stop(options: RecordingStopOptions = {}): Promise<Buffer> {
+    const result = await this.client.send<{ path?: string; data?: string }>('vibium:recording.stop', {
       userContext: this.userContextId,
       ...options,
     });
@@ -51,17 +51,17 @@ export class Tracing {
     return Buffer.from(result.data!, 'base64');
   }
 
-  /** Start a new trace chunk (resets event buffer, keeps resources). */
+  /** Start a new recording chunk (resets event buffer, keeps resources). */
   async startChunk(options: { name?: string; title?: string } = {}): Promise<void> {
-    await this.client.send('vibium:tracing.startChunk', {
+    await this.client.send('vibium:recording.startChunk', {
       userContext: this.userContextId,
       ...options,
     });
   }
 
-  /** Stop the current chunk and return the trace zip as a Buffer. */
-  async stopChunk(options: TracingStopOptions = {}): Promise<Buffer> {
-    const result = await this.client.send<{ path?: string; data?: string }>('vibium:tracing.stopChunk', {
+  /** Stop the current chunk and return the recording zip as a Buffer. */
+  async stopChunk(options: RecordingStopOptions = {}): Promise<Buffer> {
+    const result = await this.client.send<{ path?: string; data?: string }>('vibium:recording.stopChunk', {
       userContext: this.userContextId,
       ...options,
     });
@@ -74,9 +74,9 @@ export class Tracing {
     return Buffer.from(result.data!, 'base64');
   }
 
-  /** Start a named group of actions in the trace. */
+  /** Start a named group of actions in the recording. */
   async startGroup(name: string, options: { location?: { file: string; line?: number; column?: number } } = {}): Promise<void> {
-    await this.client.send('vibium:tracing.startGroup', {
+    await this.client.send('vibium:recording.startGroup', {
       userContext: this.userContextId,
       name,
       ...options,
@@ -85,7 +85,7 @@ export class Tracing {
 
   /** End the current group. */
   async stopGroup(): Promise<void> {
-    await this.client.send('vibium:tracing.stopGroup', {
+    await this.client.send('vibium:recording.stopGroup', {
       userContext: this.userContextId,
     });
   }

@@ -187,7 +187,7 @@ test-js: build-go
 		tests/js/async/websocket.test.js \
 		tests/js/async/console-error.test.js \
 		tests/js/async/download-file.test.js \
-		tests/js/async/tracing.test.js \
+		tests/js/async/recording.test.js \
 		tests/js/async/clock.test.js \
 		tests/js/async/emulation.test.js \
 		tests/js/async/a11y.test.js \

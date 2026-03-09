@@ -9,7 +9,7 @@ from .._types import Cookie, SetCookieParam, StorageState
 if TYPE_CHECKING:
     from ..client import BiDiClient
     from .page import Page
-    from .tracing import Tracing as TracingType
+    from .recording import Recording as RecordingType
 
 
 class BrowserContext:
@@ -18,18 +18,18 @@ class BrowserContext:
     def __init__(self, client: BiDiClient, user_context_id: str) -> None:
         self._client = client
         self._user_context_id = user_context_id
-        self._tracing: Optional[TracingType] = None
+        self._recording: Optional[RecordingType] = None
 
     @property
     def id(self) -> str:
         return self._user_context_id
 
     @property
-    def tracing(self) -> TracingType:
-        if self._tracing is None:
-            from .tracing import Tracing
-            self._tracing = Tracing(self._client, self._user_context_id)
-        return self._tracing
+    def recording(self) -> RecordingType:
+        if self._recording is None:
+            from .recording import Recording
+            self._recording = Recording(self._client, self._user_context_id)
+        return self._recording
 
     async def new_page(self) -> Page:
         """Create a new page (tab) in this context."""

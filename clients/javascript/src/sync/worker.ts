@@ -960,42 +960,42 @@ const handlers: Record<string, Handler> = {
   },
 
   // ========================
-  // Tracing commands (context-scoped)
+  // Recording commands (context-scoped)
   // ========================
 
-  'tracing.start': async (args) => {
+  'recording.start': async (args) => {
     const [contextId, options] = args as [number, any];
-    await getContext(contextId).tracing.start(options);
+    await getContext(contextId).recording.start(options);
     return { success: true };
   },
 
-  'tracing.stop': async (args) => {
+  'recording.stop': async (args) => {
     const [contextId, options] = args as [number, any];
-    const buffer = await getContext(contextId).tracing.stop(options);
+    const buffer = await getContext(contextId).recording.stop(options);
     return { data: buffer.toString('base64') };
   },
 
-  'tracing.startChunk': async (args) => {
+  'recording.startChunk': async (args) => {
     const [contextId, options] = args as [number, any];
-    await getContext(contextId).tracing.startChunk(options);
+    await getContext(contextId).recording.startChunk(options);
     return { success: true };
   },
 
-  'tracing.stopChunk': async (args) => {
+  'recording.stopChunk': async (args) => {
     const [contextId, options] = args as [number, any];
-    const buffer = await getContext(contextId).tracing.stopChunk(options);
+    const buffer = await getContext(contextId).recording.stopChunk(options);
     return { data: buffer.toString('base64') };
   },
 
-  'tracing.startGroup': async (args) => {
+  'recording.startGroup': async (args) => {
     const [contextId, name, options] = args as [number, string, any];
-    await getContext(contextId).tracing.startGroup(name, options);
+    await getContext(contextId).recording.startGroup(name, options);
     return { success: true };
   },
 
-  'tracing.stopGroup': async (args) => {
+  'recording.stopGroup': async (args) => {
     const [contextId] = args as [number];
-    await getContext(contextId).tracing.stopGroup();
+    await getContext(contextId).recording.stopGroup();
     return { success: true };
   },
 

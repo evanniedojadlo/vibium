@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from .._types import Cookie, SetCookieParam, StorageState
-from .tracing import Tracing
+from .recording import Recording
 
 if TYPE_CHECKING:
     from .._sync_base import _EventLoopThread
@@ -19,17 +19,17 @@ class BrowserContext:
     def __init__(self, async_context: AsyncBrowserContext, loop_thread: _EventLoopThread) -> None:
         self._async = async_context
         self._loop = loop_thread
-        self._tracing: Optional[Tracing] = None
+        self._recording: Optional[Recording] = None
 
     @property
     def id(self) -> str:
         return self._async.id
 
     @property
-    def tracing(self) -> Tracing:
-        if self._tracing is None:
-            self._tracing = Tracing(self._async.tracing, self._loop)
-        return self._tracing
+    def recording(self) -> Recording:
+        if self._recording is None:
+            self._recording = Recording(self._async.recording, self._loop)
+        return self._recording
 
     def new_page(self) -> Page:
         from .page import Page

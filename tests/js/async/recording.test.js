@@ -1,6 +1,6 @@
 /**
- * JS Library Tests: Tracing
- * Tests context.tracing.start/stop, screenshots, snapshots, chunks, and groups.
+ * JS Library Tests: Recording
+ * Tests context.recording.start/stop, screenshots, snapshots, chunks, and groups.
  *
  * Uses a local HTTP server — no external network dependencies.
  */
@@ -22,9 +22,9 @@ let baseURL;
 
 const HTML_PAGE = `
 <html>
-<head><title>Tracing Test</title></head>
+<head><title>Recording Test</title></head>
 <body>
-  <h1 id="heading">Hello Tracing</h1>
+  <h1 id="heading">Hello Recording</h1>
   <button id="btn" onclick="document.getElementById('heading').textContent='Clicked'">Click Me</button>
   <a href="/page2">Go to page 2</a>
 </body>
@@ -64,12 +64,12 @@ after(() => {
   if (server) server.close();
 });
 
-// --- Helper: unzip and inspect trace ---
+// --- Helper: unzip and inspect recording ---
 
-function unzipTrace(zipBuffer) {
+function unzipRecording(zipBuffer) {
   // Use Node.js built-in zlib + manual zip parsing, or shell out to unzip
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-trace-test-'));
-  const zipPath = path.join(tmpDir, 'trace.zip');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-recording-test-'));
+  const zipPath = path.join(tmpDir, 'record.zip');
   fs.writeFileSync(zipPath, zipBuffer);
   execSync(`unzip -o "${zipPath}" -d "${tmpDir}/extracted"`, { stdio: 'pipe' });
   return { tmpDir, extractedDir: path.join(tmpDir, 'extracted') };
@@ -79,7 +79,7 @@ function cleanupDir(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
-function readTraceEvents(extractedDir) {
+function readRecordingEvents(extractedDir) {
   const files = fs.readdirSync(extractedDir).filter(f => f.endsWith('.trace'));
   const events = [];
   for (const file of files) {
@@ -109,25 +109,25 @@ function readNetworkEvents(extractedDir) {
 
 // --- Tests ---
 
-describe('Tracing: basic start/stop', () => {
-  test('start and stop produces valid trace zip', async () => {
+describe('Recording: basic start/stop', () => {
+  test('start and stop produces valid recording zip', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start({ name: 'basic-test' });
+      await ctx.recording.start({ name: 'basic-test' });
       await vibe.go(baseURL);
       await vibe.find('#btn').click();
       await vibe.wait(200);
-      const zipBuffer = await ctx.tracing.stop();
+      const zipBuffer = await ctx.recording.stop();
 
       assert.ok(Buffer.isBuffer(zipBuffer), 'stop() should return a Buffer');
       assert.ok(zipBuffer.length > 0, 'zip should not be empty');
 
       // Verify zip structure
-      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      const { tmpDir: td, extractedDir } = unzipRecording(zipBuffer);
       tmpDir = td;
 
       const files = fs.readdirSync(extractedDir);
@@ -135,8 +135,8 @@ describe('Tracing: basic start/stop', () => {
       assert.ok(files.some(f => f.endsWith('.network')), 'zip should contain a .network file');
 
       // Verify first event is context-options
-      const events = readTraceEvents(extractedDir);
-      assert.ok(events.length > 0, 'should have trace events');
+      const events = readRecordingEvents(extractedDir);
+      assert.ok(events.length > 0, 'should have recording events');
       assert.strictEqual(events[0].type, 'context-options');
       assert.strictEqual(events[0].browserName, 'chromium');
 
@@ -147,30 +147,30 @@ describe('Tracing: basic start/stop', () => {
     }
   });
 
-  test('page.context.tracing shortcut produces valid trace', async () => {
+  test('page.context.recording shortcut produces valid recording', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       // Use bro.page() instead of explicit newContext() → newPage()
       const vibe = await bro.page();
 
-      await vibe.context.tracing.start({ name: 'context-shortcut' });
+      await vibe.context.recording.start({ name: 'context-shortcut' });
       await vibe.go(baseURL);
       await vibe.find('#btn').click();
       await vibe.wait(200);
-      const zipBuffer = await vibe.context.tracing.stop();
+      const zipBuffer = await vibe.context.recording.stop();
 
       assert.ok(Buffer.isBuffer(zipBuffer), 'stop() should return a Buffer');
       assert.ok(zipBuffer.length > 0, 'zip should not be empty');
 
-      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      const { tmpDir: td, extractedDir } = unzipRecording(zipBuffer);
       tmpDir = td;
 
       const files = fs.readdirSync(extractedDir);
       assert.ok(files.some(f => f.endsWith('.trace')), 'zip should contain a .trace file');
 
-      const events = readTraceEvents(extractedDir);
-      assert.ok(events.length > 0, 'should have trace events');
+      const events = readRecordingEvents(extractedDir);
+      assert.ok(events.length > 0, 'should have recording events');
       assert.strictEqual(events[0].type, 'context-options');
     } finally {
       await bro.stop();
@@ -178,21 +178,21 @@ describe('Tracing: basic start/stop', () => {
     }
   });
 
-  test('stop with path writes trace to file', async () => {
+  test('stop with path writes recording to file', async () => {
     const bro = await browser.start({ headless: true });
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-trace-path-'));
-    const tracePath = path.join(tmpDir, 'my-trace.zip');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-recording-path-'));
+    const recordPath = path.join(tmpDir, 'my-recording.zip');
     try {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start();
+      await ctx.recording.start();
       await vibe.go(baseURL);
-      const zipBuffer = await ctx.tracing.stop({ path: tracePath });
+      const zipBuffer = await ctx.recording.stop({ path: recordPath });
 
-      assert.ok(fs.existsSync(tracePath), 'trace file should exist at the given path');
-      const fileSize = fs.statSync(tracePath).size;
-      assert.ok(fileSize > 0, 'trace file should not be empty');
+      assert.ok(fs.existsSync(recordPath), 'recording file should exist at the given path');
+      const fileSize = fs.statSync(recordPath).size;
+      assert.ok(fileSize > 0, 'recording file should not be empty');
 
       await ctx.close();
     } finally {
@@ -202,7 +202,7 @@ describe('Tracing: basic start/stop', () => {
   });
 });
 
-describe('Tracing: screenshots', () => {
+describe('Recording: screenshots', () => {
   test('screenshots option captures PNG resources', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir;
@@ -210,15 +210,15 @@ describe('Tracing: screenshots', () => {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start({ screenshots: true });
+      await ctx.recording.start({ screenshots: true });
       await vibe.go(baseURL);
       // Wait for some screenshots to be captured
       await vibe.wait(500);
       await vibe.find('#btn').click();
       await vibe.wait(500);
-      const zipBuffer = await ctx.tracing.stop();
+      const zipBuffer = await ctx.recording.stop();
 
-      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      const { tmpDir: td, extractedDir } = unzipRecording(zipBuffer);
       tmpDir = td;
 
       // Check for PNG resources
@@ -228,8 +228,8 @@ describe('Tracing: screenshots', () => {
       const resources = fs.readdirSync(resourcesDir);
       assert.ok(resources.length > 0, `Should have screenshot resources, got: ${resources.join(', ')}`);
 
-      // Check for screencast-frame events in trace
-      const events = readTraceEvents(extractedDir);
+      // Check for screencast-frame events in recording
+      const events = readRecordingEvents(extractedDir);
       const frames = events.filter(e => e.type === 'screencast-frame');
       assert.ok(frames.length > 0, 'should have screencast-frame events');
       assert.ok(frames[0].sha1, 'screencast-frame should have sha1');
@@ -244,7 +244,7 @@ describe('Tracing: screenshots', () => {
   });
 });
 
-describe('Tracing: snapshots', () => {
+describe('Recording: snapshots', () => {
   test('snapshots option produces frame-snapshot events with DOM arrays', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir;
@@ -252,16 +252,16 @@ describe('Tracing: snapshots', () => {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start({ snapshots: true });
+      await ctx.recording.start({ snapshots: true });
       await vibe.go(baseURL);
       await vibe.find('#btn').click();
       await vibe.wait(200);
-      const zipBuffer = await ctx.tracing.stop();
+      const zipBuffer = await ctx.recording.stop();
 
-      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      const { tmpDir: td, extractedDir } = unzipRecording(zipBuffer);
       tmpDir = td;
 
-      const events = readTraceEvents(extractedDir);
+      const events = readRecordingEvents(extractedDir);
 
       // Should have frame-snapshot events
       const snapshots = events.filter(e => e.type === 'frame-snapshot');
@@ -320,44 +320,44 @@ describe('Tracing: snapshots', () => {
   });
 });
 
-describe('Tracing: chunks', () => {
-  test('startChunk/stopChunk produces separate trace zips', async () => {
+describe('Recording: chunks', () => {
+  test('startChunk/stopChunk produces separate recording zips', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir1, tmpDir2;
     try {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start({ name: 'chunk-test' });
+      await ctx.recording.start({ name: 'chunk-test' });
       await vibe.go(baseURL);
       await vibe.wait(200);
 
       // Stop first chunk
-      const zip1 = await ctx.tracing.stopChunk();
+      const zip1 = await ctx.recording.stopChunk();
       assert.ok(Buffer.isBuffer(zip1), 'first chunk should return a Buffer');
 
       // Start second chunk
-      await ctx.tracing.startChunk({ name: 'chunk-2' });
+      await ctx.recording.startChunk({ name: 'chunk-2' });
       await vibe.go(baseURL + '/page2');
       await vibe.wait(200);
 
       // Stop second chunk
-      const zip2 = await ctx.tracing.stopChunk();
+      const zip2 = await ctx.recording.stopChunk();
       assert.ok(Buffer.isBuffer(zip2), 'second chunk should return a Buffer');
 
       // Verify both zips are valid
-      const { tmpDir: td1, extractedDir: ed1 } = unzipTrace(zip1);
+      const { tmpDir: td1, extractedDir: ed1 } = unzipRecording(zip1);
       tmpDir1 = td1;
-      const events1 = readTraceEvents(ed1);
+      const events1 = readRecordingEvents(ed1);
       assert.ok(events1.length > 0, 'first chunk should have events');
 
-      const { tmpDir: td2, extractedDir: ed2 } = unzipTrace(zip2);
+      const { tmpDir: td2, extractedDir: ed2 } = unzipRecording(zip2);
       tmpDir2 = td2;
-      const events2 = readTraceEvents(ed2);
+      const events2 = readRecordingEvents(ed2);
       assert.ok(events2.length > 0, 'second chunk should have events');
 
-      // Stop tracing
-      await ctx.tracing.stop();
+      // Stop recording
+      await ctx.recording.stop();
       await ctx.close();
     } finally {
       await bro.stop();
@@ -367,28 +367,28 @@ describe('Tracing: chunks', () => {
   });
 });
 
-describe('Tracing: groups', () => {
-  test('startGroup/stopGroup adds group markers to trace', async () => {
+describe('Recording: groups', () => {
+  test('startGroup/stopGroup adds group markers to recording', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start({ name: 'group-test' });
+      await ctx.recording.start({ name: 'group-test' });
       await vibe.go(baseURL);
 
-      await ctx.tracing.startGroup('login flow');
+      await ctx.recording.startGroup('login flow');
       await vibe.find('#btn').click();
       await vibe.wait(200);
-      await ctx.tracing.stopGroup();
+      await ctx.recording.stopGroup();
 
-      const zipBuffer = await ctx.tracing.stop();
+      const zipBuffer = await ctx.recording.stop();
 
-      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      const { tmpDir: td, extractedDir } = unzipRecording(zipBuffer);
       tmpDir = td;
 
-      const events = readTraceEvents(extractedDir);
+      const events = readRecordingEvents(extractedDir);
 
       // Look for before/after events from groups
       const beforeEvents = events.filter(e => e.type === 'before' && e.title === 'login flow');
@@ -405,20 +405,20 @@ describe('Tracing: groups', () => {
   });
 });
 
-describe('Tracing: network events', () => {
-  test('trace records network events as HAR resource-snapshots', async () => {
+describe('Recording: network events', () => {
+  test('recording captures network events as HAR resource-snapshots', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start({ name: 'network-test' });
+      await ctx.recording.start({ name: 'network-test' });
       await vibe.go(baseURL);
       await vibe.wait(500);
-      const zipBuffer = await ctx.tracing.stop();
+      const zipBuffer = await ctx.recording.stop();
 
-      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      const { tmpDir: td, extractedDir } = unzipRecording(zipBuffer);
       tmpDir = td;
 
       const networkEvents = readNetworkEvents(extractedDir);
@@ -474,34 +474,34 @@ describe('Tracing: network events', () => {
   });
 });
 
-describe('Tracing: zip structure', () => {
-  test('trace zip has correct Playwright-compatible structure', async () => {
+describe('Recording: zip structure', () => {
+  test('recording zip has correct Playwright-compatible structure', async () => {
     const bro = await browser.start({ headless: true });
     let tmpDir;
     try {
       const ctx = await bro.newContext();
       const vibe = await ctx.newPage();
 
-      await ctx.tracing.start({ screenshots: true, snapshots: true });
+      await ctx.recording.start({ screenshots: true, snapshots: true });
       await vibe.go(baseURL);
       await vibe.wait(500);
-      const zipBuffer = await ctx.tracing.stop();
+      const zipBuffer = await ctx.recording.stop();
 
-      const { tmpDir: td, extractedDir } = unzipTrace(zipBuffer);
+      const { tmpDir: td, extractedDir } = unzipRecording(zipBuffer);
       tmpDir = td;
 
       const files = fs.readdirSync(extractedDir);
 
-      // Must have trace file matching pattern <n>-trace.trace
+      // Must have trace file matching pattern <n>-trace.trace (Playwright-compatible internal format)
       const traceFiles = files.filter(f => /^\d+-trace\.trace$/.test(f));
       assert.ok(traceFiles.length > 0, 'should have numbered trace file');
 
-      // Must have network file matching pattern <n>-trace.network
+      // Must have network file matching pattern <n>-trace.network (Playwright-compatible internal format)
       const networkFiles = files.filter(f => /^\d+-trace\.network$/.test(f));
       assert.ok(networkFiles.length > 0, 'should have numbered network file');
 
-      // Parse trace and verify event types
-      const events = readTraceEvents(extractedDir);
+      // Parse recording and verify event types
+      const events = readRecordingEvents(extractedDir);
       const types = [...new Set(events.map(e => e.type))];
       assert.ok(types.includes('context-options'), `should include context-options, got: ${types.join(', ')}`);
 

@@ -422,12 +422,12 @@ vibe.find(placeholder='Search...')
 
 | Vibium | Playwright equiv | Implementation | Notes |
 |--------|-----------------|----------------|-------|
-| `context.tracing.start(opts)` | `tracing.start()` | BiDi: record events + periodic screenshots | Options: name, screenshots, snapshots, sources, title |
-| `context.tracing.stop(opts)` | `tracing.stop()` | Package trace into Playwright-compatible zip | Option: path |
-| `context.tracing.startChunk(opts)` | `tracing.startChunk()` | Reset event buffer, increment chunk index | Options: name, title |
-| `context.tracing.stopChunk(opts)` | `tracing.stopChunk()` | Package current chunk into zip | Option: path |
-| `context.tracing.startGroup(name)` | `tracing.group()` | Add group-start marker to trace | Renamed for start/stop consistency |
-| `context.tracing.stopGroup()` | `tracing.groupEnd()` | Add group-end marker to trace | Renamed for start/stop consistency |
+| `context.recording.start(opts)` | `tracing.start()` | BiDi: record events + periodic screenshots | Options: name, screenshots, snapshots, sources, title |
+| `context.recording.stop(opts)` | `tracing.stop()` | Package recording into Playwright-compatible zip | Option: path |
+| `context.recording.startChunk(opts)` | `tracing.startChunk()` | Reset event buffer, increment chunk index | Options: name, title |
+| `context.recording.stopChunk(opts)` | `tracing.stopChunk()` | Package current chunk into zip | Option: path |
+| `context.recording.startGroup(name)` | `tracing.group()` | Add group-start marker to recording | Renamed for start/stop consistency |
+| `context.recording.stopGroup()` | `tracing.groupEnd()` | Add group-end marker to recording | Renamed for start/stop consistency |
 
 ### 21. Evaluation (4 commands)
 
@@ -574,7 +574,7 @@ Network interception (`route`, `fulfill`, `abort`), `addInitScript`, accessibili
 
 ### Tier 4 — Extras
 
-Clock mocking, tracing, storage state serialization, touch input, `expose`.
+Clock mocking, recording, storage state serialization, touch input, `expose`.
 
 ~5 command groups. Nice-to-have, not blockers.
 

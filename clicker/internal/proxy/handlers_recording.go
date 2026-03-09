@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-// handleTracingStart handles vibium:tracing.start — starts trace recording.
+// handleRecordingStart handles vibium:recording.start — starts recording.
 // Options: name, screenshots, snapshots, sources, title.
-func (r *Router) handleTracingStart(session *BrowserSession, cmd bidiCommand) {
+func (r *Router) handleRecordingStart(session *BrowserSession, cmd bidiCommand) {
 	// Parse options
-	var opts TracingStartOptions
+	var opts RecordingStartOptions
 	if name, ok := cmd.Params["name"].(string); ok {
 		opts.Name = name
 	}
@@ -40,12 +40,12 @@ func (r *Router) handleTracingStart(session *BrowserSession, cmd bidiCommand) {
 		opts.Quality = q
 	}
 
-	// Create and start the trace recorder
-	recorder := NewTraceRecorder()
+	// Create and start the recorder
+	recorder := NewRecorder()
 	recorder.Start(opts)
 
 	session.mu.Lock()
-	session.traceRecorder = recorder
+	session.recorder = recorder
 	session.mu.Unlock()
 
 	// Screenshots are captured per-action in dispatch(), not via a background loop.
@@ -53,15 +53,15 @@ func (r *Router) handleTracingStart(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
-// handleTracingStop handles vibium:tracing.stop — stops recording and returns trace data.
+// handleRecordingStop handles vibium:recording.stop — stops recording and returns recording data.
 // Options: path (file path to save zip).
-func (r *Router) handleTracingStop(session *BrowserSession, cmd bidiCommand) {
+func (r *Router) handleRecordingStop(session *BrowserSession, cmd bidiCommand) {
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 
 	if recorder == nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("tracing is not started"))
+		r.sendError(session, cmd.ID, fmt.Errorf("recording is not started"))
 		return
 	}
 
@@ -74,13 +74,13 @@ func (r *Router) handleTracingStop(session *BrowserSession, cmd bidiCommand) {
 
 	// Clear the recorder from the session
 	session.mu.Lock()
-	session.traceRecorder = nil
+	session.recorder = nil
 	session.mu.Unlock()
 
 	// Write to file or return base64
 	if path, ok := cmd.Params["path"].(string); ok && path != "" {
-		if err := WriteTraceToFile(zipData, path); err != nil {
-			r.sendError(session, cmd.ID, fmt.Errorf("failed to write trace: %w", err))
+		if err := WriteRecordToFile(zipData, path); err != nil {
+			r.sendError(session, cmd.ID, fmt.Errorf("failed to write recording: %w", err))
 			return
 		}
 		r.sendSuccess(session, cmd.ID, map[string]interface{}{"path": path})
@@ -90,15 +90,15 @@ func (r *Router) handleTracingStop(session *BrowserSession, cmd bidiCommand) {
 	}
 }
 
-// handleTracingStartChunk handles vibium:tracing.startChunk — starts a new trace chunk.
+// handleRecordingStartChunk handles vibium:recording.startChunk — starts a new recording chunk.
 // Options: name, title.
-func (r *Router) handleTracingStartChunk(session *BrowserSession, cmd bidiCommand) {
+func (r *Router) handleRecordingStartChunk(session *BrowserSession, cmd bidiCommand) {
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 
 	if recorder == nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("tracing is not started"))
+		r.sendError(session, cmd.ID, fmt.Errorf("recording is not started"))
 		return
 	}
 
@@ -109,15 +109,15 @@ func (r *Router) handleTracingStartChunk(session *BrowserSession, cmd bidiComman
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
-// handleTracingStopChunk handles vibium:tracing.stopChunk — stops the current chunk.
+// handleRecordingStopChunk handles vibium:recording.stopChunk — stops the current chunk.
 // Options: path (file path to save zip).
-func (r *Router) handleTracingStopChunk(session *BrowserSession, cmd bidiCommand) {
+func (r *Router) handleRecordingStopChunk(session *BrowserSession, cmd bidiCommand) {
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 
 	if recorder == nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("tracing is not started"))
+		r.sendError(session, cmd.ID, fmt.Errorf("recording is not started"))
 		return
 	}
 
@@ -128,8 +128,8 @@ func (r *Router) handleTracingStopChunk(session *BrowserSession, cmd bidiCommand
 	}
 
 	if path, ok := cmd.Params["path"].(string); ok && path != "" {
-		if err := WriteTraceToFile(zipData, path); err != nil {
-			r.sendError(session, cmd.ID, fmt.Errorf("failed to write trace chunk: %w", err))
+		if err := WriteRecordToFile(zipData, path); err != nil {
+			r.sendError(session, cmd.ID, fmt.Errorf("failed to write recording chunk: %w", err))
 			return
 		}
 		r.sendSuccess(session, cmd.ID, map[string]interface{}{"path": path})
@@ -139,20 +139,20 @@ func (r *Router) handleTracingStopChunk(session *BrowserSession, cmd bidiCommand
 	}
 }
 
-// handleTracingStartGroup handles vibium:tracing.startGroup — starts a named group in the trace.
-func (r *Router) handleTracingStartGroup(session *BrowserSession, cmd bidiCommand) {
+// handleRecordingStartGroup handles vibium:recording.startGroup — starts a named group in the recording.
+func (r *Router) handleRecordingStartGroup(session *BrowserSession, cmd bidiCommand) {
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 
 	if recorder == nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("tracing is not started"))
+		r.sendError(session, cmd.ID, fmt.Errorf("recording is not started"))
 		return
 	}
 
 	name, _ := cmd.Params["name"].(string)
 	if name == "" {
-		r.sendError(session, cmd.ID, fmt.Errorf("name is required for tracing.startGroup"))
+		r.sendError(session, cmd.ID, fmt.Errorf("name is required for recording.startGroup"))
 		return
 	}
 
@@ -160,14 +160,14 @@ func (r *Router) handleTracingStartGroup(session *BrowserSession, cmd bidiComman
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
-// handleTracingStopGroup handles vibium:tracing.stopGroup — ends the current group.
-func (r *Router) handleTracingStopGroup(session *BrowserSession, cmd bidiCommand) {
+// handleRecordingStopGroup handles vibium:recording.stopGroup — ends the current group.
+func (r *Router) handleRecordingStopGroup(session *BrowserSession, cmd bidiCommand) {
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 
 	if recorder == nil {
-		r.sendError(session, cmd.ID, fmt.Errorf("tracing is not started"))
+		r.sendError(session, cmd.ID, fmt.Errorf("recording is not started"))
 		return
 	}
 
@@ -176,7 +176,7 @@ func (r *Router) handleTracingStopGroup(session *BrowserSession, cmd bidiCommand
 }
 
 // screenshotParams builds the BiDi captureScreenshot params with optional format/quality.
-func screenshotParams(context string, opts TracingStartOptions) map[string]interface{} {
+func screenshotParams(context string, opts RecordingStartOptions) map[string]interface{} {
 	params := map[string]interface{}{"context": context}
 	if opts.Format == "jpeg" {
 		f := map[string]interface{}{"type": "image/jpeg"}
@@ -188,9 +188,9 @@ func screenshotParams(context string, opts TracingStartOptions) map[string]inter
 	return params
 }
 
-// captureScreenshotForTrace takes a screenshot via BiDi for the trace recorder.
+// captureScreenshotForRecording takes a screenshot via BiDi for the recorder.
 // Returns (base64 image data, pageID, error).
-func (r *Router) captureScreenshotForTrace(session *BrowserSession, opts TracingStartOptions) (string, string, error) {
+func (r *Router) captureScreenshotForRecording(session *BrowserSession, opts RecordingStartOptions) (string, string, error) {
 	// Check session is still alive and get last known context
 	session.mu.Lock()
 	closed := session.closed
@@ -231,15 +231,15 @@ func (r *Router) captureScreenshotForTrace(session *BrowserSession, opts Tracing
 }
 
 // captureBeforeSnapshotAfterScroll captures a before-snapshot for click-like
-// actions after the element has been scrolled into view. Called from handlers
-// between resolveWithActionability and the actual input action.
+// actions after the element has been scrolled into view. Called from recording
+// handlers between resolveWithActionability and the actual input action.
 func (r *Router) captureBeforeSnapshotAfterScroll(session *BrowserSession, params map[string]interface{}) {
-	callId, _ := params["_traceCallId"].(string)
+	callId, _ := params["_recordCallId"].(string)
 	if callId == "" {
 		return
 	}
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 	if recorder == nil || !recorder.IsRecording() {
 		return
@@ -254,9 +254,9 @@ func (r *Router) captureBeforeSnapshotAfterScroll(session *BrowserSession, param
 }
 
 // captureActionSnapshot captures a screenshot and wraps it as a frame-snapshot
-// for the Playwright trace viewer. Returns the snapshot name (e.g. "before@call@1")
-// or "" on failure.
-func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *TraceRecorder, params map[string]interface{}, callId, snapshotType string) string {
+// for the Record Player / Playwright trace viewer. Returns the snapshot name
+// (e.g. "before@call@1") or "" on failure.
+func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *Recorder, params map[string]interface{}, callId, snapshotType string) string {
 	session.mu.Lock()
 	closed := session.closed
 	session.mu.Unlock()
@@ -310,7 +310,7 @@ func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *TraceR
 	}
 	w, h := imageDimensions(imgData)
 
-	// Store image in resources for Vibium viewer
+	// Store image in resources for Record Player
 	hash := sha1Hex(imgData)
 	recorder.StoreResource(hash, imgData)
 
@@ -356,8 +356,8 @@ func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *TraceR
 // It extracts the browsing context from the command's own params so each concurrent
 // goroutine resolves its own context independently — no cross-goroutine race.
 // actionEnd is used as the screencast-frame timestamp so the screenshot aligns with
-// the action's endTime in the trace timeline rather than the (later) capture time.
-func (r *Router) capturePostActionScreenshot(session *BrowserSession, recorder *TraceRecorder, params map[string]interface{}, actionEnd time.Time) {
+// the action's endTime in the recording timeline rather than the (later) capture time.
+func (r *Router) capturePostActionScreenshot(session *BrowserSession, recorder *Recorder, params map[string]interface{}, actionEnd time.Time) {
 	session.mu.Lock()
 	closed := session.closed
 	session.mu.Unlock()

@@ -29,12 +29,12 @@ type Handlers struct {
 	connectHeaders http.Header // headers for remote WebSocket connection
 	refMap         map[string]string // @e1 -> CSS selector
 	lastMap        string            // last map output (for diff)
-	traceRecorder  *traceRecorder
+	recorder       *recorder
 	downloadDir    string
 }
 
-// traceRecorder records browser traces (screenshots + snapshots).
-type traceRecorder struct {
+// recorder records browser sessions (screenshots + snapshots).
+type recorder struct {
 	name        string
 	screenshots bool
 	snapshots   bool
@@ -45,19 +45,19 @@ type traceRecorder struct {
 	snapData    []string // HTML snapshots
 }
 
-func (t *traceRecorder) addScreenshot(data string) {
+func (t *recorder) addScreenshot(data string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.screenData = append(t.screenData, data)
 }
 
-func (t *traceRecorder) addSnapshot(html string) {
+func (t *recorder) addSnapshot(html string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.snapData = append(t.snapData, html)
 }
 
-func (t *traceRecorder) writeZip(path string) error {
+func (t *recorder) writeZip(path string) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -281,10 +281,10 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserFrame(args)
 	case "browser_upload":
 		return h.browserUpload(args)
-	case "browser_trace_start":
-		return h.browserTraceStart(args)
-	case "browser_trace_stop":
-		return h.browserTraceStop(args)
+	case "browser_record_start":
+		return h.browserRecordStart(args)
+	case "browser_record_stop":
+		return h.browserRecordStop(args)
 	case "browser_storage_state":
 		return h.browserStorageState(args)
 	case "browser_restore_storage":
@@ -3370,24 +3370,24 @@ func (h *Handlers) browserUpload(args map[string]interface{}) (*ToolsCallResult,
 	}, nil
 }
 
-// browserTraceStart starts trace recording.
-func (h *Handlers) browserTraceStart(args map[string]interface{}) (*ToolsCallResult, error) {
+// browserRecordStart starts recording.
+func (h *Handlers) browserRecordStart(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
-	if h.traceRecorder != nil {
-		return nil, fmt.Errorf("trace already recording — stop it first")
+	if h.recorder != nil {
+		return nil, fmt.Errorf("already recording — stop it first")
 	}
 
 	name, _ := args["name"].(string)
 	if name == "" {
-		name = "trace"
+		name = "record"
 	}
 	screenshots, _ := args["screenshots"].(bool)
 	snapshots, _ := args["snapshots"].(bool)
 
-	h.traceRecorder = &traceRecorder{
+	h.recorder = &recorder{
 		name:        name,
 		screenshots: screenshots,
 		snapshots:   snapshots,
@@ -3396,18 +3396,18 @@ func (h *Handlers) browserTraceStart(args map[string]interface{}) (*ToolsCallRes
 
 	// Start screenshot capture loop in background
 	if screenshots {
-		h.traceRecorder.done = make(chan struct{})
+		h.recorder.done = make(chan struct{})
 		go func() {
 			ticker := time.NewTicker(500 * time.Millisecond)
 			defer ticker.Stop()
 			for {
 				select {
-				case <-h.traceRecorder.done:
+				case <-h.recorder.done:
 					return
 				case <-ticker.C:
 					data, err := h.client.CaptureScreenshot("")
 					if err == nil {
-						h.traceRecorder.addScreenshot(data)
+						h.recorder.addScreenshot(data)
 					}
 				}
 			}
@@ -3418,54 +3418,54 @@ func (h *Handlers) browserTraceStart(args map[string]interface{}) (*ToolsCallRes
 	if snapshots {
 		html, err := h.client.Evaluate("", "document.documentElement.outerHTML")
 		if err == nil && html != nil {
-			h.traceRecorder.addSnapshot(fmt.Sprintf("%v", html))
+			h.recorder.addSnapshot(fmt.Sprintf("%v", html))
 		}
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Trace %q started (screenshots: %v, snapshots: %v)", name, screenshots, snapshots),
+			Text: fmt.Sprintf("Recording %q started (screenshots: %v, snapshots: %v)", name, screenshots, snapshots),
 		}},
 	}, nil
 }
 
-// browserTraceStop stops trace recording and saves to a ZIP file.
-func (h *Handlers) browserTraceStop(args map[string]interface{}) (*ToolsCallResult, error) {
-	if h.traceRecorder == nil {
-		return nil, fmt.Errorf("no trace recording in progress")
+// browserRecordStop stops recording and saves to a ZIP file.
+func (h *Handlers) browserRecordStop(args map[string]interface{}) (*ToolsCallResult, error) {
+	if h.recorder == nil {
+		return nil, fmt.Errorf("no recording in progress")
 	}
 
 	path, _ := args["path"].(string)
 	if path == "" {
-		path = "trace.zip"
+		path = "record.zip"
 	}
 
 	// Capture final snapshot if enabled
-	if h.traceRecorder.snapshots && h.client != nil {
+	if h.recorder.snapshots && h.client != nil {
 		html, err := h.client.Evaluate("", "document.documentElement.outerHTML")
 		if err == nil && html != nil {
-			h.traceRecorder.addSnapshot(fmt.Sprintf("%v", html))
+			h.recorder.addSnapshot(fmt.Sprintf("%v", html))
 		}
 	}
 
 	// Stop screenshot loop
-	if h.traceRecorder.done != nil {
-		close(h.traceRecorder.done)
+	if h.recorder.done != nil {
+		close(h.recorder.done)
 	}
 
 	// Write ZIP
-	if err := h.traceRecorder.writeZip(path); err != nil {
-		h.traceRecorder = nil
-		return nil, fmt.Errorf("failed to write trace: %w", err)
+	if err := h.recorder.writeZip(path); err != nil {
+		h.recorder = nil
+		return nil, fmt.Errorf("failed to write recording: %w", err)
 	}
 
-	h.traceRecorder = nil
+	h.recorder = nil
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Trace saved to %s", path),
+			Text: fmt.Sprintf("Recording saved to %s", path),
 		}},
 	}, nil
 }

@@ -1,17 +1,17 @@
 import { SyncBridge } from './bridge';
 import { PageSync } from './page';
-import { TracingSync } from './tracing';
+import { RecordingSync } from './recording';
 import { Cookie, SetCookieParam, StorageState } from '../context';
 
 export class BrowserContextSync {
   private bridge: SyncBridge;
   private contextId: number;
-  readonly tracing: TracingSync;
+  readonly recording: RecordingSync;
 
   constructor(bridge: SyncBridge, contextId: number) {
     this.bridge = bridge;
     this.contextId = contextId;
-    this.tracing = new TracingSync(bridge, contextId);
+    this.recording = new RecordingSync(bridge, contextId);
   }
 
   newPage(): PageSync {

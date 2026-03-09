@@ -31,7 +31,7 @@ func (r *Router) handlePageNavigate(session *BrowserSession, cmd bidiCommand) {
 	// Capture filmstrip screenshot while page is in its clean post-navigate state,
 	// before sendSuccess unblocks the client to send further commands.
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 	if recorder != nil && recorder.IsRecording() {
 		opts := recorder.Options()

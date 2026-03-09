@@ -1256,16 +1256,16 @@ func GetToolSchemas() []Tool {
 				"additionalProperties": false,
 			},
 		},
-		// --- Tracing ---
+		// --- Recording ---
 		{
-			Name:        "browser_trace_start",
-			Description: "Start recording a browser trace (screenshots and/or HTML snapshots)",
+			Name:        "browser_record_start",
+			Description: "Start a browser recording (screenshots and/or HTML snapshots)",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"name": map[string]interface{}{
 						"type":        "string",
-						"description": "Name for the trace (default: \"trace\")",
+						"description": "Name for the recording (default: \"record\")",
 					},
 					"screenshots": map[string]interface{}{
 						"type":        "boolean",
@@ -1279,7 +1279,7 @@ func GetToolSchemas() []Tool {
 					},
 					"bidi": map[string]interface{}{
 						"type":        "boolean",
-						"description": "Record raw BiDi commands in the trace (default: false)",
+						"description": "Record raw BiDi commands in the recording (default: false)",
 						"default":     false,
 					},
 				},
@@ -1287,14 +1287,14 @@ func GetToolSchemas() []Tool {
 			},
 		},
 		{
-			Name:        "browser_trace_stop",
-			Description: "Stop trace recording and save to a ZIP file",
+			Name:        "browser_record_stop",
+			Description: "Stop recording and save to a ZIP file",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"path": map[string]interface{}{
 						"type":        "string",
-						"description": "Output file path (default: trace.zip)",
+						"description": "Output file path (default: record.zip)",
 					},
 				},
 				"additionalProperties": false,

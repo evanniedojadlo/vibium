@@ -172,7 +172,7 @@ describe('MCP Server: Protocol', () => {
       'browser_set_geolocation', 'browser_set_content',
       'browser_frames', 'browser_frame',
       'browser_upload',
-      'browser_trace_start', 'browser_trace_stop',
+      'browser_record_start', 'browser_record_stop',
       'browser_storage_state', 'browser_restore_storage',
       'browser_download_set_dir',
     ];

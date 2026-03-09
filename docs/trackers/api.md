@@ -260,12 +260,12 @@
 
 | Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
 |---------|----------|---------|----------|---------|-----|-----|
-| `context.tracing.start(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.tracing.stop(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.tracing.startChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.tracing.stopChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.tracing.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.tracing.stopGroup()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `context.recording.start(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.recording.stop(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.recording.startChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `context.recording.stopChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `context.recording.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `context.recording.stopGroup()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
 
 ## Evaluation
 

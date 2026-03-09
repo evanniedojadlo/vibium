@@ -7,7 +7,7 @@ import (
 )
 
 // resolveContext extracts the "context" param or returns the first context from getTree.
-// It also stores the resolved context on the session for use by trace screenshots.
+// It also stores the resolved context on the session for use by recording screenshots.
 func (r *Router) resolveContext(session *BrowserSession, params map[string]interface{}) (string, error) {
 	if ctx, ok := params["context"].(string); ok && ctx != "" {
 		session.mu.Lock()

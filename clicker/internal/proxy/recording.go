@@ -17,8 +17,8 @@ import (
 	"time"
 )
 
-// TracingStartOptions configures how tracing behaves.
-type TracingStartOptions struct {
+// RecordingStartOptions configures how recording behaves.
+type RecordingStartOptions struct {
 	Name        string  `json:"name"`
 	Screenshots bool    `json:"screenshots"`
 	Snapshots   bool    `json:"snapshots"`
@@ -29,8 +29,8 @@ type TracingStartOptions struct {
 	Quality     float64 `json:"quality"` // 0.0-1.0 for JPEG (default 0.5)
 }
 
-// traceEvent is a generic trace event stored as a JSON-friendly map.
-type traceEvent = map[string]interface{}
+// recordEvent is a generic recording event stored as a JSON-friendly map.
+type recordEvent = map[string]interface{}
 
 // groupEntry tracks a group's name and callId so StopGroup can emit a matching "after" event.
 type groupEntry struct {
@@ -51,15 +51,15 @@ type pendingRequest struct {
 	timestamp   float64 // BiDi timestamp (ms since epoch)
 }
 
-// TraceRecorder manages trace recording state for a browser session.
+// Recorder manages recording state for a browser session.
 // It collects events, screenshots, and DOM snapshots, then packages
 // them into a Playwright-compatible trace zip.
-type TraceRecorder struct {
+type Recorder struct {
 	mu              sync.Mutex
 	recording       bool
-	options         TracingStartOptions
-	events          []traceEvent      // current chunk's trace events
-	network         []traceEvent      // current chunk's network events
+	options         RecordingStartOptions
+	events          []recordEvent      // current chunk's recording events
+	network         []recordEvent      // current chunk's network events
 	resources       map[string][]byte // sha1 hex -> binary data (PNG/HTML)
 	groupStack      []groupEntry       // nested group entries (name + callId)
 	pendingRequests map[string]*pendingRequest // BiDi request ID -> pending request
@@ -72,23 +72,23 @@ type TraceRecorder struct {
 	screenshotWg   sync.WaitGroup
 }
 
-// NewTraceRecorder creates a new trace recorder.
-func NewTraceRecorder() *TraceRecorder {
-	return &TraceRecorder{
+// NewRecorder creates a new recorder.
+func NewRecorder() *Recorder {
+	return &Recorder{
 		resources:       make(map[string][]byte),
 		pendingRequests: make(map[string]*pendingRequest),
 	}
 }
 
-// IsRecording returns whether tracing is currently active.
-func (t *TraceRecorder) IsRecording() bool {
+// IsRecording returns whether recording is currently active.
+func (t *Recorder) IsRecording() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.recording
 }
 
-// Start begins trace recording with the given options.
-func (t *TraceRecorder) Start(opts TracingStartOptions) {
+// Start begins recording with the given options.
+func (t *Recorder) Start(opts RecordingStartOptions) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -107,8 +107,8 @@ func (t *TraceRecorder) Start(opts TracingStartOptions) {
 		title = opts.Name
 	}
 
-	// First event must be context-options (required by Playwright trace viewer)
-	t.events = append(t.events, traceEvent{
+	// First event must be context-options (required by Playwright trace viewer / Record Player)
+	t.events = append(t.events, recordEvent{
 		"type":          "context-options",
 		"browserName":   "chromium",
 		"platform":      runtime.GOOS,
@@ -122,21 +122,21 @@ func (t *TraceRecorder) Start(opts TracingStartOptions) {
 	})
 }
 
-// Stop stops recording and returns the trace zip data.
-func (t *TraceRecorder) Stop() ([]byte, error) {
+// Stop stops recording and returns the recording zip data.
+func (t *Recorder) Stop() ([]byte, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if !t.recording {
-		return nil, fmt.Errorf("tracing is not started")
+		return nil, fmt.Errorf("recording is not started")
 	}
 
 	t.recording = false
 	return t.buildZipLocked()
 }
 
-// StartChunk starts a new chunk within the current trace.
-func (t *TraceRecorder) StartChunk(name, title string) {
+// StartChunk starts a new chunk within the current recording.
+func (t *Recorder) StartChunk(name, title string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -150,7 +150,7 @@ func (t *TraceRecorder) StartChunk(name, title string) {
 	}
 
 	now := float64(time.Now().UnixMilli())
-	t.events = append(t.events, traceEvent{
+	t.events = append(t.events, recordEvent{
 		"type":          "context-options",
 		"browserName":   "chromium",
 		"platform":      runtime.GOOS,
@@ -165,13 +165,13 @@ func (t *TraceRecorder) StartChunk(name, title string) {
 }
 
 // StopChunk packages the current chunk into a zip and returns it.
-// Tracing remains active for additional chunks.
-func (t *TraceRecorder) StopChunk() ([]byte, error) {
+// Recording remains active for additional chunks.
+func (t *Recorder) StopChunk() ([]byte, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if !t.recording {
-		return nil, fmt.Errorf("tracing is not started")
+		return nil, fmt.Errorf("recording is not started")
 	}
 
 	return t.buildZipLocked()
@@ -179,15 +179,15 @@ func (t *TraceRecorder) StopChunk() ([]byte, error) {
 
 // currentGroupIdLocked returns the callId of the innermost active group, or "".
 // Must be called with t.mu held.
-func (t *TraceRecorder) currentGroupIdLocked() string {
+func (t *Recorder) currentGroupIdLocked() string {
 	if len(t.groupStack) == 0 {
 		return ""
 	}
 	return t.groupStack[len(t.groupStack)-1].callId
 }
 
-// StartGroup adds a group-start marker to the trace.
-func (t *TraceRecorder) StartGroup(name string) {
+// StartGroup adds a group-start marker to the recording.
+func (t *Recorder) StartGroup(name string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -197,7 +197,7 @@ func (t *TraceRecorder) StartGroup(name string) {
 	callId := fmt.Sprintf("call@%d", t.actionCounter)
 	t.groupStack = append(t.groupStack, groupEntry{name: name, callId: callId})
 	now := float64(time.Now().UnixMilli())
-	ev := traceEvent{
+	ev := recordEvent{
 		"type":      "before",
 		"callId":    callId,
 		"title":     name,
@@ -213,8 +213,8 @@ func (t *TraceRecorder) StartGroup(name string) {
 	t.events = append(t.events, ev)
 }
 
-// StopGroup adds a group-end marker to the trace.
-func (t *TraceRecorder) StopGroup() {
+// StopGroup adds a group-end marker to the recording.
+func (t *Recorder) StopGroup() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -225,15 +225,15 @@ func (t *TraceRecorder) StopGroup() {
 	entry := t.groupStack[len(t.groupStack)-1]
 	t.groupStack = t.groupStack[:len(t.groupStack)-1]
 
-	t.events = append(t.events, traceEvent{
+	t.events = append(t.events, recordEvent{
 		"type":    "after",
 		"callId":  entry.callId,
 		"endTime": float64(time.Now().UnixMilli()),
 	})
 }
 
-// Options returns the current tracing options.
-func (t *TraceRecorder) Options() TracingStartOptions {
+// Options returns the current recording options.
+func (t *Recorder) Options() RecordingStartOptions {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.options
@@ -241,14 +241,14 @@ func (t *TraceRecorder) Options() TracingStartOptions {
 
 // StoreResource stores binary data (e.g. screenshot JPEG/PNG) in the resources
 // map, keyed by its SHA1 hex hash. The data will be written to resources/<sha1>
-// in the trace zip.
-func (t *TraceRecorder) StoreResource(sha1 string, data []byte) {
+// in the recording zip.
+func (t *Recorder) StoreResource(sha1 string, data []byte) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.resources[sha1] = data
 }
 
-// apiNameFromMethod maps a vibium: method to (class, title) for trace display.
+// apiNameFromMethod maps a vibium: method to (class, title) for recording display.
 func apiNameFromMethod(method string) (string, string) {
 	// Strip the "vibium:" prefix
 	if len(method) <= 7 || method[:7] != "vibium:" {
@@ -319,7 +319,7 @@ func apiNameFromMethod(method string) (string, string) {
 
 // NextCallId generates and returns the next call@N id without emitting any event.
 // Use this when you need the callId before recording the action (e.g. for snapshots).
-func (t *TraceRecorder) NextCallId() string {
+func (t *Recorder) NextCallId() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -335,7 +335,7 @@ func (t *TraceRecorder) NextCallId() string {
 // "before" event. This is used by click-like handlers that capture the snapshot
 // after scrolling the element into view (via resolveWithActionability) but before
 // the actual click/hover/tap action.
-func (t *TraceRecorder) PatchBeforeSnapshot(callId, snapshotName string) {
+func (t *Recorder) PatchBeforeSnapshot(callId, snapshotName string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for i := len(t.events) - 1; i >= 0; i-- {
@@ -346,11 +346,11 @@ func (t *TraceRecorder) PatchBeforeSnapshot(callId, snapshotName string) {
 	}
 }
 
-// RecordAction records a vibium command as an action marker in the trace.
+// RecordAction records a vibium command as an action marker in the recording.
 // The callId should come from NextCallId(). beforeSnapshot is the snapshot name
 // (from AddFrameSnapshot) to link, or "" if none. pageId is a fallback browsing
 // context to use when params["context"] is not set.
-func (t *TraceRecorder) RecordAction(callId, method string, params map[string]interface{}, beforeSnapshot, pageId string) {
+func (t *Recorder) RecordAction(callId, method string, params map[string]interface{}, beforeSnapshot, pageId string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -360,7 +360,7 @@ func (t *TraceRecorder) RecordAction(callId, method string, params map[string]in
 
 	class, title := apiNameFromMethod(method)
 	now := float64(time.Now().UnixMilli())
-	ev := traceEvent{
+	ev := recordEvent{
 		"type":      "before",
 		"callId":    callId,
 		"title":     title,
@@ -379,19 +379,19 @@ func (t *TraceRecorder) RecordAction(callId, method string, params map[string]in
 	if beforeSnapshot != "" {
 		ev["beforeSnapshot"] = beforeSnapshot
 	}
-	// Link to parent group for nesting in trace viewer
+	// Link to parent group for nesting in Record Player
 	if gid := t.currentGroupIdLocked(); gid != "" {
 		ev["parentId"] = gid
 	}
 	t.events = append(t.events, ev)
 }
 
-// RecordActionEnd records the end of a vibium command action in the trace.
+// RecordActionEnd records the end of a vibium command action in the recording.
 // The callId must match the value returned by NextCallId(). afterSnapshot is the
 // snapshot name (from AddFrameSnapshot) to link, or "" if none. endTime is the
 // actual handler completion time (before screenshot captures). box is the bounding
 // box of the element that was interacted with, or nil for non-element actions.
-func (t *TraceRecorder) RecordActionEnd(callId, afterSnapshot string, endTime time.Time, box *BoxInfo) {
+func (t *Recorder) RecordActionEnd(callId, afterSnapshot string, endTime time.Time, box *BoxInfo) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -403,7 +403,7 @@ func (t *TraceRecorder) RecordActionEnd(callId, afterSnapshot string, endTime ti
 	// element was resolved. Playwright's trace viewer reads point from this
 	// event type (keyed by callId) to render click-dot overlays.
 	if box != nil {
-		t.events = append(t.events, traceEvent{
+		t.events = append(t.events, recordEvent{
 			"type":   "input",
 			"callId": callId,
 			"point": map[string]interface{}{
@@ -416,7 +416,7 @@ func (t *TraceRecorder) RecordActionEnd(callId, afterSnapshot string, endTime ti
 		})
 	}
 
-	ev := traceEvent{
+	ev := recordEvent{
 		"type":    "after",
 		"callId":  callId,
 		"endTime": float64(endTime.UnixMilli()),
@@ -427,9 +427,9 @@ func (t *TraceRecorder) RecordActionEnd(callId, afterSnapshot string, endTime ti
 	t.events = append(t.events, ev)
 }
 
-// RecordBidiCommand records a raw BiDi command sent to the browser (opt-in via bidi: true).
+// RecordBidiCommand records a raw BiDi command sent to the browser in the recording (opt-in via bidi: true).
 // Returns the callId so the caller can pass it to RecordBidiCommandEnd.
-func (t *TraceRecorder) RecordBidiCommand(method string, params map[string]interface{}) string {
+func (t *Recorder) RecordBidiCommand(method string, params map[string]interface{}) string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -440,7 +440,7 @@ func (t *TraceRecorder) RecordBidiCommand(method string, params map[string]inter
 	t.actionCounter++
 	callId := fmt.Sprintf("call@%d", t.actionCounter)
 	now := float64(time.Now().UnixMilli())
-	ev := traceEvent{
+	ev := recordEvent{
 		"type":      "before",
 		"callId":    callId,
 		"title":     method,
@@ -450,7 +450,7 @@ func (t *TraceRecorder) RecordBidiCommand(method string, params map[string]inter
 		"wallTime":  now,
 		"startTime": now,
 	}
-	// Link to parent group for nesting in trace viewer
+	// Link to parent group for nesting in Record Player
 	if gid := t.currentGroupIdLocked(); gid != "" {
 		ev["parentId"] = gid
 	}
@@ -458,9 +458,9 @@ func (t *TraceRecorder) RecordBidiCommand(method string, params map[string]inter
 	return callId
 }
 
-// RecordBidiCommandEnd records the end of a BiDi command in the trace.
+// RecordBidiCommandEnd records the end of a BiDi command in the recording.
 // The callId must match the value returned by the corresponding RecordBidiCommand call.
-func (t *TraceRecorder) RecordBidiCommandEnd(callId string) {
+func (t *Recorder) RecordBidiCommandEnd(callId string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -468,7 +468,7 @@ func (t *TraceRecorder) RecordBidiCommandEnd(callId string) {
 		return
 	}
 
-	t.events = append(t.events, traceEvent{
+	t.events = append(t.events, recordEvent{
 		"type":    "after",
 		"callId":  callId,
 		"endTime": float64(time.Now().UnixMilli()),
@@ -477,7 +477,7 @@ func (t *TraceRecorder) RecordBidiCommandEnd(callId string) {
 
 // AddScreenshot stores a screenshot image (PNG or JPEG) and adds a screencast-frame event.
 // If ts is non-zero it is used as the event timestamp; otherwise time.Now() is used.
-func (t *TraceRecorder) AddScreenshot(pngData []byte, pageID string, width, height int, ts time.Time) {
+func (t *Recorder) AddScreenshot(pngData []byte, pageID string, width, height int, ts time.Time) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -491,7 +491,7 @@ func (t *TraceRecorder) AddScreenshot(pngData []byte, pageID string, width, heig
 
 	hash := sha1Hex(pngData)
 	t.resources[hash] = pngData
-	t.events = append(t.events, traceEvent{
+	t.events = append(t.events, recordEvent{
 		"type":      "screencast-frame",
 		"pageId":    pageID,
 		"sha1":      hash,
@@ -501,12 +501,12 @@ func (t *TraceRecorder) AddScreenshot(pngData []byte, pageID string, width, heig
 	})
 }
 
-// AddFrameSnapshot adds a frame-snapshot event for the Playwright trace viewer.
+// AddFrameSnapshot adds a frame-snapshot event for the Record Player / Playwright trace viewer.
 // snapshotType is "before" or "after"; callId is like "call@1".
 // resourceOverrides maps synthetic URLs (e.g. "screenshot://sha1") to resource
 // SHA1 hashes so the viewer can resolve them from the zip's resources/ directory.
 // Returns the snapshot name (e.g. "before@call@1").
-func (t *TraceRecorder) AddFrameSnapshot(callId, snapshotType, pageId, frameURL, doctype string, html interface{}, viewport map[string]interface{}, resourceOverrides []interface{}) string {
+func (t *Recorder) AddFrameSnapshot(callId, snapshotType, pageId, frameURL, doctype string, html interface{}, viewport map[string]interface{}, resourceOverrides []interface{}) string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -521,7 +521,7 @@ func (t *TraceRecorder) AddFrameSnapshot(callId, snapshotType, pageId, frameURL,
 	snapshotName := snapshotType + "@" + callId
 	now := float64(time.Now().UnixMilli())
 
-	t.events = append(t.events, traceEvent{
+	t.events = append(t.events, recordEvent{
 		"type": "frame-snapshot",
 		"snapshot": map[string]interface{}{
 			"callId":            callId,
@@ -542,10 +542,10 @@ func (t *TraceRecorder) AddFrameSnapshot(callId, snapshotType, pageId, frameURL,
 	return snapshotName
 }
 
-// RecordBidiEvent records a raw BiDi event from the browser into the trace.
+// RecordBidiEvent records a raw BiDi event from the browser into the recording.
 // Network events are correlated by request ID and transformed into
 // Playwright-compatible HAR resource-snapshot entries.
-func (t *TraceRecorder) RecordBidiEvent(msg string) {
+func (t *Recorder) RecordBidiEvent(msg string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -603,7 +603,7 @@ func (t *TraceRecorder) RecordBidiEvent(msg string) {
 		}
 
 	default:
-		t.events = append(t.events, traceEvent{
+		t.events = append(t.events, recordEvent{
 			"type":   "event",
 			"method": bidiEvent.Method,
 			"params": bidiEvent.Params,
@@ -669,7 +669,7 @@ func parsePendingRequestFromResponse(params map[string]interface{}) *pendingRequ
 
 // bidiToHAREntry builds a Playwright resource-snapshot event from a
 // correlated BiDi request and response (or fetchError).
-func bidiToHAREntry(pending *pendingRequest, responseParams map[string]interface{}, isFetchError bool) traceEvent {
+func bidiToHAREntry(pending *pendingRequest, responseParams map[string]interface{}, isFetchError bool) recordEvent {
 	endTimestamp := toFloat64(responseParams["timestamp"])
 	timeDelta := 0.0
 	if endTimestamp > 0 && pending.timestamp > 0 {
@@ -722,7 +722,7 @@ func bidiToHAREntry(pending *pendingRequest, responseParams map[string]interface
 		entry["_frameref"] = context
 	}
 
-	return traceEvent{
+	return recordEvent{
 		"type":     "resource-snapshot",
 		"snapshot": entry,
 	}
@@ -881,7 +881,7 @@ func toFloat64(v interface{}) float64 {
 }
 
 // StopScreenshots signals the screenshot goroutine to stop and waits for it.
-func (t *TraceRecorder) StopScreenshots() {
+func (t *Recorder) StopScreenshots() {
 	t.mu.Lock()
 	ch := t.screenshotStop
 	t.screenshotStop = nil
@@ -895,7 +895,7 @@ func (t *TraceRecorder) StopScreenshots() {
 
 // StartScreenshotLoop starts a background goroutine that captures screenshots periodically.
 // captureFunc should return (base64-encoded image data, pageID, error).
-func (t *TraceRecorder) StartScreenshotLoop(captureFunc func() (string, string, error)) {
+func (t *Recorder) StartScreenshotLoop(captureFunc func() (string, string, error)) {
 	t.mu.Lock()
 	t.screenshotStop = make(chan struct{})
 	stopCh := t.screenshotStop
@@ -929,9 +929,9 @@ func (t *TraceRecorder) StartScreenshotLoop(captureFunc func() (string, string, 
 	}()
 }
 
-// buildZipLocked creates the Playwright-compatible trace zip.
+// buildZipLocked creates the Playwright-compatible recording zip.
 // Must be called with t.mu held.
-func (t *TraceRecorder) buildZipLocked() ([]byte, error) {
+func (t *Recorder) buildZipLocked() ([]byte, error) {
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 
@@ -1058,11 +1058,11 @@ func imageDimensions(data []byte) (int, int) {
 	return jpegDimensions(data)
 }
 
-// WriteTraceToFile writes trace zip data to a file, creating directories as needed.
-func WriteTraceToFile(data []byte, path string) error {
+// WriteRecordToFile writes recording zip data to a file, creating directories as needed.
+func WriteRecordToFile(data []byte, path string) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("failed to create trace dir: %w", err)
+		return fmt.Errorf("failed to create recording dir: %w", err)
 	}
 	return os.WriteFile(path, data, 0o644)
 }

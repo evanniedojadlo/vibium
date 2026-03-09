@@ -1,4 +1,4 @@
-"""Async Tracing class."""
+"""Async Recording class."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ if TYPE_CHECKING:
     from ..client import BiDiClient
 
 
-class Tracing:
-    """Context-scoped trace recording."""
+class Recording:
+    """Context-scoped recording."""
 
     def __init__(self, client: BiDiClient, user_context_id: str) -> None:
         self._client = client
@@ -27,7 +27,7 @@ class Tracing:
         format: Optional[str] = None,
         quality: Optional[float] = None,
     ) -> None:
-        """Start trace recording.
+        """Start recording.
 
         Args:
             format: Screenshot format — 'jpeg' (default, faster/smaller) or 'png' (lossless).
@@ -50,14 +50,14 @@ class Tracing:
             params["format"] = format
         if quality is not None:
             params["quality"] = quality
-        await self._client.send("vibium:tracing.start", params)
+        await self._client.send("vibium:recording.start", params)
 
     async def stop(self, path: Optional[str] = None) -> bytes:
-        """Stop trace recording and return the trace zip as bytes."""
+        """Stop recording and return the recording zip as bytes."""
         params: Dict[str, Any] = {"userContext": self._user_context_id}
         if path is not None:
             params["path"] = path
-        result = await self._client.send("vibium:tracing.stop", params)
+        result = await self._client.send("vibium:recording.stop", params)
 
         if path and result.get("path"):
             with open(result["path"], "rb") as f:
@@ -70,20 +70,20 @@ class Tracing:
         name: Optional[str] = None,
         title: Optional[str] = None,
     ) -> None:
-        """Start a new trace chunk."""
+        """Start a new recording chunk."""
         params: Dict[str, Any] = {"userContext": self._user_context_id}
         if name is not None:
             params["name"] = name
         if title is not None:
             params["title"] = title
-        await self._client.send("vibium:tracing.startChunk", params)
+        await self._client.send("vibium:recording.startChunk", params)
 
     async def stop_chunk(self, path: Optional[str] = None) -> bytes:
-        """Stop the current chunk and return the trace zip as bytes."""
+        """Stop the current chunk and return the recording zip as bytes."""
         params: Dict[str, Any] = {"userContext": self._user_context_id}
         if path is not None:
             params["path"] = path
-        result = await self._client.send("vibium:tracing.stopChunk", params)
+        result = await self._client.send("vibium:recording.stopChunk", params)
 
         if path and result.get("path"):
             with open(result["path"], "rb") as f:
@@ -96,14 +96,14 @@ class Tracing:
         name: str,
         location: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Start a named group of actions in the trace."""
+        """Start a named group of actions in the recording."""
         params: Dict[str, Any] = {"userContext": self._user_context_id, "name": name}
         if location is not None:
             params["location"] = location
-        await self._client.send("vibium:tracing.startGroup", params)
+        await self._client.send("vibium:recording.startGroup", params)
 
     async def stop_group(self) -> None:
         """End the current group."""
-        await self._client.send("vibium:tracing.stopGroup", {
+        await self._client.send("vibium:recording.stopGroup", {
             "userContext": self._user_context_id,
         })

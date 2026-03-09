@@ -139,9 +139,9 @@ vibium go https://example.com && vibium map && vibium click @e3 && vibium diff m
 ### File Upload
 - `vibium upload "<selector>" <files...>` — set files on input[type=file]
 
-### Tracing
-- `vibium trace start` — start recording (`--screenshots`, `--snapshots`, `--name`)
-- `vibium trace stop` — stop recording and save ZIP (`-o path`)
+### Recording
+- `vibium record start` — start recording (`--screenshots`, `--snapshots`, `--name`)
+- `vibium record stop` — stop recording and save ZIP (`-o path`)
 
 ### Cookies
 - `vibium cookies` — list all cookies

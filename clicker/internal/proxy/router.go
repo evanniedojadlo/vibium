@@ -41,17 +41,17 @@ type BrowserSession struct {
 	// Clock support
 	clockPreloadScriptID string // "" if not installed
 
-	// Tracing support
-	traceRecorder      *TraceRecorder
+	// Recording support
+	recorder           *Recorder
 	lastContext        string   // last browsing context resolved by a command
 	lastURL            string   // last known page URL, updated from load/navigation events
-	lastElementBox     *BoxInfo // last resolved element box, for trace recording
+	lastElementBox     *BoxInfo // last resolved element box, for recording
 	screenshotInFlight int32    // atomic; 1 = screenshot capture in progress
 	handlerScreenshot  int32    // atomic; 1 = handler already captured filmstrip screenshot
 	dispatchMu         sync.Mutex // serializes dispatch goroutines so screenshots capture correct page state
 }
 
-// SetLastElementBox stores the bounding box of the last resolved element for trace recording.
+// SetLastElementBox stores the bounding box of the last resolved element for recording.
 func (s *BrowserSession) SetLastElementBox(box *BoxInfo) {
 	s.mu.Lock()
 	s.lastElementBox = box
@@ -207,7 +207,7 @@ type vibiumHandler func(*BrowserSession, bidiCommand)
 
 // handlerCapturesBefore returns true for interaction actions whose handlers
 // capture the before-snapshot after scrolling the element into view (via
-// resolveWithActionability). For these, dispatch() injects _traceCallId and
+// resolveWithActionability). For these, dispatch() injects _recordCallId and
 // the handler calls captureBeforeSnapshotAfterScroll between resolve and act.
 // This includes both click-like actions (before-only) and fill-like actions
 // (before in handler + after in dispatch).
@@ -222,14 +222,14 @@ func handlerCapturesBefore(method string) bool {
 	return false
 }
 
-// dispatch wraps a vibium handler with automatic action tracing.
+// dispatch wraps a vibium handler with automatic action recording.
 func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibiumHandler) {
 	go func() {
 		session.dispatchMu.Lock()
 		defer session.dispatchMu.Unlock()
 
 		session.mu.Lock()
-		recorder := session.traceRecorder
+		recorder := session.recorder
 		session.mu.Unlock()
 
 		var callId string
@@ -245,7 +245,7 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 			// All other actions get their before-snapshot captured here.
 			var beforeSnapshot string
 			if opts.Snapshots && handlerCapturesBefore(cmd.Method) {
-				cmd.Params["_traceCallId"] = callId
+				cmd.Params["_recordCallId"] = callId
 			}
 
 			session.mu.Lock()
@@ -257,8 +257,8 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 
 		handler(session, cmd)
 
-		// Clean up internal tracing field so it doesn't appear in trace output
-		delete(cmd.Params, "_traceCallId")
+		// Clean up internal recording field so it doesn't appear in recording output
+		delete(cmd.Params, "_recordCallId")
 
 		// Capture endTime immediately after handler returns, before screenshot captures
 		endTime := time.Now()
@@ -643,24 +643,24 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 		r.dispatch(session, cmd, r.handleVibiumElSetFiles)
 		return
 
-	// Tracing commands (not traced — they control tracing itself)
-	case "vibium:tracing.start":
-		go r.handleTracingStart(session, cmd)
+	// Recording commands (not recorded — they control recording itself)
+	case "vibium:recording.start":
+		go r.handleRecordingStart(session, cmd)
 		return
-	case "vibium:tracing.stop":
-		go r.handleTracingStop(session, cmd)
+	case "vibium:recording.stop":
+		go r.handleRecordingStop(session, cmd)
 		return
-	case "vibium:tracing.startChunk":
-		go r.handleTracingStartChunk(session, cmd)
+	case "vibium:recording.startChunk":
+		go r.handleRecordingStartChunk(session, cmd)
 		return
-	case "vibium:tracing.stopChunk":
-		go r.handleTracingStopChunk(session, cmd)
+	case "vibium:recording.stopChunk":
+		go r.handleRecordingStopChunk(session, cmd)
 		return
-	case "vibium:tracing.startGroup":
-		go r.handleTracingStartGroup(session, cmd)
+	case "vibium:recording.startGroup":
+		go r.handleRecordingStartGroup(session, cmd)
 		return
-	case "vibium:tracing.stopGroup":
-		go r.handleTracingStopGroup(session, cmd)
+	case "vibium:recording.stopGroup":
+		go r.handleRecordingStopGroup(session, cmd)
 		return
 
 	// Clock commands
@@ -816,9 +816,9 @@ func (r *Router) routeBrowserToClient(session *BrowserSession) {
 			}
 		}
 
-		// Record event for tracing (non-blocking)
+		// Record event for recording (non-blocking)
 		session.mu.Lock()
-		recorder := session.traceRecorder
+		recorder := session.recorder
 		session.mu.Unlock()
 		if recorder != nil && recorder.IsRecording() {
 			recorder.RecordBidiEvent(msg)
@@ -844,9 +844,9 @@ func (r *Router) sendInternalCommand(session *BrowserSession, method string, par
 
 // sendInternalCommandWithTimeout sends a BiDi command and waits for the response with a custom timeout.
 func (r *Router) sendInternalCommandWithTimeout(session *BrowserSession, method string, params map[string]interface{}, timeout time.Duration) (json.RawMessage, error) {
-	// Record BiDi command in trace (opt-in via bidi: true)
+	// Record BiDi command in recording (opt-in via bidi: true)
 	session.mu.Lock()
-	recorder := session.traceRecorder
+	recorder := session.recorder
 	session.mu.Unlock()
 	if recorder != nil && recorder.IsRecording() && recorder.Options().Bidi {
 		callId := recorder.RecordBidiCommand(method, params)
@@ -913,9 +913,9 @@ func (r *Router) closeSession(session *BrowserSession) {
 		session.BidiConn.Close()
 	}
 
-	// Stop any active trace recorder
-	if session.traceRecorder != nil {
-		session.traceRecorder.StopScreenshots()
+	// Stop any active recorder
+	if session.recorder != nil {
+		session.recorder.StopScreenshots()
 	}
 
 	// Clean up download temp dir

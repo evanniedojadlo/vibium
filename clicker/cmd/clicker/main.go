@@ -134,7 +134,7 @@ func main() {
 	rootCmd.AddCommand(newFramesCmd())
 	rootCmd.AddCommand(newFrameCmd())
 	rootCmd.AddCommand(newUploadCmd())
-	rootCmd.AddCommand(newTraceCmd())
+	rootCmd.AddCommand(newRecordCmd())
 	rootCmd.AddCommand(newStorageStateCmd())
 	rootCmd.AddCommand(newRestoreStorageCmd())
 	rootCmd.AddCommand(newDownloadCmd())
