@@ -20,5 +20,5 @@ from .sync_api.page import Page
 from .sync_api.element import Element
 from .sync_api.context import BrowserContext
 
-__version__ = "26.3.9"
+__version__ = "26.3.11"
 __all__ = ["browser", "Browser", "Page", "Element", "BrowserContext"]

@@ -1,6 +1,6 @@
 {
   "name": "@vibium/win32-x64",
-  "version": "26.3.9",
+  "version": "26.3.11",
   "description": "Vibium binary for Windows x64",
   "author": "Jason Huggins <hugs@vibium.com>",
   "license": "Apache-2.0",
