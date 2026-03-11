@@ -361,7 +361,8 @@ describe('MCP Server: New Tools', () => {
     });
   });
 
-  after(() => {
+  after(async () => {
+    await client.call('tools/call', { name: 'browser_stop', arguments: {} });
     client.stop();
   });
 
@@ -587,7 +588,8 @@ describe('MCP Server: Viewport & Window', () => {
   });
 
   after(async () => {
-    await client.stop();
+    await client.call('tools/call', { name: 'browser_stop', arguments: {} });
+    client.stop();
   });
 
   test('browser_get_viewport returns width and height', async () => {
@@ -709,7 +711,8 @@ describe('MCP Server: Recording', { timeout: 120000 }, () => {
     });
   });
 
-  after(() => {
+  after(async () => {
+    await client.call('tools/call', { name: 'browser_stop', arguments: {} });
     client.stop();
     for (const f of tmpFiles) {
       try { fs.unlinkSync(f); } catch {}
