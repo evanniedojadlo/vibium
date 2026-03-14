@@ -281,7 +281,9 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 			// Skip if handler already captured a screenshot (e.g. navigate).
 			handlerCapturedSS := atomic.CompareAndSwapInt32(&session.handlerScreenshot, 1, 0)
 			if opts.Screenshots && !handlerCapturedSS && atomic.CompareAndSwapInt32(&session.screenshotInFlight, 0, 1) {
-				r.capturePostActionScreenshot(session, recorder, cmd.Params, endTime)
+				context, _ := cmd.Params["context"].(string)
+				ps := NewProxySession(r, session, context)
+				CaptureRecordingScreenshot(ps, recorder, endTime)
 				atomic.StoreInt32(&session.screenshotInFlight, 0)
 			}
 

@@ -10,35 +10,7 @@ import (
 // handleRecordingStart handles vibium:recording.start — starts recording.
 // Options: name, screenshots, snapshots, sources, title.
 func (r *Router) handleRecordingStart(session *BrowserSession, cmd bidiCommand) {
-	// Parse options
-	var opts RecordingStartOptions
-	if name, ok := cmd.Params["name"].(string); ok {
-		opts.Name = name
-	}
-	if title, ok := cmd.Params["title"].(string); ok {
-		opts.Title = title
-	}
-	if ss, ok := cmd.Params["screenshots"].(bool); ok {
-		opts.Screenshots = ss
-	}
-	if sn, ok := cmd.Params["snapshots"].(bool); ok {
-		opts.Snapshots = sn
-	}
-	if src, ok := cmd.Params["sources"].(bool); ok {
-		opts.Sources = src
-	}
-	if b, ok := cmd.Params["bidi"].(bool); ok {
-		opts.Bidi = b
-	}
-	// Screenshot format: "jpeg" (default) or "png"
-	opts.Format = "jpeg"
-	if f, ok := cmd.Params["format"].(string); ok && (f == "png" || f == "jpeg") {
-		opts.Format = f
-	}
-	opts.Quality = 0.5
-	if q, ok := cmd.Params["quality"].(float64); ok && q >= 0 && q <= 1 {
-		opts.Quality = q
-	}
+	opts := ParseRecordingOptions(cmd.Params)
 
 	// Create and start the recorder
 	recorder := NewRecorder()
@@ -175,8 +147,8 @@ func (r *Router) handleRecordingStopGroup(session *BrowserSession, cmd bidiComma
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
-// screenshotParams builds the BiDi captureScreenshot params with optional format/quality.
-func screenshotParams(context string, opts RecordingStartOptions) map[string]interface{} {
+// ScreenshotParams builds the BiDi captureScreenshot params with optional format/quality.
+func ScreenshotParams(context string, opts RecordingStartOptions) map[string]interface{} {
 	params := map[string]interface{}{"context": context}
 	if opts.Format == "jpeg" {
 		f := map[string]interface{}{"type": "image/jpeg"}
@@ -209,7 +181,7 @@ func (r *Router) captureScreenshotForRecording(session *BrowserSession, opts Rec
 		}
 	}
 
-	resp, err := r.sendInternalCommand(session, "browsingContext.captureScreenshot", screenshotParams(context, opts))
+	resp, err := r.sendInternalCommand(session, "browsingContext.captureScreenshot", ScreenshotParams(context, opts))
 	if err != nil {
 		return "", "", err
 	}
@@ -281,7 +253,7 @@ func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *Record
 
 	// Capture screenshot via native BiDi command (no JS execution)
 	opts := recorder.Options()
-	resp, err := r.sendInternalCommandWithTimeout(session, "browsingContext.captureScreenshot", screenshotParams(context, opts), 2*time.Second)
+	resp, err := r.sendInternalCommandWithTimeout(session, "browsingContext.captureScreenshot", ScreenshotParams(context, opts), 2*time.Second)
 	if err != nil {
 		return ""
 	}
@@ -352,40 +324,22 @@ func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *Record
 	return recorder.AddFrameSnapshot(callId, snapshotType, context, frameURL, "html", html, viewport, resourceOverrides)
 }
 
-// capturePostActionScreenshot captures a screenshot after an action handler completes.
-// It extracts the browsing context from the command's own params so each concurrent
-// goroutine resolves its own context independently — no cross-goroutine race.
-// actionEnd is used as the screencast-frame timestamp so the screenshot aligns with
-// the action's endTime in the recording timeline rather than the (later) capture time.
-func (r *Router) capturePostActionScreenshot(session *BrowserSession, recorder *Recorder, params map[string]interface{}, actionEnd time.Time) {
-	session.mu.Lock()
-	closed := session.closed
-	session.mu.Unlock()
-	if closed {
+// CaptureRecordingScreenshot captures a screenshot via the Session interface
+// and adds it to the recorder. This is the shared version used by both the
+// proxy dispatch() and MCP Call() paths. The Session's GetContextID() handles
+// context resolution (explicit context → lastContext → getTree).
+func CaptureRecordingScreenshot(s Session, recorder *Recorder, actionEnd time.Time) {
+	if !recorder.Options().Screenshots {
 		return
 	}
 
-	// 1. Try context from the command's own params
-	context, _ := params["context"].(string)
-
-	// 2. Fall back to session's lastContext (set by resolveContext)
-	if context == "" {
-		session.mu.Lock()
-		context = session.lastContext
-		session.mu.Unlock()
-	}
-
-	// 3. Fall back to getContext
-	if context == "" {
-		var err error
-		context, err = r.getContext(session)
-		if err != nil {
-			return
-		}
+	context, err := s.GetContextID()
+	if err != nil {
+		return
 	}
 
 	opts := recorder.Options()
-	resp, err := r.sendInternalCommandWithTimeout(session, "browsingContext.captureScreenshot", screenshotParams(context, opts), 5*time.Second)
+	resp, err := s.SendBidiCommandWithTimeout("browsingContext.captureScreenshot", ScreenshotParams(context, opts), 5*time.Second)
 	if err != nil {
 		return
 	}

@@ -81,7 +81,7 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 
 	// Per-action screenshot: capture after successful non-recording commands
 	if err == nil && h.recorder != nil && h.recorder.IsRecording() && !isRecordingCommand(name) {
-		h.captureRecordingScreenshot(endTime)
+		proxy.CaptureRecordingScreenshot(h.newSession(), h.recorder, endTime)
 	}
 
 	if callId != "" {
@@ -489,60 +489,6 @@ func mcpToolToMethod(name string) string {
 	default:
 		return name
 	}
-}
-
-// captureRecordingScreenshot takes a screenshot via the BiDi client and
-// adds it to the active recorder. Runs synchronously inside Call() —
-// no background goroutine, no WebSocket race.
-// actionEnd is used as the screencast-frame timestamp so the screenshot aligns
-// with the action's endTime in the recording timeline (matching the proxy path).
-func (h *Handlers) captureRecordingScreenshot(actionEnd time.Time) {
-	if h.client == nil {
-		return
-	}
-	opts := h.recorder.Options()
-	if !opts.Screenshots {
-		return
-	}
-
-	// Get the current browsing context
-	tree, err := h.client.GetTree()
-	if err != nil || len(tree.Contexts) == 0 {
-		return
-	}
-	context := tree.Contexts[0].Context
-
-	// Build screenshot params with format/quality
-	params := map[string]interface{}{
-		"context": context,
-	}
-	if opts.Format == "jpeg" {
-		f := map[string]interface{}{"type": "image/jpeg"}
-		if opts.Quality > 0 {
-			f["quality"] = opts.Quality
-		}
-		params["format"] = f
-	}
-
-	msg, err := h.client.SendCommand("browsingContext.captureScreenshot", params)
-	if err != nil || msg == nil {
-		return
-	}
-
-	var ssResult struct {
-		Data string `json:"data"`
-	}
-	if err := json.Unmarshal(msg.Result, &ssResult); err != nil || ssResult.Data == "" {
-		return
-	}
-
-	imgData, err := base64.StdEncoding.DecodeString(ssResult.Data)
-	if err != nil {
-		return
-	}
-
-	w, ht := proxy.ImageDimensions(imgData)
-	h.recorder.AddScreenshot(imgData, context, w, ht, actionEnd)
 }
 
 // Close cleans up any active browser sessions.
@@ -3651,37 +3597,11 @@ func (h *Handlers) browserRecordStart(args map[string]interface{}) (*ToolsCallRe
 		return nil, fmt.Errorf("already recording — stop it first")
 	}
 
-	name, _ := args["name"].(string)
-	if name == "" {
-		name = "record"
+	opts := proxy.ParseRecordingOptions(args)
+	if opts.Name == "" {
+		opts.Name = "record"
 	}
-
-	opts := proxy.RecordingStartOptions{
-		Name: name,
-	}
-	if ss, ok := args["screenshots"].(bool); ok {
-		opts.Screenshots = ss
-	}
-	if sn, ok := args["snapshots"].(bool); ok {
-		opts.Snapshots = sn
-	}
-	if src, ok := args["sources"].(bool); ok {
-		opts.Sources = src
-	}
-	if title, ok := args["title"].(string); ok {
-		opts.Title = title
-	}
-	if b, ok := args["bidi"].(bool); ok {
-		opts.Bidi = b
-	}
-	opts.Format = "jpeg"
-	if f, ok := args["format"].(string); ok && (f == "png" || f == "jpeg") {
-		opts.Format = f
-	}
-	opts.Quality = 0.5
-	if q, ok := args["quality"].(float64); ok && q >= 0 && q <= 1 {
-		opts.Quality = q
-	}
+	name := opts.Name
 
 	h.recorder = proxy.NewRecorder()
 	h.recorder.Start(opts)

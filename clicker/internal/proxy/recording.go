@@ -29,6 +29,41 @@ type RecordingStartOptions struct {
 	Quality     float64 `json:"quality"` // 0.0-1.0 for JPEG (default 0.5)
 }
 
+// ParseRecordingOptions extracts RecordingStartOptions from a params map.
+// Used by both the proxy (handleRecordingStart) and MCP (browserRecordStart)
+// paths so option parsing is defined once.
+func ParseRecordingOptions(params map[string]interface{}) RecordingStartOptions {
+	var opts RecordingStartOptions
+	if name, ok := params["name"].(string); ok {
+		opts.Name = name
+	}
+	if title, ok := params["title"].(string); ok {
+		opts.Title = title
+	}
+	if ss, ok := params["screenshots"].(bool); ok {
+		opts.Screenshots = ss
+	}
+	if sn, ok := params["snapshots"].(bool); ok {
+		opts.Snapshots = sn
+	}
+	if src, ok := params["sources"].(bool); ok {
+		opts.Sources = src
+	}
+	if b, ok := params["bidi"].(bool); ok {
+		opts.Bidi = b
+	}
+	// Screenshot format: "jpeg" (default) or "png"
+	opts.Format = "jpeg"
+	if f, ok := params["format"].(string); ok && (f == "png" || f == "jpeg") {
+		opts.Format = f
+	}
+	opts.Quality = 0.5
+	if q, ok := params["quality"].(float64); ok && q >= 0 && q <= 1 {
+		opts.Quality = q
+	}
+	return opts
+}
+
 // recordEvent is a generic recording event stored as a JSON-friendly map.
 type recordEvent = map[string]interface{}
 
