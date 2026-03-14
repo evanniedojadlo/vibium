@@ -28,6 +28,10 @@ func (r *Router) handleRecordingStart(session *BrowserSession, cmd bidiCommand) 
 // handleRecordingStop handles vibium:recording.stop — stops recording and returns recording data.
 // Options: path (file path to save zip).
 func (r *Router) handleRecordingStop(session *BrowserSession, cmd bidiCommand) {
+	// Wait for any in-flight dispatch() to finish so its after-event is recorded.
+	session.dispatchMu.Lock()
+	defer session.dispatchMu.Unlock()
+
 	session.mu.Lock()
 	recorder := session.recorder
 	session.mu.Unlock()
@@ -65,6 +69,10 @@ func (r *Router) handleRecordingStop(session *BrowserSession, cmd bidiCommand) {
 // handleRecordingStartChunk handles vibium:recording.startChunk — starts a new recording chunk.
 // Options: name, title.
 func (r *Router) handleRecordingStartChunk(session *BrowserSession, cmd bidiCommand) {
+	// Wait for any in-flight dispatch() to finish so events are properly ordered.
+	session.dispatchMu.Lock()
+	defer session.dispatchMu.Unlock()
+
 	session.mu.Lock()
 	recorder := session.recorder
 	session.mu.Unlock()
@@ -84,6 +92,10 @@ func (r *Router) handleRecordingStartChunk(session *BrowserSession, cmd bidiComm
 // handleRecordingStopChunk handles vibium:recording.stopChunk — stops the current chunk.
 // Options: path (file path to save zip).
 func (r *Router) handleRecordingStopChunk(session *BrowserSession, cmd bidiCommand) {
+	// Wait for any in-flight dispatch() to finish so its after-event is recorded.
+	session.dispatchMu.Lock()
+	defer session.dispatchMu.Unlock()
+
 	session.mu.Lock()
 	recorder := session.recorder
 	session.mu.Unlock()
@@ -113,6 +125,10 @@ func (r *Router) handleRecordingStopChunk(session *BrowserSession, cmd bidiComma
 
 // handleRecordingStartGroup handles vibium:recording.startGroup — starts a named group in the recording.
 func (r *Router) handleRecordingStartGroup(session *BrowserSession, cmd bidiCommand) {
+	// Wait for any in-flight dispatch() to finish so events are properly ordered.
+	session.dispatchMu.Lock()
+	defer session.dispatchMu.Unlock()
+
 	session.mu.Lock()
 	recorder := session.recorder
 	session.mu.Unlock()
@@ -134,6 +150,10 @@ func (r *Router) handleRecordingStartGroup(session *BrowserSession, cmd bidiComm
 
 // handleRecordingStopGroup handles vibium:recording.stopGroup — ends the current group.
 func (r *Router) handleRecordingStopGroup(session *BrowserSession, cmd bidiCommand) {
+	// Wait for any in-flight dispatch() to finish so its after-event is recorded.
+	session.dispatchMu.Lock()
+	defer session.dispatchMu.Unlock()
+
 	session.mu.Lock()
 	recorder := session.recorder
 	session.mu.Unlock()
