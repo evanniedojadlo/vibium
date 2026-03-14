@@ -51,23 +51,22 @@ function sleep(ms) {
 /**
  * Poll until predicate returns true, or timeout.
  */
-async function waitUntil(fn, { timeout = 8000, interval = 500 } = {}) {
+async function waitUntil(fn, description, { timeout = 8000, interval = 500 } = {}) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     if (fn()) return;
     await sleep(interval);
   }
+  throw new Error(`waitUntil timed out after ${timeout}ms: ${description}`);
 }
 
 describe('CLI: Process Cleanup', () => {
   test('daemon stop cleans up Chrome', async () => {
-    // Ensure clean state: stop any existing daemon and wait
+    // Ensure clean state: daemon stop waits for process exit
     try { execSync(`${VIBIUM} daemon stop`, { encoding: 'utf-8', timeout: 10000 }); } catch {}
-    await sleep(2000);
 
-    // Start a fresh daemon and let it stabilize
+    // Start a fresh daemon (daemon start -d polls for socket availability)
     execSync(`${VIBIUM} daemon start -d --headless`, { encoding: 'utf-8', timeout: 30000 });
-    await sleep(2000);
 
     // Navigate to launch the browser
     execSync(`${VIBIUM} go https://example.com`, {
@@ -84,7 +83,7 @@ describe('CLI: Process Cleanup', () => {
     await waitUntil(() => {
       const remaining = [...pidsBefore].filter(pid => getClickerChromePids().has(pid));
       return remaining.length === 0;
-    });
+    }, 'Chrome PIDs cleaned up after daemon stop');
 
     const pidsAfter = getClickerChromePids();
 
@@ -127,8 +126,11 @@ describe('CLI: Process Cleanup', () => {
       });
     });
 
-    // Additional wait for any lingering processes
-    await sleep(2000);
+    // Wait for any Chrome processes spawned by this test to be cleaned up
+    await waitUntil(() => {
+      const newPids = getNewPids(pidsBefore, getClickerChromePids());
+      return newPids.length === 0;
+    }, 'Chrome PIDs cleaned up after SIGTERM');
 
     const pidsAfter = getClickerChromePids();
     const newPids = getNewPids(pidsBefore, pidsAfter);

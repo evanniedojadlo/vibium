@@ -65,6 +65,15 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function waitUntil(fn, description, { timeout = 8000, interval = 500 } = {}) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (fn()) return;
+    await sleep(interval);
+  }
+  throw new Error(`waitUntil timed out after ${timeout}ms: ${description}`);
+}
+
 describe('JS Sync Process Cleanup', () => {
   test('sync API cleans up Chrome on stop()', async () => {
     const pidsBefore = getClickerChromePids();
@@ -74,7 +83,10 @@ describe('JS Sync Process Cleanup', () => {
     vibe.go(baseURL);
     bro.stop();
 
-    await sleep(2000);
+    await waitUntil(() => {
+      const newPids = getNewPids(pidsBefore, getClickerChromePids());
+      return newPids.length === 0;
+    }, 'Chrome PIDs cleaned up after sync stop()');
 
     const pidsAfter = getClickerChromePids();
     const newPids = getNewPids(pidsBefore, pidsAfter);

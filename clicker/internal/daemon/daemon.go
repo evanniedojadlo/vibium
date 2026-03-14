@@ -18,14 +18,16 @@ import (
 type Daemon struct {
 	listener     net.Listener
 	handlers     *agent.Handlers
-	mu           sync.Mutex // serializes handler access
+	mu           sync.Mutex     // serializes handler access
+	wg           sync.WaitGroup // tracks in-flight handler goroutines
 	version      string
 	startTime    time.Time
 	lastActivity time.Time
 	idleTimeout  time.Duration
 	socketPath   string
 	shutdownOnce sync.Once
-	done         chan struct{}
+	done         chan struct{} // signals shutdown started
+	shutdownDone chan struct{} // closed when shutdown is fully complete
 }
 
 // Options configures a new Daemon.
@@ -47,6 +49,7 @@ func New(opts Options) *Daemon {
 		startTime:    time.Now(),
 		lastActivity: time.Now(),
 		done:         make(chan struct{}),
+		shutdownDone: make(chan struct{}),
 	}
 }
 
@@ -100,13 +103,18 @@ func (d *Daemon) Run(ctx context.Context) error {
 		if err != nil {
 			select {
 			case <-d.done:
-				return nil // Clean shutdown
+				<-d.shutdownDone // Wait for full shutdown (browser cleanup)
+				return nil
 			default:
 				log.Debug("accept error", "error", err)
 				continue
 			}
 		}
-		go d.handleConnection(conn)
+		d.wg.Add(1)
+		go func() {
+			defer d.wg.Done()
+			d.handleConnection(conn)
+		}()
 	}
 }
 
@@ -114,17 +122,27 @@ func (d *Daemon) Run(ctx context.Context) error {
 func (d *Daemon) Shutdown() {
 	d.shutdownOnce.Do(func() {
 		log.Debug("daemon shutting down")
+		defer close(d.shutdownDone)
 		close(d.done)
 
-		// Close browser session
-		d.mu.Lock()
-		d.handlers.Close()
-		d.mu.Unlock()
-
-		// Close listener
+		// Stop accepting new connections
 		if d.listener != nil {
 			d.listener.Close()
 		}
+
+		// Wait for in-flight handlers to finish (with timeout)
+		waitDone := make(chan struct{})
+		go func() { d.wg.Wait(); close(waitDone) }()
+		select {
+		case <-waitDone:
+		case <-time.After(10 * time.Second):
+			log.Debug("timed out waiting for in-flight handlers to finish")
+		}
+
+		// Now safe to close browser session
+		d.mu.Lock()
+		d.handlers.Close()
+		d.mu.Unlock()
 
 		// Clean up socket file
 		if d.socketPath != "" {

@@ -164,9 +164,7 @@ test-cleanup:
 test-cli: build-go
 	@echo "--- CLI Tests ---"
 	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon stop 2>/dev/null || true
-	@sleep 1
 	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon start -d --headless
-	@sleep 1
 	$(TIMEOUT_CMD) node --test $(TEST_FLAGS) --test-concurrency=1 tests/cli/navigation.test.js tests/cli/elements.test.js tests/cli/actionability.test.js tests/cli/page-reading.test.js tests/cli/input-tools.test.js tests/cli/pages.test.js tests/cli/page-context.test.js tests/cli/find-refs.test.js
 	@$(CURDIR)/clicker/bin/vibium$(EXE) daemon stop 2>/dev/null || true
 	@echo "--- CLI Process Tests (sequential) ---"
