@@ -522,17 +522,9 @@ func (h *Handlers) browserLaunch(args map[string]interface{}) (*ToolsCallResult,
 
 	// Remote browser connect mode
 	if h.connectURL != "" {
-		conn, err := bidi.ConnectWithHeaders(h.connectURL, h.connectHeaders)
+		conn, client, sessionID, err := bidi.ConnectRemote(h.connectURL, h.connectHeaders)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to remote browser: %w", err)
-		}
-		client := bidi.NewClient(conn)
-
-		// Create a BiDi session (chromedriver requires this before any commands)
-		result, err := client.SessionNew(map[string]interface{}{})
-		if err != nil {
-			conn.Close()
-			return nil, fmt.Errorf("failed to create remote session: %w", err)
 		}
 		h.conn = conn
 		h.client = client
@@ -540,7 +532,7 @@ func (h *Handlers) browserLaunch(args map[string]interface{}) (*ToolsCallResult,
 		return &ToolsCallResult{
 			Content: []Content{{
 				Type: "text",
-				Text: fmt.Sprintf("Connected to remote browser at %s (session %s)", h.connectURL, result.SessionID),
+				Text: fmt.Sprintf("Connected to remote browser at %s (session %s)", h.connectURL, sessionID),
 			}},
 		}, nil
 	}

@@ -96,13 +96,14 @@ func NewRouter(headless bool, connectURL string, connectHeaders http.Header) *Ro
 func (r *Router) OnClientConnect(client ClientTransport) {
 	var launchResult *browser.LaunchResult
 	var bidiConn *bidi.Connection
+	var bidiClient *bidi.Client
 	var err error
 
 	if r.connectURL != "" {
-		// Remote mode: connect to an existing BiDi endpoint
+		// Remote mode: connect to an existing BiDi endpoint and create a session
 		fmt.Fprintf(os.Stderr, "[router] Connecting to remote browser for client %d: %s\n", client.ID(), r.connectURL)
 
-		bidiConn, err = bidi.ConnectWithHeaders(r.connectURL, r.connectHeaders)
+		bidiConn, bidiClient, _, err = bidi.ConnectRemote(r.connectURL, r.connectHeaders)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[router] Failed to connect to remote browser for client %d: %v\n", client.ID(), err)
 			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to connect to remote browser: %s"}}`, err.Error()))
@@ -143,22 +144,9 @@ func (r *Router) OnClientConnect(client ClientTransport) {
 
 			fmt.Fprintf(os.Stderr, "[router] BiDi connection established for client %d\n", client.ID())
 		}
-	}
 
-	// Create a BiDi client for handling custom commands
-	bidiClient := bidi.NewClient(bidiConn)
-
-	// Remote mode: create a BiDi session (chromedriver requires this before any commands).
-	// Local mode skips this because browser.Launch() already called SessionNew internally.
-	if r.connectURL != "" {
-		_, err = bidiClient.SessionNew(map[string]interface{}{})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[router] Failed to create remote session for client %d: %v\n", client.ID(), err)
-			bidiConn.Close()
-			client.Send(fmt.Sprintf(`{"error":{"code":-32000,"message":"Failed to create remote session: %s"}}`, err.Error()))
-			client.Close()
-			return
-		}
+		// Local mode: browser.Launch() already called SessionNew, just wrap the connection
+		bidiClient = bidi.NewClient(bidiConn)
 	}
 
 	session := &BrowserSession{
