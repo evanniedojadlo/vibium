@@ -67,7 +67,9 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 	if h.recorder != nil && h.recorder.IsRecording() && !isRecordingCommand(name) {
 		callId = h.recorder.NextCallId()
 		pageId := h.getContext()
-		h.recorder.RecordAction(callId, mcpToolToMethod(name), args, "", pageId)
+		// Resolve @e1 refs to real selectors so the trace shows meaningful selectors
+		recordArgs := h.resolveRefsInArgs(args)
+		h.recorder.RecordAction(callId, mcpToolToMethod(name), recordArgs, "", pageId)
 		h.lastElementBox = nil
 	}
 
@@ -838,11 +840,16 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 	}
 	selector = h.resolveSelector(selector)
 
-	// Run getLabel in browser to get consistent label format
+	// Run getLabel in browser to get consistent label format (with scroll-into-view)
 	labelScript := `(selector) => {
 		` + GetLabelJS() + `
 		const el = document.querySelector(selector);
 		if (!el) return null;
+		if (el.scrollIntoViewIfNeeded) {
+			el.scrollIntoViewIfNeeded(true);
+		} else {
+			el.scrollIntoView({ block: 'center', inline: 'nearest' });
+		}
 		return getLabel(el);
 	}`
 	labelResult, err := h.client.CallFunction("", labelScript, []interface{}{selector})
@@ -1053,6 +1060,12 @@ func findBySemanticScript() string {
 		}
 
 		if (!el) return null;
+
+		if (el.scrollIntoViewIfNeeded) {
+			el.scrollIntoViewIfNeeded(true);
+		} else {
+			el.scrollIntoView({ block: 'center', inline: 'nearest' });
+		}
 
 		const rect = el.getBoundingClientRect();
 		return JSON.stringify({
@@ -2380,6 +2393,25 @@ func (h *Handlers) ensureBrowser() error {
 		}
 	}
 	return nil
+}
+
+// resolveRefsInArgs returns a copy of args with any @ref selector resolved
+// to the real CSS selector, so traces show meaningful selectors.
+func (h *Handlers) resolveRefsInArgs(args map[string]interface{}) map[string]interface{} {
+	sel, ok := args["selector"].(string)
+	if !ok || !strings.HasPrefix(sel, "@e") {
+		return args
+	}
+	resolved := h.resolveSelector(sel)
+	if resolved == sel {
+		return args
+	}
+	cp := make(map[string]interface{}, len(args))
+	for k, v := range args {
+		cp[k] = v
+	}
+	cp["selector"] = resolved
+	return cp
 }
 
 // resolveSelector resolves @ref selectors to CSS selectors from the refMap.
