@@ -581,7 +581,30 @@ The viewer shows:
 
 ## CLI Usage
 
-All recording features are available from the command line — see the CLI examples in the collapsible blocks above. CLI recording uses the daemon, which is automatically started when needed.
+All recording features are available from the command line. The daemon is automatically started when needed.
+
+```bash
+# Start recording with screenshots
+vibium record start --screenshots --snapshots --name my-session
+
+# Do some work
+vibium go https://example.com
+vibium click '#btn'
+vibium fill '#input' 'hello'
+
+# Action groups
+vibium record group start 'login'
+vibium fill '#username' 'alice'
+vibium fill '#password' 'secret'
+vibium record group stop
+
+# Chunks
+vibium record chunk stop -o chunk1.zip
+vibium record chunk start --name next-chunk
+
+# Stop and save the recording
+vibium record stop -o record.zip
+```
 
 ---
 
