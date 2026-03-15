@@ -20,6 +20,8 @@ This isn't about distrust — it's defense in depth. The same reason you don't r
 
 ---
 
+Before starting, check the [system requirements](reference/mac-system-requirements.md) to make sure your host machine has enough RAM and storage for the VM workflow.
+
 Assuming macOS VM dev on macOS (via UTM).
 
 ## Install UTM (on host)

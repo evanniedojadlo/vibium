@@ -2,7 +2,7 @@
 
 ## Development Environment
 
-We recommend developing inside a VM to limit the blast radius of AI-assisted tools like Claude Code. See the setup guide for your platform:
+We recommend developing inside a VM to limit the blast radius of AI-assisted tools like Claude Code. Check the [system requirements](docs/reference/mac-system-requirements.md) for hardware specs, then see the setup guide for your platform:
 - [macOS](docs/local-dev-setup-mac.md)
 - [Linux x86](docs/local-dev-setup-x86-linux.md)
 - [Windows x86](docs/local-dev-setup-x86-windows.md)
