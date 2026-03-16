@@ -106,6 +106,7 @@ vibium go https://example.com && vibium map && vibium click @e3 && vibium diff m
 - `vibium is visible "<selector>"` — check if element is visible (true/false)
 - `vibium is enabled "<selector>"` — check if element is enabled (true/false)
 - `vibium is checked "<selector>"` — check if checkbox/radio is checked (true/false)
+- `vibium is actionable "<selector>"` — check if element is actionable (true/false)
 
 ### Waiting
 - `vibium wait "<selector>"` — wait for element (`--state visible|hidden|attached`, `--timeout ms`)

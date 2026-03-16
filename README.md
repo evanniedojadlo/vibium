@@ -8,7 +8,7 @@ Vibium gives AI agents a browser. Install the `vibium` skill and your agent can 
 
 ## Why Vibium?
 
-- **AI-native.** Install as a skill — your agent learns 81 browser automation tools instantly.
+- **AI-native.** Install as a skill — your agent learns the full browser automation toolkit instantly.
 - **Zero config.** One install, browser downloads automatically, visible by default.
 - **Standards-based.** Built on [WebDriver BiDi](docs/explanation/webdriver-bidi.md), not proprietary protocols controlled by large corporations.
 - **Lightweight.** Single ~10MB binary. No runtime dependencies.
@@ -23,22 +23,21 @@ Vibium gives AI agents a browser. Install the `vibium` skill and your agent can 
 │             LLM / Agent              │
 │  (Claude Code, Codex, Gemini, etc.)  │
 └──────────────────────────────────────┘
-          ▲                  ▲
-          │ MCP (stdio)      │ CLI (Bash)
-          ▼                  ▼
-┌──────────────────────────────────┐
-│         Vibium binary            │
-│        (vibium CLI)              │
-│                                  │
-│  ┌───────────┐ ┌──────────────┐  │
-│  │ MCP Server│ │ CLI Commands │  │
-│  └─────┬─────┘ └──────┬───────┘  │        ┌──────────────────┐
-│        └──────▲───────┘          │        │                  │
-│               │                  │        │                  │
-│        ┌──────▼───────┐          │  BiDi  │  Chrome Browser  │
-│        │  BiDi Proxy  │          │◄──────►│                  │
-│        └──────────────┘          │        │                  │
-└──────────────────────────────────┘        └──────────────────┘
+       ▲                  ▲
+       │ CLI (Bash)       │ MCP (stdio)
+       ▼                  ▼
+┌───────────────────────────────────┐
+│          Vibium binary            │
+│                                   │
+│  ┌──────────────┐ ┌────────────┐  │
+│  │ CLI Commands │ │ MCP Server │  │
+│  └─────┬────────┘ └──────┬─────┘  │        ┌──────────────────┐
+│        └───────▲─────────┘        │        │                  │
+│                │                  │        │                  │
+│         ┌──────▼───────┐          │  BiDi  │  Chrome Browser  │
+│         │  BiDi Proxy  │          │◄──────►│                  │
+│         └──────────────┘          │        │                  │
+└───────────────────────────────────┘        └──────────────────┘
           ▲
           │ WebSocket BiDi :9515
           ▼
@@ -67,57 +66,35 @@ The first command installs Vibium and the `vibium` binary, and downloads Chrome.
 ### CLI Quick Reference
 
 ```bash
-# Core actions
-vibium go https://example.com          # navigate to URL
-vibium click "a"                       # click element
-vibium fill "input" "hello"            # clear and fill input
-vibium type "input" "hello"            # type into element
-vibium screenshot -o page.png          # capture screenshot
-vibium eval "document.title"           # run JavaScript
+# Map & interact (the core workflow)
+vibium go https://var.parts           # navigate to URL
+vibium map                            # map interactive elements → @e1, @e2, ...
+vibium click @e1                      # click using ref
+vibium diff map                       # see what changed
 
-# Read data
-vibium text                            # get page text
-vibium url                             # get current URL
-vibium title                           # get page title
+# Find elements (semantic — no CSS needed)
+vibium find text "Sign In"            # find by visible text
+vibium find label "Email"             # find by form label
+vibium find placeholder "Search"      # find by placeholder
+vibium find role button               # find by ARIA role
 
-# Viewport & window
-vibium viewport                        # get viewport dimensions
-vibium viewport 1920 1080              # set viewport size
-vibium window                          # get window dimensions
-vibium window --state maximized        # maximize window
+# Read & capture
+vibium text                           # get all page text
+vibium screenshot -o page.png         # capture screenshot
+vibium screenshot --annotate -o a.png # annotated with element labels
+vibium pdf -o page.pdf                # save page as PDF
+vibium eval "document.title"          # run JavaScript
 
-# Configuration
-vibium geolocation 40.7 -74.0          # override geolocation
-vibium content "<h1>Hi</h1>"           # replace page HTML
-vibium media --color-scheme dark       # override CSS media
+# Wait for things
+vibium wait ".modal"                  # wait for element to appear
+vibium wait url "/dashboard"          # wait for URL change
+vibium wait text "Success"            # wait for text on page
 
-# Check state
-vibium is visible "h1"                 # check if visible
-vibium is enabled "button"             # check if enabled
-
-# Find elements
-vibium find "a"                        # find by CSS selector
-vibium find "a" --all                  # find all matching
-vibium find text "Sign In"             # find by text
-vibium find role button                # find by ARIA role
-
-# Wait
-vibium wait ".loaded"                  # wait for element
-vibium wait url "/dashboard"           # wait for URL
-vibium wait text "Welcome"             # wait for text
-vibium wait load                       # wait for page load
-
-# Pages, mouse, scroll
-vibium page new https://example.com    # open new page
-vibium page switch 1                   # switch to page
-vibium mouse click 100 200             # click at coordinates
-vibium scroll into-view "#footer"      # scroll element into view
-
-# Cookies & storage
-vibium cookies                         # get all cookies
-vibium cookies "session" "abc123"      # set cookie
-vibium storage                         # export storage state
-vibium storage restore state.json      # restore from file
+# Forms & input
+vibium fill @e2 "hello@example.com"   # fill input using ref
+vibium select @e3 "US"               # pick dropdown option
+vibium check @e4                      # check a checkbox
+vibium press Enter                    # press a key
 ```
 
 Full command list: [SKILL.md](skills/vibe-check/SKILL.md)
@@ -157,11 +134,27 @@ VIBIUM_SKIP_BROWSER_DOWNLOAD=1 npm install vibium
 ### JS/TS Client
 
 ```javascript
-// Sync (require-friendly)
-const { browser } = require('vibium/sync')
-
 // Async (import)
 import { browser } from 'vibium'
+
+// Sync (require-friendly)
+const { browser } = require('vibium/sync')
+```
+
+**Async API:**
+```javascript
+import { browser } from 'vibium'
+
+const bro = await browser.start()
+const vibe = await bro.page()
+await vibe.go('https://example.com')
+
+const png = await vibe.screenshot()
+await fs.writeFile('screenshot.png', png)
+
+const link = await vibe.find('a')
+await link.click()
+await bro.stop()
 ```
 
 **Sync API:**
@@ -181,47 +174,14 @@ link.click()
 bro.stop()
 ```
 
-**Async API:**
-```javascript
-import { browser } from 'vibium'
-
-const bro = await browser.start()
-const vibe = await bro.page()
-await vibe.go('https://example.com')
-
-const png = await vibe.screenshot()
-await fs.writeFile('screenshot.png', png)
-
-const link = await vibe.find('a')
-await link.click()
-await bro.stop()
-```
-
 ### Python Client
 
 ```python
-# Sync (default)
-from vibium import browser
-
 # Async
 from vibium.async_api import browser
-```
 
-**Sync API:**
-```python
+# Sync (default)
 from vibium import browser
-
-bro = browser.start()
-vibe = bro.page()
-vibe.go("https://example.com")
-
-png = vibe.screenshot()
-with open("screenshot.png", "wb") as f:
-    f.write(png)
-
-link = vibe.find("a")
-link.click()
-bro.stop()
 ```
 
 **Async API:**
@@ -243,6 +203,23 @@ async def main():
     await bro.stop()
 
 asyncio.run(main())
+```
+
+**Sync API:**
+```python
+from vibium import browser
+
+bro = browser.start()
+vibe = bro.page()
+vibe.go("https://example.com")
+
+png = vibe.screenshot()
+with open("screenshot.png", "wb") as f:
+    f.write(png)
+
+link = vibe.find("a")
+link.click()
+bro.stop()
 ```
 
 ---
