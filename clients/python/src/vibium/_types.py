@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, TypedDict, Union
 
 
 @dataclass
@@ -25,25 +25,87 @@ class ElementInfo:
     box: BoundingBox
 
 
-# --- TypedDicts as plain dicts (for Python 3.9 compat) ---
+class Cookie(TypedDict, total=False):
+    """Browser cookie."""
 
-# Cookie: {name, value, domain, path, size, httpOnly, secure, sameSite, expiry?}
-Cookie = Dict[str, Any]
+    name: str
+    value: str
+    domain: str
+    path: str
+    size: int
+    httpOnly: bool
+    secure: bool
+    sameSite: str
+    expiry: int
 
-# SetCookieParam: {name, value, domain?, url?, path?, httpOnly?, secure?, sameSite?, expiry?}
-SetCookieParam = Dict[str, Any]
 
-# OriginState: {origin, localStorage, sessionStorage}
-OriginState = Dict[str, Any]
+class SetCookieParam(TypedDict, total=False):
+    """Parameters for setting a cookie."""
 
-# StorageState: {cookies: list[Cookie], origins: list[OriginState]}
-StorageState = Dict[str, Any]
+    name: str
+    value: str
+    domain: str
+    url: str
+    path: str
+    httpOnly: bool
+    secure: bool
+    sameSite: str
+    expiry: int
 
-# A11yNode: {role, name?, value?, description?, children?, ...}
-A11yNode = Dict[str, Any]
 
-# ViewportSize: {width, height}
-ViewportSize = Dict[str, Union[int, float]]
+class _StorageEntry(TypedDict):
+    name: str
+    value: str
 
-# WindowInfo: {state, width, height, x, y}
-WindowInfo = Dict[str, Any]
+
+class OriginState(TypedDict):
+    """Storage state for a single origin."""
+
+    origin: str
+    localStorage: List[_StorageEntry]
+    sessionStorage: List[_StorageEntry]
+
+
+class StorageState(TypedDict):
+    """Full browser storage state."""
+
+    cookies: List[Cookie]
+    origins: List[OriginState]
+
+
+class A11yNode(TypedDict, total=False):
+    """Accessibility tree node."""
+
+    role: str
+    name: str
+    value: Union[str, int, float]
+    description: str
+    disabled: bool
+    expanded: bool
+    focused: bool
+    checked: Union[bool, str]
+    pressed: Union[bool, str]
+    selected: bool
+    required: bool
+    readonly: bool
+    level: int
+    valuemin: int
+    valuemax: int
+    children: List[A11yNode]
+
+
+class ViewportSize(TypedDict):
+    """Browser viewport dimensions."""
+
+    width: int
+    height: int
+
+
+class WindowInfo(TypedDict):
+    """Browser window state and dimensions."""
+
+    state: str
+    width: int
+    height: int
+    x: int
+    y: int
