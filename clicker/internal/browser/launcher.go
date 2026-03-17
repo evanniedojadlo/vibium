@@ -359,56 +359,13 @@ func (r *LaunchResult) Close() error {
 	return nil
 }
 
-// killProcessTree kills a process and all its descendants.
+// killProcessTree kills a process and all its descendants using process group kill.
+// Chromedriver is started as a process group leader (Setpgid: true), so killing
+// the group atomically terminates all children — no racy pgrep walk needed.
 func killProcessTree(pid int) {
-	// First, find all descendant PIDs while parent relationships still exist
-	descendants := getDescendants(pid)
-
-	// Kill descendants first (deepest children first)
-	for i := len(descendants) - 1; i >= 0; i-- {
-		killByPid(descendants[i])
-	}
-
-	// Kill the root process
-	killByPid(pid)
-
-	// Wait for all processes to actually die (up to 2s) rather than
-	// sleeping a fixed duration — prevents lingering Chrome processes
-	// from causing resource contention in subsequent test runs.
-	waitForProcessesDead(append(descendants, pid), 2*time.Second)
-
-	// Kill any orphaned Chrome processes that escaped
-	// (Chrome helpers sometimes get reparented to init before we can kill them)
-	KillOrphanedChromeProcesses()
-}
-
-
-// getDescendants returns all descendant PIDs of a process (recursive).
-func getDescendants(pid int) []int {
-	var descendants []int
-
-	// Use pgrep to find direct children
-	cmd := exec.Command("pgrep", "-P", fmt.Sprintf("%d", pid))
-	output, err := cmd.Output()
-	if err != nil {
-		return descendants
-	}
-
-	// Parse child PIDs
-	lines := bytes.Split(bytes.TrimSpace(output), []byte("\n"))
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-		var childPid int
-		if _, err := fmt.Sscanf(string(line), "%d", &childPid); err == nil {
-			descendants = append(descendants, childPid)
-			// Recursively get grandchildren
-			descendants = append(descendants, getDescendants(childPid)...)
-		}
-	}
-
-	return descendants
+	killProcessGroup(pid)
+	killByPid(pid) // fallback: kill root directly if pgid lookup failed
+	waitForProcessDead(pid, 2*time.Second)
 }
 
 // KillOrphanedChromeProcesses finds and kills Chrome/chromedriver processes
@@ -440,8 +397,8 @@ func KillOrphanedChromeProcesses() {
 				var ppid int
 				if _, err := fmt.Sscanf(string(bytes.TrimSpace(ppidOut)), "%d", &ppid); err == nil {
 					if ppid == 1 {
-						// This is an orphaned process - kill it and its children
-						killProcessTreeByPid(pid)
+						killProcessGroup(pid)
+						killByPid(pid)
 					}
 				}
 			}
@@ -471,11 +428,3 @@ func cleanupChromeTempDirs() {
 	}
 }
 
-// killProcessTreeByPid kills a process and all its descendants by PID.
-func killProcessTreeByPid(pid int) {
-	descendants := getDescendants(pid)
-	for i := len(descendants) - 1; i >= 0; i-- {
-		killByPid(descendants[i])
-	}
-	killByPid(pid)
-}
