@@ -1273,8 +1273,8 @@ func GetToolSchemas() []Tool {
 					},
 					"screenshots": map[string]interface{}{
 						"type":        "boolean",
-						"description": "Capture screenshots after each action (default: false)",
-						"default":     false,
+						"description": "Capture screenshots after each action (default: true)",
+						"default":     true,
 					},
 					"snapshots": map[string]interface{}{
 						"type":        "boolean",

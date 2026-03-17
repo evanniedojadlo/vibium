@@ -90,6 +90,10 @@ vibium wait ".modal"                  # wait for element to appear
 vibium wait url "/dashboard"          # wait for URL change
 vibium wait text "Success"            # wait for text on page
 
+# Record sessions
+vibium record start                   # record with screenshots (default)
+vibium record stop                    # stop and save to record.zip
+
 # Forms & input
 vibium fill @e2 "hello@example.com"   # fill input using ref
 vibium select @e3 "US"               # pick dropdown option

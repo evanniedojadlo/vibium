@@ -34,6 +34,7 @@ type RecordingStartOptions struct {
 // paths so option parsing is defined once.
 func ParseRecordingOptions(params map[string]interface{}) RecordingStartOptions {
 	var opts RecordingStartOptions
+	opts.Screenshots = true // default: screenshots on (opt out with screenshots=false)
 	if name, ok := params["name"].(string); ok {
 		opts.Name = name
 	}

@@ -17,19 +17,22 @@ func newRecordCmd() *cobra.Command {
 	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start a recording",
-		Example: `  vibium record start --screenshots
-  # Start recording with per-action screenshots (JPEG, quality 0.5)
+		Example: `  vibium record start
+  # Start recording with screenshots (default)
 
-  vibium record start --screenshots --snapshots
-  # Start recording with screenshots and HTML snapshots
+  vibium record start --screenshots=false
+  # Record without screenshots
 
-  vibium record start --screenshots --format png
+  vibium record start --snapshots
+  # Record with screenshots and HTML snapshots
+
+  vibium record start --format png
   # Use PNG format instead of JPEG (larger files, lossless)
 
-  vibium record start --screenshots --quality 0.1
+  vibium record start --quality 0.1
   # Lower JPEG quality for smaller recording files
 
-  vibium record start --screenshots --title "Login Flow"
+  vibium record start --title "Login Flow"
   # Set a title shown in the trace viewer`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -49,9 +52,7 @@ func newRecordCmd() *cobra.Command {
 			if title != "" {
 				callArgs["title"] = title
 			}
-			if screenshots {
-				callArgs["screenshots"] = true
-			}
+			callArgs["screenshots"] = screenshots
 			if snapshots {
 				callArgs["snapshots"] = true
 			}
@@ -75,7 +76,7 @@ func newRecordCmd() *cobra.Command {
 			printResult(result)
 		},
 	}
-	startCmd.Flags().Bool("screenshots", false, "Capture screenshots after each action")
+	startCmd.Flags().Bool("screenshots", true, "Capture screenshots after each action")
 	startCmd.Flags().Bool("snapshots", false, "Capture HTML snapshots")
 	startCmd.Flags().Bool("sources", false, "Include source information")
 	startCmd.Flags().Bool("bidi", false, "Record raw BiDi commands in the recording")
