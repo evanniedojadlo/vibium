@@ -1,285 +1,233 @@
-# Vibium API
+# Vibium API Reference
 
-**Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
+Command reference for every Vibium surface: wire protocol, CLI, MCP tools, JS client, and Python client.
+
+**Legend:** Filled cell = implemented. `⬜` = planned, not yet done. `—` = not applicable for this surface.
 
 ---
 
-## Navigation
+## Browser
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.go(url)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.back()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.forward()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.reload()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.url()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.title()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.content()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 1 | Launch browser and connect | *binary launch + WS connect* | `vibium start` | `browser_start` | `browser.start(opts?)` | `browser.start(opts?)` |
+| 2 | Get the default page | `vibium:browser.page` | — | — | `browser.page()` | `browser.page()` |
+| 3 | Create a new page | `vibium:browser.newPage` | `vibium page new` | `browser_new_page` | `browser.newPage()` | `browser.new_page()` |
+| 4 | Create a new browser context | `vibium:browser.newContext` | — | — | `browser.newContext()` | `browser.new_context()` |
+| 5 | List all pages | `vibium:browser.pages` | `vibium pages` | `browser_list_pages` | `browser.pages()` | `browser.pages()` |
+| 6 | Stop the browser | `vibium:browser.stop` | `vibium stop` | `browser_stop` | `browser.stop()` | `browser.stop()` |
+| 7 | Listen for new page events | *client-side event listener* | — | — | `browser.onPage(cb)` | `browser.on_page(cb)` |
+| 8 | Listen for popup events | *client-side event listener* | — | — | `browser.onPopup(cb)` | `browser.on_popup(cb)` |
+| 9 | Remove all event listeners | *client-side* | — | — | `browser.removeAllListeners(ev?)` | `browser.remove_all_listeners(ev?)` |
 
-## Pages & Contexts
+## Page
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `browser.page()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `browser.newPage()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `browser.newContext()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.newPage()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `browser.pages()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.close()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `browser.start(url)` | ✅ | ✅ | ✅ | ✅ | — | ✅ |
-| `browser.stop()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `browser.onPage(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `browser.onPopup(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `browser.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.bringToFront()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.close()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 10 | Navigate to a URL | `vibium:page.navigate` | `vibium go <url>` | `browser_navigate` | `page.go(url)` | `page.go(url)` |
+| 11 | Go back | `vibium:page.back` | `vibium back` | `browser_back` | `page.back()` | `page.back()` |
+| 12 | Go forward | `vibium:page.forward` | `vibium forward` | `browser_forward` | `page.forward()` | `page.forward()` |
+| 13 | Reload page | `vibium:page.reload` | `vibium reload` | `browser_reload` | `page.reload()` | `page.reload()` |
+| 14 | Get current URL | `vibium:page.url` | `vibium url` | `browser_get_url` | `page.url()` | `page.url()` |
+| 15 | Get page title | `vibium:page.title` | `vibium title` | `browser_get_title` | `page.title()` | `page.title()` |
+| 16 | Get page HTML | `vibium:page.content` | — | — | `page.content()` | `page.content()` |
+| 17 | Find a single element | `vibium:page.find` | `vibium find <sel>` | `browser_find` | `page.find(sel, opts?)` | `page.find(sel, **opts)` |
+| 18 | Find all matching elements | `vibium:page.findAll` | `vibium find --all <sel>` | `browser_find_all` | `page.findAll(sel, opts?)` | `page.find_all(sel, **opts)` |
+| 19 | Take a page screenshot | `vibium:page.screenshot` | `vibium screenshot` | `browser_screenshot` | `page.screenshot(opts?)` | `page.screenshot(opts?)` |
+| 20 | Generate PDF | `vibium:page.pdf` | `vibium pdf` | `browser_pdf` | `page.pdf()` | `page.pdf()` |
+| 21 | Evaluate JavaScript | `vibium:page.eval` | `vibium eval <expr>` | `browser_evaluate` | `page.evaluate(expr)` | `page.evaluate(expr)` |
+| 22 | Add a script tag | `vibium:page.addScript` | ⬜ | ⬜ | `page.addScript(src)` | `page.add_script(src)` |
+| 23 | Add a style tag | `vibium:page.addStyle` | ⬜ | ⬜ | `page.addStyle(src)` | `page.add_style(src)` |
+| 24 | Expose a function to the page | `vibium:page.expose` | — | — | `page.expose(name, fn)` | `page.expose(name, fn)` |
+| 25 | Wait for a duration | `vibium:page.wait` | `vibium sleep <ms>` | `browser_sleep` | `page.wait(ms)` | `page.wait(ms)` |
+| 26 | Wait for a selector | `vibium:page.waitFor` | `vibium wait <sel>` | `browser_wait` | `page.waitFor(sel, opts?)` | `page.wait_for(sel, **opts)` |
+| 27 | Wait for JS function to return truthy | `vibium:page.waitForFunction` | `vibium wait fn <expr>` | `browser_wait_for_fn` | `page.waitForFunction(fn, opts?)` | `page.wait_for_function(fn, **opts)` |
+| 28 | Wait for URL to match | `vibium:page.waitForURL` | `vibium wait url <pat>` | `browser_wait_for_url` | `page.waitForURL(url, opts?)` | `page.wait_for_url(url, **opts)` |
+| 29 | Wait for page load | `vibium:page.waitForLoad` | `vibium wait load` | `browser_wait_for_load` | `page.waitForLoad(opts?)` | `page.wait_for_load(**opts)` |
+| 30 | Scroll the page | `vibium:page.scroll` | `vibium scroll <dir> <amt>` | `browser_scroll` | `page.scroll(dir?, amt?, sel?)` | `page.scroll(dir?, amt?, sel?)` |
+| 31 | Set viewport size | `vibium:page.setViewport` | `vibium viewport <w> <h>` | `browser_set_viewport` | `page.setViewport(size)` | `page.set_viewport(size)` |
+| 32 | Get viewport size | `vibium:page.viewport` | `vibium viewport get` | `browser_get_viewport` | `page.viewport()` | `page.viewport()` |
+| 33 | Override CSS media features | `vibium:page.emulateMedia` | `vibium media <scheme>` | `browser_emulate_media` | `page.emulateMedia(opts)` | `page.emulate_media(**opts)` |
+| 34 | Set page HTML | `vibium:page.setContent` | `vibium content <html>` | `browser_set_content` | `page.setContent(html)` | `page.set_content(html)` |
+| 35 | Override geolocation | `vibium:page.setGeolocation` | `vibium geolocation <lat> <lon>` | `browser_set_geolocation` | `page.setGeolocation(coords)` | `page.set_geolocation(coords)` |
+| 36 | Set window size/position | `vibium:page.setWindow` | `vibium window <opts>` | `browser_set_window` | `page.setWindow(opts)` | `page.set_window(**opts)` |
+| 37 | Get window info | `vibium:page.window` | `vibium window get` | `browser_get_window` | `page.window()` | `page.window()` |
+| 38 | Get accessibility tree | `vibium:page.a11yTree` | `vibium a11y-tree` | `browser_a11y_tree` | `page.a11yTree(opts?)` | `page.a11y_tree(opts?)` |
+| 39 | List all frames | `vibium:page.frames` | `vibium frames` | `browser_frames` | `page.frames()` | `page.frames()` |
+| 40 | Get a frame by name/URL | `vibium:page.frame` | `vibium frame <ref>` | `browser_frame` | `page.frame(nameOrUrl)` | `page.frame(name_or_url)` |
+| 41 | Get the main frame | *returns self (top frame)* | — | — | `page.mainFrame()` | `page.main_frame()` |
+| 42 | Bring page to front | `browsingContext.activate` | `vibium page switch <idx>` | `browser_switch_page` | `page.bringToFront()` | `page.bring_to_front()` |
+| 43 | Close the page | `browsingContext.close` | `vibium page close` | `browser_close_page` | `page.close()` | `page.close()` |
+| 44 | Register a route handler | `vibium:page.route` | — | — | `page.route(pattern, handler)` | `page.route(pattern, handler)` |
+| 45 | Remove a route handler | `network.removeIntercept` | — | — | `page.unroute(pattern)` | `page.unroute(pattern)` |
+| 46 | Set extra HTTP headers | `vibium:page.setHeaders` | ⬜ | ⬜ | `page.setHeaders(headers)` | `page.set_headers(headers)` |
+| 47 | Listen for requests | *client-side event listener* | — | — | `page.onRequest(fn)` | `page.on_request(fn)` |
+| 48 | Listen for responses | *client-side event listener* | — | — | `page.onResponse(fn)` | `page.on_response(fn)` |
+| 49 | Listen for dialogs | *client-side event listener* | — | — | `page.onDialog(fn)` | `page.on_dialog(fn)` |
+| 50 | Listen for console messages | *client-side event listener* | — | — | `page.onConsole(fn)` | `page.on_console(fn)` |
+| 51 | Listen for page errors | *client-side event listener* | — | — | `page.onError(fn)` | `page.on_error(fn)` |
+| 52 | Listen for downloads | *client-side event listener* | — | — | `page.onDownload(fn)` | `page.on_download(fn)` |
+| 53 | Subscribe to WebSocket events | `vibium:page.onWebSocket` | — | — | `page.onWebSocket(fn)` | `page.on_web_socket(fn)` |
+| 54 | Remove all event listeners | *client-side* | — | — | `page.removeAllListeners(ev?)` | `page.remove_all_listeners(ev?)` |
+| 55 | Capture response (before action) | *client-side* | — | — | `page.capture.response(pat, fn?)` | `page.capture.response(pat, fn?)` |
+| 56 | Capture request (before action) | *client-side* | — | — | `page.capture.request(pat, fn?)` | `page.capture.request(pat, fn?)` |
+| 57 | Capture navigation (before action) | *client-side* | — | — | `page.capture.navigation(fn?)` | `page.capture.navigation(fn?)` |
+| 58 | Capture event (before action) | *client-side* | — | — | `page.capture.event(name, fn?)` | `page.capture.event(name, fn?)` |
+| 59 | Capture download (before action) | *client-side* | — | — | `page.capture.download(fn?)` | `page.capture.download(fn?)` |
+| 60 | Capture dialog (before action) | *client-side* | — | — | `page.capture.dialog(fn?)` | `page.capture.dialog(fn?)` |
+| 61 | Get buffered console messages | *client-side* | — | — | `page.consoleMessages()` | `page.console_messages()` |
+| 62 | Get buffered page errors | *client-side* | — | — | `page.errors()` | `page.errors()` |
 
-## Element Finding
+## Element
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.find('css')` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.find({role, text, …})` | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ |
-| `page.findAll('css')` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.findAll({…})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.find('css')` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.find({…})` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 63 | Click an element | `vibium:element.click` | `vibium click <sel>` | `browser_click` | `el.click(opts?)` | `el.click(timeout?)` |
+| 64 | Double-click an element | `vibium:element.dblclick` | `vibium dblclick <sel>` | `browser_dblclick` | `el.dblclick(opts?)` | `el.dblclick(timeout?)` |
+| 65 | Fill an input field | `vibium:element.fill` | `vibium fill <sel> <val>` | `browser_fill` | `el.fill(value, opts?)` | `el.fill(value, timeout?)` |
+| 66 | Type text character by character | `vibium:element.type` | `vibium type <text>` | `browser_type` | `el.type(text, opts?)` | `el.type(text, timeout?)` |
+| 67 | Press a key on focused element | `vibium:element.press` | `vibium press <key>` | `browser_press` | `el.press(key, opts?)` | `el.press(key, timeout?)` |
+| 68 | Clear an input field | `vibium:element.clear` | — | — | `el.clear(opts?)` | `el.clear(timeout?)` |
+| 69 | Check a checkbox | `vibium:element.check` | `vibium check <sel>` | `browser_check` | `el.check(opts?)` | `el.check(timeout?)` |
+| 70 | Uncheck a checkbox | `vibium:element.uncheck` | `vibium uncheck <sel>` | `browser_uncheck` | `el.uncheck(opts?)` | `el.uncheck(timeout?)` |
+| 71 | Select a dropdown option | `vibium:element.selectOption` | `vibium select <sel> <val>` | `browser_select` | `el.selectOption(val, opts?)` | `el.select_option(val, timeout?)` |
+| 72 | Hover over an element | `vibium:element.hover` | `vibium hover <sel>` | `browser_hover` | `el.hover(opts?)` | `el.hover(timeout?)` |
+| 73 | Focus an element | `vibium:element.focus` | `vibium focus <sel>` | `browser_focus` | `el.focus(opts?)` | `el.focus(timeout?)` |
+| 74 | Drag an element to a target | `vibium:element.dragTo` | `vibium drag <sel> <x> <y>` | `browser_drag` | `el.dragTo(target, opts?)` | `el.drag_to(target, timeout?)` |
+| 75 | Tap an element (touch) | `vibium:element.tap` | — | — | `el.tap(opts?)` | `el.tap(timeout?)` |
+| 76 | Scroll element into view | `vibium:element.scrollIntoView` | `vibium scroll into-view <sel>` | `browser_scroll_into_view` | `el.scrollIntoView(opts?)` | `el.scroll_into_view(timeout?)` |
+| 77 | Dispatch a DOM event | `vibium:element.dispatchEvent` | — | — | `el.dispatchEvent(type, init?)` | `el.dispatch_event(type, init?)` |
+| 78 | Set files on a file input | `vibium:element.setFiles` | `vibium upload <sel> <paths>` | `browser_upload` | `el.setFiles(files, opts?)` | `el.set_files(files, timeout?)` |
+| 79 | Highlight an element | `vibium:element.highlight` | `vibium highlight <sel>` | `browser_highlight` | `el.highlight()` | `el.highlight()` |
+| 80 | Get element text content | `vibium:element.text` | `vibium text <sel>` | `browser_get_text` | `el.text()` | `el.text()` |
+| 81 | Get element inner text | `vibium:element.innerText` | `vibium text <sel>` | `browser_get_text` | `el.innerText()` | `el.inner_text()` |
+| 82 | Get element outer HTML | `vibium:element.html` | `vibium html <sel>` | `browser_get_html` | `el.html()` | `el.html()` |
+| 83 | Get input element value | `vibium:element.value` | `vibium value <sel>` | `browser_get_value` | `el.value()` | `el.value()` |
+| 84 | Get element attribute | `vibium:element.attr` | `vibium attr <sel> <name>` | `browser_get_attribute` | `el.attr(name)` | `el.attr(name)` |
+| 85 | Get element bounding box | `vibium:element.bounds` | — | — | `el.bounds()` | `el.bounds()` |
+| 86 | Check if element is visible | `vibium:element.isVisible` | `vibium is visible <sel>` | `browser_is_visible` | `el.isVisible()` | `el.is_visible()` |
+| 87 | Check if element is hidden | `vibium:element.isHidden` | — | — | `el.isHidden()` | `el.is_hidden()` |
+| 88 | Check if element is enabled | `vibium:element.isEnabled` | `vibium is enabled <sel>` | `browser_is_enabled` | `el.isEnabled()` | `el.is_enabled()` |
+| 89 | Check if element is checked | `vibium:element.isChecked` | `vibium is checked <sel>` | `browser_is_checked` | `el.isChecked()` | `el.is_checked()` |
+| 90 | Check if element is editable | `vibium:element.isEditable` | ⬜ | ⬜ | `el.isEditable()` | `el.is_editable()` |
+| 91 | Get element ARIA role | `vibium:element.role` | — | — | `el.role()` | `el.role()` |
+| 92 | Get element accessible label | `vibium:element.label` | — | — | `el.label()` | `el.label()` |
+| 93 | Screenshot an element | `vibium:element.screenshot` | — | — | `el.screenshot()` | `el.screenshot()` |
+| 94 | Wait for element state | `vibium:element.waitFor` | `vibium wait <sel> --state <st>` | `browser_wait` | `el.waitUntil(state?, opts?)` | `el.wait_until(state?, timeout?)` |
+| 95 | Find a child element (scoped) | `vibium:element.find` | — | — | `el.find(sel, opts?)` | `el.find(sel, **opts)` |
+| 96 | Find all child elements (scoped) | `vibium:element.findAll` | — | — | `el.findAll(sel, opts?)` | `el.find_all(sel, **opts)` |
 
-## Selector Strategies
+## BrowserContext
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `find({role: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({text: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({label: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({placeholder: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({alt: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({title: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({testid: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({xpath: '…'})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `find({role, text}) combo` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 97 | Create a page in a context | `vibium:context.newPage` | — | — | `context.newPage()` | `context.new_page()` |
+| 98 | Close the context | `browser.removeUserContext` | — | — | `context.close()` | `context.close()` |
+| 99 | Get cookies | `vibium:context.cookies` | `vibium cookies` | `browser_get_cookies` | `context.cookies(urls?)` | `context.cookies(urls?)` |
+| 100 | Set cookies | `vibium:context.setCookies` | `vibium cookies set <n> <v>` | `browser_set_cookie` | `context.setCookies(cookies)` | `context.set_cookies(cookies)` |
+| 101 | Clear cookies | `vibium:context.clearCookies` | `vibium cookies clear` | `browser_delete_cookies` | `context.clearCookies()` | `context.clear_cookies()` |
+| 102 | Get storage state | `vibium:context.storage` | `vibium storage` | `browser_storage_state` | `context.storage()` | `context.storage()` |
+| 103 | Set storage state | `vibium:context.setStorage` | — | `browser_restore_storage` | `context.setStorage(state)` | `context.set_storage(state)` |
+| 104 | Clear all storage | `vibium:context.clearStorage` | — | — | `context.clearStorage()` | `context.clear_storage()` |
+| 105 | Add an init script | `vibium:context.addInitScript` | — | — | `context.addInitScript(script)` | `context.add_init_script(script)` |
 
-## Element Interaction
+## Keyboard
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `el.click()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.dblclick()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.fill(value)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.type(text)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.press(key)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.clear()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.check()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.uncheck()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.selectOption(val)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.hover()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.focus()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.highlight()` | ⬜ | ⬜ | ⬜ | ⬜ | ✅ | ✅ |
-| `el.dragTo(target)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.tap()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.scrollIntoView()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.dispatchEvent(type)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 106 | Press a key | `vibium:keyboard.press` | `vibium keys <keys>` | `browser_keys` | `keyboard.press(key)` | `keyboard.press(key)` |
+| 107 | Key down | `vibium:keyboard.down` | — | — | `keyboard.down(key)` | `keyboard.down(key)` |
+| 108 | Key up | `vibium:keyboard.up` | — | — | `keyboard.up(key)` | `keyboard.up(key)` |
+| 109 | Type text | `vibium:keyboard.type` | — | — | `keyboard.type(text)` | `keyboard.type(text)` |
 
-## Element State
+## Mouse
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `el.text()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.innerText()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.html()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.value()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.attr(name)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.bounds()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.isVisible()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.isHidden()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `el.isEnabled()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.isChecked()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.isEditable()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.screenshot()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 110 | Click at coordinates | `vibium:mouse.click` | `vibium mouse click <x> <y>` | `browser_mouse_click` | `mouse.click(x, y, opts?)` | `mouse.click(x, y, **opts)` |
+| 111 | Move mouse | `vibium:mouse.move` | `vibium mouse move <x> <y>` | `browser_mouse_move` | `mouse.move(x, y, opts?)` | `mouse.move(x, y, **opts)` |
+| 112 | Mouse button down | `vibium:mouse.down` | `vibium mouse down` | `browser_mouse_down` | `mouse.down(opts?)` | `mouse.down(**opts)` |
+| 113 | Mouse button up | `vibium:mouse.up` | `vibium mouse up` | `browser_mouse_up` | `mouse.up(opts?)` | `mouse.up(**opts)` |
+| 114 | Scroll mouse wheel | `vibium:mouse.wheel` | — | ⬜ | `mouse.wheel(dx, dy)` | `mouse.wheel(dx, dy)` |
 
-## Keyboard & Mouse
+## Touch
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.keyboard.press(key)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.keyboard.down(key)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.keyboard.up(key)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.keyboard.type(text)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `page.mouse.click(x,y)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.mouse.move(x,y)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.mouse.down()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.mouse.up()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.mouse.wheel(dx,dy)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.scroll(dir,amt)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.touch.tap(x,y)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-
-## Network Interception
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.route(pattern, handler)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `route.fulfill(response)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `route.continue(overrides?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `route.abort(reason?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.onRequest(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.onResponse(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.setHeaders(headers)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.unroute(pattern)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.removeAllListeners(event?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.onWebSocket(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-
-## Request & Response
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `request.url()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `request.method()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `request.headers()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `request.postData()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `response.status()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `response.headers()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `response.body()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `response.json()` | ✅ | ✅ | ✅ | ✅ | — | — |
-
-## Dialogs
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.onDialog(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `dialog.accept(text?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `dialog.dismiss()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `dialog.message()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `dialog.type()` | ✅ | ✅ | ✅ | ✅ | — | — |
-
-## Screenshots & PDF
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.screenshot()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.screenshot({fullPage})` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.screenshot({clip})` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.pdf()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-## Cookies & Storage
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `context.cookies(urls?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.setCookies()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.clearCookies()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.storage()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.setStorage()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `context.clearStorage()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `context.addInitScript()` | ✅ | ✅ | ✅ | ✅ | — | — |
-
-## Emulation
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.setViewport(size)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.viewport()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.emulateMedia(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.setContent(html)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.setGeolocation()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.window()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.setWindow(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-## Frames
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.frame(nameOrUrl)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.frames()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.mainFrame()` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| Frames have full Page API | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-
-## Accessibility
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.a11yTree()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `el.role()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `el.label()` | ✅ | ✅ | ✅ | ✅ | — | — |
-
-## Console & Errors
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.onConsole(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.onError(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.consoleMessages()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.errors()` | ✅ | ✅ | ✅ | ✅ | — | — |
-
-## Waiting
-
-### Capture — set up before the action
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.capture.response(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.capture.request(pat, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.capture.navigation(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.capture.event(name, fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.capture.download(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `page.capture.dialog(fn?)` | ✅ | ✅ | ✅ | ✅ | — | — |
-
-### Wait Until — poll after the cause
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.waitUntil.url(pat)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.waitUntil.loaded(state?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.waitUntil(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `el.waitUntil(state)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.wait(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-## Downloads & Files
-
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.onDownload(fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `download.path()` | ✅ | ✅ | ✅ | ✅ | — | — |
-| `download.saveAs(path)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `el.setFiles(paths)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 115 | Tap at coordinates | `vibium:touch.tap` | — | — | `touch.tap(x, y)` | `touch.tap(x, y)` |
 
 ## Clock
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.clock.install(opts?)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `page.clock.fastForward(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `page.clock.runFor(ms)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `page.clock.pauseAt(time)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `page.clock.resume()` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `page.clock.setFixedTime(time)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `page.clock.setSystemTime(time)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `page.clock.setTimezone(tz)` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 116 | Install fake timers | `vibium:clock.install` | — | `page_clock_install` | `clock.install(opts?)` | `clock.install(time?, timezone?)` |
+| 117 | Fast-forward time | `vibium:clock.fastForward` | — | `page_clock_fast_forward` | `clock.fastForward(ticks)` | `clock.fast_forward(ticks)` |
+| 118 | Run timers for a duration | `vibium:clock.runFor` | — | `page_clock_run_for` | `clock.runFor(ticks)` | `clock.run_for(ticks)` |
+| 119 | Pause clock at a time | `vibium:clock.pauseAt` | — | `page_clock_pause_at` | `clock.pauseAt(time)` | `clock.pause_at(time)` |
+| 120 | Resume clock | `vibium:clock.resume` | — | `page_clock_resume` | `clock.resume()` | `clock.resume()` |
+| 121 | Set fixed fake time | `vibium:clock.setFixedTime` | — | `page_clock_set_fixed_time` | `clock.setFixedTime(time)` | `clock.set_fixed_time(time)` |
+| 122 | Set system time | `vibium:clock.setSystemTime` | — | `page_clock_set_system_time` | `clock.setSystemTime(time)` | `clock.set_system_time(time)` |
+| 123 | Set timezone | `vibium:clock.setTimezone` | — | `page_clock_set_timezone` | `clock.setTimezone(tz)` | `clock.set_timezone(tz)` |
 
-## Tracing
+## Recording
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `context.recording.start(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.recording.stop(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.recording.startChunk(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.recording.stopChunk(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.recording.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.recording.stopGroup()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 124 | Start recording | `vibium:recording.start` | `vibium record start` | `browser_record_start` | `recording.start(opts?)` | `recording.start(opts?)` |
+| 125 | Stop recording, return trace | `vibium:recording.stop` | `vibium record stop` | `browser_record_stop` | `recording.stop(opts?)` | `recording.stop(path?)` |
+| 126 | Start a recording chunk | `vibium:recording.startChunk` | `vibium record start-chunk` | `browser_record_start_chunk` | `recording.startChunk(opts?)` | `recording.start_chunk(opts?)` |
+| 127 | Stop a recording chunk | `vibium:recording.stopChunk` | `vibium record stop-chunk` | `browser_record_stop_chunk` | `recording.stopChunk(opts?)` | `recording.stop_chunk(path?)` |
+| 128 | Start a logical group | `vibium:recording.startGroup` | `vibium record start-group <name>` | `browser_record_start_group` | `recording.startGroup(name, opts?)` | `recording.start_group(name, location?)` |
+| 129 | Stop a logical group | `vibium:recording.stopGroup` | `vibium record stop-group` | `browser_record_stop_group` | `recording.stopGroup()` | `recording.stop_group()` |
 
-## Evaluation
+## Route
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.evaluate(expr)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `page.addScript(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.addStyle(src)` | ✅ | ✅ | ✅ | ✅ | ⬜ | ⬜ |
-| `page.expose(name, fn)` | ✅ | ✅ | ✅ | ✅ | — | — |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 130 | Access intercepted request | — | — | — | `route.request` (property) | *passed via callback args* |
+| 131 | Fulfill an intercepted request | `vibium:network.fulfill` | — | — | `route.fulfill(resp?)` | `route.fulfill(status?, headers?, ...)` |
+| 132 | Continue an intercepted request | `vibium:network.continue` | — | — | `route.continue(overrides?)` | `route.continue_(overrides?)` |
+| 133 | Abort an intercepted request | `vibium:network.abort` | — | — | `route.abort()` | `route.abort()` |
 
-## AI-Native Methods
+## Dialog
 
-| Command | JS async | JS sync | PY async | PY sync | MCP | CLI |
-|---------|----------|---------|----------|---------|-----|-----|
-| `page.check(claim)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.do(action)` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `page.do(action, {data})` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 134 | Get dialog message | *from event data* | — | — | `dialog.message()` | `dialog.message()` |
+| 135 | Get dialog type | *from event data* | — | — | `dialog.type()` | `dialog.type()` |
+| 136 | Get dialog default value | *from event data* | — | — | `dialog.defaultValue()` | `dialog.default_value()` |
+| 137 | Accept the dialog | `browsingContext.handleUserPrompt` | `vibium dialog accept` | `browser_dialog_accept` | `dialog.accept(promptText?)` | `dialog.accept(prompt_text?)` |
+| 138 | Dismiss the dialog | `browsingContext.handleUserPrompt` | `vibium dialog dismiss` | `browser_dialog_dismiss` | `dialog.dismiss()` | `dialog.dismiss()` |
+
+## Download
+
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 139 | Save a download to path | `vibium:download.saveAs` | ⬜ | ⬜ | `download.saveAs(path)` | `download.save_as(path)` |
+| 140 | Get download URL | *from event data* | — | — | `download.url()` | `download.url()` |
+| 141 | Get download filename | *from event data* | — | — | `download.filename()` | `download.filename()` |
+| 142 | Get download path | *from event data* | — | — | `download.path()` | `download.path()` |
+
+## Agent & CLI Extras
+
+MCP/CLI-only tools with no direct client API equivalent.
+
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 143 | Map interactive page elements with @refs | — | `vibium map` | `browser_map` | — | — |
+| 144 | Diff page state vs last map | — | `vibium diff` | `browser_diff_map` | — | — |
+| 145 | Count elements matching selector | — | `vibium count <sel>` | `browser_count` | — | — |
+| 146 | Wait for text to appear on page | — | `vibium wait text <text>` | `browser_wait_for_text` | — | — |
+| 147 | Set the download directory | — | `vibium download set-dir <path>` | `browser_download_set_dir` | — | — |
+
+## AI-Native (Planned)
+
+| # | Description | Wire Command | CLI | MCP | JS | Python |
+|---|---|---|---|---|---|---|
+| 148 | Assert a visual claim | *TBD* | ⬜ | ⬜ | `page.check(claim)` | `page.check(claim)` |
+| 149 | Perform a natural language action | *TBD* | ⬜ | ⬜ | `page.do(action)` | `page.do(action)` |
+| 150 | NL action with data extraction | *TBD* | ⬜ | ⬜ | `page.do(action, {data})` | `page.do(action, data=...)` |
+
+---
+
+**Total: 150 commands**

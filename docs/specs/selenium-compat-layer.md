@@ -1,8 +1,8 @@
-# Doc #3: Vibium Selenium Compatibility Layer
+# Selenium Compatibility Layer
 
 **Future site:** areweseleniumyet.com
 **Goal:** Drop-in Selenium WebDriver replacement backed by Vibium's BiDi engine.
-**Depends on:** Doc #1 (Playwright parity, Tier 1 minimum) and Doc #2 (WebDriver spec coverage).
+**Depends on:** [API Reference](../trackers/api.md) (core API) and [WebDriver coverage](../trackers/arewewebdriveryet.md).
 
 ---
 
@@ -26,7 +26,7 @@ Everything else stays the same. Existing Selenium scripts work unchanged.
 
 ## What This Is NOT
 
-- Not a new API. Vibium's native API is `bro`/`vibe` (Doc #1).
+- Not a new API. Vibium's native API is `bro`/`vibe`.
 - Not the recommended way to use Vibium for new projects.
 - Not 100% bug-for-bug compatible — edge cases around implicit waits and stale element refs will differ.
 
