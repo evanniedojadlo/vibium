@@ -637,7 +637,7 @@ export class Page {
         if (selector.timeout && !options?.timeout) params.timeout = selector.timeout;
       }
 
-      const result = await this.client.send<VibiumFindResult>('vibium:find', params);
+      const result = await this.client.send<VibiumFindResult>('vibium:page.find', params);
 
       const info: ElementInfo = {
         tag: result.tag,
@@ -668,7 +668,7 @@ export class Page {
       if (selector.timeout && !options?.timeout) params.timeout = selector.timeout;
     }
 
-    const result = await this.client.send<VibiumFindAllResult>('vibium:findAll', params);
+    const result = await this.client.send<VibiumFindAllResult>('vibium:page.findAll', params);
 
     const selectorStr = typeof selector === 'string' ? selector : '';
     const selectorParams = typeof selector === 'string' ? { selector } : { ...selector };

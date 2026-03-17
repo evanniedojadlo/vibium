@@ -74,7 +74,7 @@ func runPipe(connectURL string, connectHeaders http.Header) {
 
 	// Send ready signal so the client knows it can start sending commands.
 	ready := map[string]interface{}{
-		"method": "vibium:ready",
+		"method": "vibium:lifecycle.ready",
 		"params": map[string]interface{}{
 			"version": version,
 		},

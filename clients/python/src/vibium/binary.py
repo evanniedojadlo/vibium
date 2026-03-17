@@ -200,7 +200,7 @@ class VibiumProcess:
             start_new_session=(sys.platform != "win32"),
         )
 
-        # Read lines from stdout until we get the vibium:ready signal.
+        # Read lines from stdout until we get the vibium:lifecycle.ready signal.
         # Events (e.g. browsingContext.contextCreated) may arrive first.
         import json
         pre_ready_lines = []
@@ -221,7 +221,7 @@ class VibiumProcess:
                     msg = json.loads(line)
                 except (json.JSONDecodeError, ValueError):
                     continue
-                if msg.get("method") == "vibium:ready":
+                if msg.get("method") == "vibium:lifecycle.ready":
                     break
                 # Buffer pre-ready events for later replay
                 pre_ready_lines.append(line)

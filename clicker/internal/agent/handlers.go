@@ -327,7 +327,7 @@ func (h *Handlers) recordFindStep(selector string) {
 	callId := h.recorder.NextCallId()
 	pageId := h.getContext()
 	params := map[string]interface{}{"selector": selector}
-	h.recorder.RecordAction(callId, "vibium:find", params, "", pageId)
+	h.recorder.RecordAction(callId, "vibium:page.find", params, "", pageId)
 
 	// Use the API path's polling find (handles page transitions, scrolls into view)
 	script, scriptArgs := api.BuildFindScript(
@@ -375,29 +375,29 @@ func mcpToolToMethod(name string) string {
 
 	// Element interaction
 	case "browser_click":
-		return "vibium:click"
+		return "vibium:element.click"
 	case "browser_dblclick":
-		return "vibium:dblclick"
+		return "vibium:element.dblclick"
 	case "browser_fill":
-		return "vibium:fill"
+		return "vibium:element.fill"
 	case "browser_type":
-		return "vibium:type"
+		return "vibium:element.type"
 	case "browser_press":
-		return "vibium:press"
+		return "vibium:element.press"
 	case "browser_hover":
-		return "vibium:hover"
+		return "vibium:element.hover"
 	case "browser_select":
-		return "vibium:selectOption"
+		return "vibium:element.selectOption"
 	case "browser_check":
-		return "vibium:check"
+		return "vibium:element.check"
 	case "browser_uncheck":
-		return "vibium:uncheck"
+		return "vibium:element.uncheck"
 	case "browser_focus":
-		return "vibium:focus"
+		return "vibium:element.focus"
 	case "browser_scroll_into_view":
-		return "vibium:scrollIntoView"
+		return "vibium:element.scrollIntoView"
 	case "browser_drag":
-		return "vibium:dragTo"
+		return "vibium:element.dragTo"
 
 	// Keyboard/mouse
 	case "browser_keys":
@@ -415,29 +415,29 @@ func mcpToolToMethod(name string) string {
 
 	// Page queries
 	case "browser_find":
-		return "vibium:find"
+		return "vibium:page.find"
 	case "browser_find_all":
-		return "vibium:findAll"
+		return "vibium:page.findAll"
 	case "browser_get_text":
-		return "vibium:el.text"
+		return "vibium:element.text"
 	case "browser_get_html":
-		return "vibium:el.html"
+		return "vibium:element.html"
 	case "browser_get_url":
 		return "vibium:page.url"
 	case "browser_get_title":
 		return "vibium:page.title"
 	case "browser_get_value":
-		return "vibium:el.value"
+		return "vibium:element.value"
 	case "browser_get_attribute":
-		return "vibium:el.attr"
+		return "vibium:element.attr"
 	case "browser_is_visible":
-		return "vibium:el.isVisible"
+		return "vibium:element.isVisible"
 	case "browser_is_enabled":
-		return "vibium:el.isEnabled"
+		return "vibium:element.isEnabled"
 	case "browser_is_checked":
-		return "vibium:el.isChecked"
+		return "vibium:element.isChecked"
 	case "browser_count":
-		return "vibium:findAll"
+		return "vibium:page.findAll"
 	case "browser_evaluate":
 		return "vibium:page.eval"
 	case "browser_screenshot":
@@ -515,7 +515,7 @@ func mcpToolToMethod(name string) string {
 
 	// Upload/download
 	case "browser_upload":
-		return "vibium:el.setFiles"
+		return "vibium:element.setFiles"
 	case "browser_download_set_dir":
 		return "vibium:download.saveAs"
 

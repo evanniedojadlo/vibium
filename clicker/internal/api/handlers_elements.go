@@ -21,7 +21,7 @@ type BoxInfo struct {
 	Height float64 `json:"height"`
 }
 
-// handleVibiumFind handles the vibium:find command with wait-for-selector.
+// handleVibiumFind handles the vibium:element.find / vibium:page.find command with wait-for-selector.
 // Accepts CSS selector (string) or semantic selector params (role, text, label, etc.).
 func (r *Router) handleVibiumFind(session *BrowserSession, cmd bidiCommand) {
 	context, err := r.resolveContext(session, cmd.Params)
@@ -56,7 +56,7 @@ func (r *Router) handleVibiumFind(session *BrowserSession, cmd bidiCommand) {
 	})
 }
 
-// handleVibiumFindAll handles the vibium:findAll command.
+// handleVibiumFindAll handles the vibium:element.findAll / vibium:page.findAll command.
 // Returns all matching elements with their info.
 func (r *Router) handleVibiumFindAll(session *BrowserSession, cmd bidiCommand) {
 	context, err := r.resolveContext(session, cmd.Params)

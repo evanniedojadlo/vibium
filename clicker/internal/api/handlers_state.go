@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// handleVibiumElText handles vibium:el.text — returns element.textContent.
+// handleVibiumElText handles vibium:element.text — returns element.textContent.
 func (r *Router) handleVibiumElText(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -25,7 +25,7 @@ func (r *Router) handleVibiumElText(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"text": val})
 }
 
-// handleVibiumElInnerText handles vibium:el.innerText — returns element.innerText.
+// handleVibiumElInnerText handles vibium:element.innerText — returns element.innerText.
 func (r *Router) handleVibiumElInnerText(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -43,7 +43,7 @@ func (r *Router) handleVibiumElInnerText(session *BrowserSession, cmd bidiComman
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"text": val})
 }
 
-// handleVibiumElHTML handles vibium:el.html — returns element.innerHTML.
+// handleVibiumElHTML handles vibium:element.html — returns element.innerHTML.
 func (r *Router) handleVibiumElHTML(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -61,7 +61,7 @@ func (r *Router) handleVibiumElHTML(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"html": val})
 }
 
-// handleVibiumElValue handles vibium:el.value — returns element.value (for inputs).
+// handleVibiumElValue handles vibium:element.value — returns element.value (for inputs).
 func (r *Router) handleVibiumElValue(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -79,7 +79,7 @@ func (r *Router) handleVibiumElValue(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"value": val})
 }
 
-// handleVibiumElAttr handles vibium:el.attr — returns element.getAttribute(name).
+// handleVibiumElAttr handles vibium:element.attr — returns element.getAttribute(name).
 func (r *Router) handleVibiumElAttr(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	name, _ := cmd.Params["name"].(string)
@@ -165,7 +165,7 @@ func (r *Router) handleVibiumElAttr(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"value": result.Value})
 }
 
-// handleVibiumElBounds handles vibium:el.bounds — returns getBoundingClientRect().
+// handleVibiumElBounds handles vibium:element.bounds — returns getBoundingClientRect().
 func (r *Router) handleVibiumElBounds(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -207,7 +207,7 @@ func (r *Router) handleVibiumElBounds(session *BrowserSession, cmd bidiCommand) 
 	})
 }
 
-// handleVibiumElIsVisible handles vibium:el.isVisible — checks computed visibility.
+// handleVibiumElIsVisible handles vibium:element.isVisible — checks computed visibility.
 func (r *Router) handleVibiumElIsVisible(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -233,7 +233,7 @@ func (r *Router) handleVibiumElIsVisible(session *BrowserSession, cmd bidiComman
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"visible": visible})
 }
 
-// handleVibiumElIsHidden handles vibium:el.isHidden — inverse of isVisible.
+// handleVibiumElIsHidden handles vibium:element.isHidden — inverse of isVisible.
 func (r *Router) handleVibiumElIsHidden(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -259,7 +259,7 @@ func (r *Router) handleVibiumElIsHidden(session *BrowserSession, cmd bidiCommand
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"hidden": hidden})
 }
 
-// handleVibiumElIsEnabled handles vibium:el.isEnabled — checks !element.disabled.
+// handleVibiumElIsEnabled handles vibium:element.isEnabled — checks !element.disabled.
 func (r *Router) handleVibiumElIsEnabled(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -277,7 +277,7 @@ func (r *Router) handleVibiumElIsEnabled(session *BrowserSession, cmd bidiComman
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"enabled": enabled})
 }
 
-// handleVibiumElIsChecked handles vibium:el.isChecked — returns element.checked.
+// handleVibiumElIsChecked handles vibium:element.isChecked — returns element.checked.
 func (r *Router) handleVibiumElIsChecked(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -295,7 +295,7 @@ func (r *Router) handleVibiumElIsChecked(session *BrowserSession, cmd bidiComman
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"checked": checked})
 }
 
-// handleVibiumElIsEditable handles vibium:el.isEditable — not disabled and not readonly.
+// handleVibiumElIsEditable handles vibium:element.isEditable — not disabled and not readonly.
 func (r *Router) handleVibiumElIsEditable(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -313,7 +313,7 @@ func (r *Router) handleVibiumElIsEditable(session *BrowserSession, cmd bidiComma
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"editable": editable})
 }
 
-// handleVibiumElScreenshot handles vibium:el.screenshot — captures element screenshot.
+// handleVibiumElScreenshot handles vibium:element.screenshot — captures element screenshot.
 func (r *Router) handleVibiumElScreenshot(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -365,7 +365,7 @@ func (r *Router) handleVibiumElScreenshot(session *BrowserSession, cmd bidiComma
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"data": ssResult.Result.Data})
 }
 
-// handleVibiumElWaitFor handles vibium:el.waitFor — waits for element state.
+// handleVibiumElWaitFor handles vibium:element.waitFor — waits for element state.
 // Supported states: "visible", "hidden", "attached", "detached".
 func (r *Router) handleVibiumElWaitFor(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)

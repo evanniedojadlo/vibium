@@ -8,7 +8,7 @@ import (
 	"github.com/vibium/clicker/internal/bidi"
 )
 
-// handleVibiumClick handles the vibium:click command with actionability checks.
+// handleVibiumClick handles the vibium:element.click command with actionability checks.
 // Supports index param for elements from findAll().
 func (r *Router) handleVibiumClick(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -34,7 +34,7 @@ func (r *Router) handleVibiumClick(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"clicked": true})
 }
 
-// handleVibiumDblclick handles the vibium:dblclick command.
+// handleVibiumDblclick handles the vibium:element.dblclick command.
 func (r *Router) handleVibiumDblclick(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 
@@ -59,7 +59,7 @@ func (r *Router) handleVibiumDblclick(session *BrowserSession, cmd bidiCommand) 
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"dblclicked": true})
 }
 
-// handleVibiumFill handles the vibium:fill command.
+// handleVibiumFill handles the vibium:element.fill command.
 // Uses JS to set the element value, then dispatches input/change events.
 func (r *Router) handleVibiumFill(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -96,7 +96,7 @@ func (r *Router) handleVibiumFill(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"filled": true})
 }
 
-// handleVibiumType handles the vibium:type command with actionability checks.
+// handleVibiumType handles the vibium:element.type command with actionability checks.
 // Clicks to focus and types text (does NOT clear first).
 func (r *Router) handleVibiumType(session *BrowserSession, cmd bidiCommand) {
 	// Extract text-to-type BEFORE ExtractElementParams, since "text" is also
@@ -135,7 +135,7 @@ func (r *Router) handleVibiumType(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"typed": true})
 }
 
-// handleVibiumPress handles the vibium:press command.
+// handleVibiumPress handles the vibium:element.press command.
 // Clicks to focus, then presses a key (supports combos like "Control+a").
 func (r *Router) handleVibiumPress(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -166,7 +166,7 @@ func (r *Router) handleVibiumPress(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"pressed": true})
 }
 
-// handleVibiumClear handles the vibium:clear command.
+// handleVibiumClear handles the vibium:element.clear command.
 // Uses JS to clear the element value.
 func (r *Router) handleVibiumClear(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -202,7 +202,7 @@ func (r *Router) handleVibiumClear(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"cleared": true})
 }
 
-// handleVibiumCheck handles the vibium:check command.
+// handleVibiumCheck handles the vibium:element.check command.
 // Clicks the checkbox only if it's not already checked.
 func (r *Router) handleVibiumCheck(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -235,7 +235,7 @@ func (r *Router) handleVibiumCheck(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"checked": true})
 }
 
-// handleVibiumUncheck handles the vibium:uncheck command.
+// handleVibiumUncheck handles the vibium:element.uncheck command.
 // Clicks the checkbox only if it's currently checked.
 func (r *Router) handleVibiumUncheck(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -268,7 +268,7 @@ func (r *Router) handleVibiumUncheck(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"unchecked": true})
 }
 
-// handleVibiumSelectOption handles the vibium:selectOption command.
+// handleVibiumSelectOption handles the vibium:element.selectOption command.
 // Sets the value of a <select> element and dispatches a change event.
 func (r *Router) handleVibiumSelectOption(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -305,7 +305,7 @@ func (r *Router) handleVibiumSelectOption(session *BrowserSession, cmd bidiComma
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"selected": true})
 }
 
-// handleVibiumHover handles the vibium:hover command.
+// handleVibiumHover handles the vibium:element.hover command.
 // Moves the mouse pointer to the element's center without clicking.
 func (r *Router) handleVibiumHover(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -331,7 +331,7 @@ func (r *Router) handleVibiumHover(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"hovered": true})
 }
 
-// handleVibiumFocus handles the vibium:focus command.
+// handleVibiumFocus handles the vibium:element.focus command.
 // Runs element.focus() via JavaScript.
 func (r *Router) handleVibiumFocus(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -351,7 +351,7 @@ func (r *Router) handleVibiumFocus(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"focused": true})
 }
 
-// handleVibiumDragTo handles the vibium:dragTo command.
+// handleVibiumDragTo handles the vibium:element.dragTo command.
 // Resolves source and target elements, then performs pointer drag.
 func (r *Router) handleVibiumDragTo(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -416,7 +416,7 @@ func (r *Router) handleVibiumDragTo(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"dragged": true})
 }
 
-// handleVibiumTap handles the vibium:tap command.
+// handleVibiumTap handles the vibium:element.tap command.
 // Performs a touch tap at the element's center.
 func (r *Router) handleVibiumTap(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -442,7 +442,7 @@ func (r *Router) handleVibiumTap(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"tapped": true})
 }
 
-// handleVibiumScrollIntoView handles the vibium:scrollIntoView command.
+// handleVibiumScrollIntoView handles the vibium:element.scrollIntoView command.
 // Resolves the element (which auto-scrolls it into view).
 func (r *Router) handleVibiumScrollIntoView(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -462,7 +462,7 @@ func (r *Router) handleVibiumScrollIntoView(session *BrowserSession, cmd bidiCom
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"scrolled": true})
 }
 
-// handleVibiumDispatchEvent handles the vibium:dispatchEvent command.
+// handleVibiumDispatchEvent handles the vibium:element.dispatchEvent command.
 // Dispatches a DOM event on the element via JavaScript.
 func (r *Router) handleVibiumDispatchEvent(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
@@ -507,7 +507,7 @@ func (r *Router) handleVibiumDispatchEvent(session *BrowserSession, cmd bidiComm
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"dispatched": true})
 }
 
-// handleVibiumElSetFiles handles the vibium:el.setFiles command.
+// handleVibiumElSetFiles handles the vibium:element.setFiles command.
 // Sets files on an <input type="file"> element using BiDi input.setFiles.
 func (r *Router) handleVibiumElSetFiles(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)

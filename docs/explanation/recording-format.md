@@ -91,10 +91,10 @@ Every vibium command emits a `before`/`after` pair automatically — both mutati
 ```json
 {"type":"before","callId":"call@1","title":"Page.navigate","class":"Page","method":"vibium:page.navigate","pageId":"ABCDEF123","params":{"url":"https://example.com"},"wallTime":1708000000300,"startTime":1708000000300}
 {"type":"after","callId":"call@1","afterSnapshot":"after@call@1","endTime":1708000000400}
-{"type":"before","callId":"call@2","beforeSnapshot":"before@call@2","title":"Element.click","class":"Element","method":"vibium:click","pageId":"ABCDEF123","params":{"selector":"#login"},"wallTime":1708000000500,"startTime":1708000000500}
+{"type":"before","callId":"call@2","beforeSnapshot":"before@call@2","title":"Element.click","class":"Element","method":"vibium:element.click","pageId":"ABCDEF123","params":{"selector":"#login"},"wallTime":1708000000500,"startTime":1708000000500}
 {"type":"input","callId":"call@2","point":{"x":640,"y":360},"box":{"x":600,"y":340,"width":80,"height":40}}
 {"type":"after","callId":"call@2","endTime":1708000000600}
-{"type":"before","callId":"call@3","title":"Element.text","class":"Element","method":"vibium:el.text","pageId":"ABCDEF123","params":{"selector":".result"},"wallTime":1708000000700,"startTime":1708000000700}
+{"type":"before","callId":"call@3","title":"Element.text","class":"Element","method":"vibium:element.text","pageId":"ABCDEF123","params":{"selector":".result"},"wallTime":1708000000700,"startTime":1708000000700}
 {"type":"after","callId":"call@3","afterSnapshot":"after@call@3","endTime":1708000000750}
 ```
 
@@ -105,7 +105,7 @@ Every vibium command emits a `before`/`after` pair automatically — both mutati
 | `callId` | string | `call@<N>` — same id for both `before` and `after`. `N` is a monotonic counter shared across actions, groups, and BiDi commands. |
 | `title` | string | Human-readable name like `Element.click`, `Page.navigate`, `Element.text`. Derived from the vibium method by `apiNameFromMethod()`. |
 | `class` | string | `Element`, `Page`, `Browser`, `BrowserContext`, `Network`, `Dialog`, etc. |
-| `method` | string | The raw vibium method (e.g., `vibium:click`, `vibium:el.text`). |
+| `method` | string | The raw vibium method (e.g., `vibium:element.click`, `vibium:element.text`). |
 | `params` | object | The command parameters as sent by the client. |
 | `pageId` | string | Browsing context ID of the page the action targets. Present on actions, absent on groups. |
 | `parentId` | string | `call@<N>` of the enclosing action group, if the action is inside a `startGroup()`/`stopGroup()` span. Absent for top-level actions. |
@@ -137,7 +137,7 @@ Groups are named spans from `startGroup()` / `stopGroup()`. They wrap multiple a
 
 ```json
 {"type":"before","callId":"call@4","title":"login flow","class":"Tracing","method":"group","params":{"name":"login flow"},"wallTime":1708000000300,"startTime":1708000000300}
-{"type":"before","callId":"call@5","title":"Element.fill","class":"Element","method":"vibium:fill","pageId":"ABCDEF123","parentId":"call@4","params":{"selector":"#user","value":"admin"},"wallTime":1708000000350,"startTime":1708000000350}
+{"type":"before","callId":"call@5","title":"Element.fill","class":"Element","method":"vibium:element.fill","pageId":"ABCDEF123","parentId":"call@4","params":{"selector":"#user","value":"admin"},"wallTime":1708000000350,"startTime":1708000000350}
 {"type":"after","callId":"call@5","afterSnapshot":"after@call@5","endTime":1708000000380}
 {"type":"after","callId":"call@4","endTime":1708000000500}
 ```

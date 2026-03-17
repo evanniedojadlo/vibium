@@ -200,7 +200,7 @@ class Page:
                 if val is not None:
                     params[key] = val
 
-        result = await self._client.send("vibium:find", params)
+        result = await self._client.send("vibium:page.find", params)
         info = ElementInfo(tag=result["tag"], text=result["text"], box=BoundingBox(**result["box"]))
         sel_str = selector or ""
         sel_params = {"selector": selector} if selector else {
@@ -235,7 +235,7 @@ class Page:
                 if val is not None:
                     params[key] = val
 
-        result = await self._client.send("vibium:findAll", params)
+        result = await self._client.send("vibium:page.findAll", params)
         sel_str = selector or ""
         sel_params = {"selector": selector} if selector else {
             k: v for k, v in params.items() if k not in ("context", "timeout")

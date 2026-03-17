@@ -290,23 +290,12 @@ func apiNameFromMethod(method string) (string, string) {
 	if len(method) <= 7 || method[:7] != "vibium:" {
 		return "Vibium", method
 	}
-	name := method[7:] // e.g. "click", "page.navigate", "el.text"
+	name := method[7:] // e.g. "element.click", "page.navigate", "element.text"
 
 	switch {
-	// Element interaction: click, dblclick, fill, type, press, clear, check, uncheck, selectOption, hover, focus, dragTo, tap, scrollIntoView, dispatchEvent
-	case name == "click" || name == "dblclick" || name == "fill" || name == "type" ||
-		name == "press" || name == "clear" || name == "check" || name == "uncheck" ||
-		name == "selectOption" || name == "hover" || name == "focus" || name == "dragTo" ||
-		name == "tap" || name == "scrollIntoView" || name == "dispatchEvent":
-		return "Element", "Element." + name
-
-	// Element finding: find, findAll
-	case name == "find" || name == "findAll":
-		return "Page", "Page." + name
-
-	// Element state: el.*
-	case len(name) > 3 && name[:3] == "el.":
-		return "Element", "Element." + name[3:]
+	// Element commands: element.*
+	case len(name) > 8 && name[:8] == "element.":
+		return "Element", "Element." + name[8:]
 
 	// Page commands: page.*
 	case len(name) > 5 && name[:5] == "page.":

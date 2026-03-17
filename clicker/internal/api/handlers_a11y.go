@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// handleVibiumElRole handles vibium:el.role — returns the element's computed ARIA role.
+// handleVibiumElRole handles vibium:element.role — returns the element's computed ARIA role.
 func (r *Router) handleVibiumElRole(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)
@@ -57,7 +57,7 @@ func (r *Router) handleVibiumElRole(session *BrowserSession, cmd bidiCommand) {
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{"role": val})
 }
 
-// handleVibiumElLabel handles vibium:el.label — returns the element's accessible name.
+// handleVibiumElLabel handles vibium:element.label — returns the element's accessible name.
 func (r *Router) handleVibiumElLabel(session *BrowserSession, cmd bidiCommand) {
 	ep := ExtractElementParams(cmd.Params)
 	context, err := r.resolveContext(session, cmd.Params)

@@ -25,7 +25,7 @@ export class VibiumProcess {
   /** The child process stdout stream (for receiving responses/events). */
   get stdout() { return this._process.stdout!; }
 
-  /** Lines received before the vibium:ready signal (buffered events). */
+  /** Lines received before the vibium:lifecycle.ready signal (buffered events). */
   get preReadyLines(): string[] { return this._preReadyLines; }
 
   static async start(options: VibiumProcessOptions = {}): Promise<VibiumProcess> {
@@ -48,7 +48,7 @@ export class VibiumProcess {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    // Read lines from stdout until we get the vibium:ready signal.
+    // Read lines from stdout until we get the vibium:lifecycle.ready signal.
     // Events (e.g. browsingContext.contextCreated) may arrive first.
     const preReadyLines: string[] = [];
     await new Promise<void>((resolve, reject) => {
@@ -72,7 +72,7 @@ export class VibiumProcess {
 
           try {
             const msg = JSON.parse(line);
-            if (msg.method === 'vibium:ready') {
+            if (msg.method === 'vibium:lifecycle.ready') {
               if (!resolved) {
                 resolved = true;
                 clearTimeout(timeout);

@@ -6,24 +6,20 @@ Reference for implementing Vibium clients in new languages (Java, C#, Ruby, Kotl
 
 Use the **JS client** (`clients/javascript/`) and **Python client** (`clients/python/`) as reference implementations.
 
-> **Known issues in the Python reference:** See [#91](https://github.com/VibiumDev/vibium/issues/91), [#92](https://github.com/VibiumDev/vibium/issues/92), [#93](https://github.com/VibiumDev/vibium/issues/93), [#94](https://github.com/VibiumDev/vibium/issues/94). New clients should follow the JS client where the two diverge.
-
 ---
 
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
-2. [Wire Protocol](#wire-protocol)
+2. [Class Hierarchy](#class-hierarchy)
 3. [Command Reference](#command-reference)
-4. [Class Hierarchy](#class-hierarchy)
-5. [Method Inventory](#method-inventory)
-6. [Naming Conventions](#naming-conventions)
-7. [Error Types](#error-types)
-8. [Async / Sync Patterns](#async--sync-patterns)
-9. [Reserved Keyword Handling](#reserved-keyword-handling)
-10. [Aliases](#aliases)
-11. [Binary Discovery](#binary-discovery)
-12. [Testing Checklist](#testing-checklist)
+4. [Naming Conventions](#naming-conventions)
+5. [Error Types](#error-types)
+6. [Async / Sync Patterns](#async--sync-patterns)
+7. [Reserved Keyword Handling](#reserved-keyword-handling)
+8. [Aliases](#aliases)
+9. [Binary Discovery](#binary-discovery)
+10. [Testing Checklist](#testing-checklist)
 
 ---
 
@@ -38,7 +34,7 @@ Use the **JS client** (`clients/javascript/`) and **Python client** (`clients/py
 
 1. Client spawns the `vibium pipe` command as a subprocess
 2. Client communicates via newline-delimited JSON over stdin/stdout
-3. The binary sends a `vibium:ready` signal on stdout once the browser is launched
+3. The binary sends a `vibium:lifecycle.ready` signal on stdout once the browser is launched
 4. `vibium:` extension commands are handled by the binary; standard BiDi commands are forwarded to Chrome
 
 ### Message Format
@@ -62,192 +58,6 @@ Use the **JS client** (`clients/javascript/`) and **Python client** (`clients/py
 ```json
 {"method": "browsingContext.load", "params": {"context": "ctx-1", "url": "https://example.com"}}
 ```
-
----
-
-## Wire Protocol
-
-All extension commands use the `vibium:` prefix. Standard WebDriver BiDi commands (e.g., `browsingContext.getTree`, `session.subscribe`) are forwarded directly to Chrome.
-
-### Command Categories
-
-#### Element Interaction (15)
-| Wire Command | Description |
-|---|---|
-| `vibium:click` | Click an element |
-| `vibium:dblclick` | Double-click an element |
-| `vibium:fill` | Fill an input field |
-| `vibium:type` | Type text character by character |
-| `vibium:press` | Press a key on a focused element |
-| `vibium:clear` | Clear an input field |
-| `vibium:check` | Check a checkbox |
-| `vibium:uncheck` | Uncheck a checkbox |
-| `vibium:selectOption` | Select a dropdown option |
-| `vibium:hover` | Hover over an element |
-| `vibium:focus` | Focus an element |
-| `vibium:dragTo` | Drag an element to a target |
-| `vibium:tap` | Tap an element (touch) |
-| `vibium:scrollIntoView` | Scroll element into view |
-| `vibium:dispatchEvent` | Dispatch a DOM event on an element |
-
-#### Element Finding (2)
-| Wire Command | Description |
-|---|---|
-| `vibium:find` | Find a single element |
-| `vibium:findAll` | Find all matching elements |
-
-#### Element State (13)
-| Wire Command | Description |
-|---|---|
-| `vibium:el.text` | Get element text content |
-| `vibium:el.innerText` | Get element inner text |
-| `vibium:el.html` | Get element outer HTML |
-| `vibium:el.value` | Get input element value |
-| `vibium:el.attr` | Get element attribute |
-| `vibium:el.bounds` | Get element bounding box |
-| `vibium:el.isVisible` | Check if element is visible |
-| `vibium:el.isHidden` | Check if element is hidden |
-| `vibium:el.isEnabled` | Check if element is enabled |
-| `vibium:el.isChecked` | Check if element is checked |
-| `vibium:el.isEditable` | Check if element is editable |
-| `vibium:el.screenshot` | Screenshot an element |
-| `vibium:el.waitFor` | Wait for element state |
-
-#### Accessibility (3)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.a11yTree` | Get accessibility tree |
-| `vibium:el.role` | Get element ARIA role |
-| `vibium:el.label` | Get element accessible label |
-
-#### Page Input (11)
-| Wire Command | Description |
-|---|---|
-| `vibium:keyboard.press` | Press a key |
-| `vibium:keyboard.down` | Key down |
-| `vibium:keyboard.up` | Key up |
-| `vibium:keyboard.type` | Type text |
-| `vibium:mouse.click` | Click at coordinates |
-| `vibium:mouse.move` | Move mouse |
-| `vibium:mouse.down` | Mouse button down |
-| `vibium:mouse.up` | Mouse button up |
-| `vibium:mouse.wheel` | Scroll mouse wheel |
-| `vibium:page.scroll` | Scroll the page |
-| `vibium:touch.tap` | Tap at coordinates |
-
-#### Page Capture (2)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.screenshot` | Take a page screenshot |
-| `vibium:page.pdf` | Generate PDF |
-
-#### Page Evaluation (4)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.eval` | Evaluate JavaScript |
-| `vibium:page.addScript` | Add a script tag |
-| `vibium:page.addStyle` | Add a style tag |
-| `vibium:page.expose` | Expose a function to the page |
-
-#### Page Waiting (3)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.waitFor` | Wait for a selector |
-| `vibium:page.wait` | Wait for a duration |
-| `vibium:page.waitForFunction` | Wait for a JS function to return truthy |
-
-#### Navigation (9)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.navigate` | Navigate to a URL |
-| `vibium:page.back` | Go back |
-| `vibium:page.forward` | Go forward |
-| `vibium:page.reload` | Reload page |
-| `vibium:page.url` | Get current URL |
-| `vibium:page.title` | Get page title |
-| `vibium:page.content` | Get page HTML |
-| `vibium:page.waitForURL` | Wait for URL to match |
-| `vibium:page.waitForLoad` | Wait for page load |
-
-#### Lifecycle (6)
-| Wire Command | Description |
-|---|---|
-| `vibium:browser.page` | Get the default page |
-| `vibium:browser.newPage` | Create a new page |
-| `vibium:browser.newContext` | Create a new browser context |
-| `vibium:context.newPage` | Create a page in a context |
-| `vibium:browser.pages` | List all pages |
-| `vibium:browser.stop` | Stop the browser |
-
-#### Cookie & Storage (5)
-| Wire Command | Description |
-|---|---|
-| `vibium:context.cookies` | Get cookies |
-| `vibium:context.setCookies` | Set cookies |
-| `vibium:context.clearCookies` | Clear cookies |
-| `vibium:context.storage` | Get storage state |
-| `vibium:context.setStorage` | Set storage state |
-| `vibium:context.clearStorage` | Clear all storage |
-| `vibium:context.addInitScript` | Add an init script |
-
-#### Frame (2)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.frames` | List all frames |
-| `vibium:page.frame` | Get a frame by name/URL |
-
-#### Emulation (7)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.setViewport` | Set viewport size |
-| `vibium:page.viewport` | Get viewport size |
-| `vibium:page.emulateMedia` | Override CSS media features |
-| `vibium:page.setContent` | Set page HTML |
-| `vibium:page.setGeolocation` | Override geolocation |
-| `vibium:page.setWindow` | Set window size/position |
-| `vibium:page.window` | Get window info |
-
-#### Network Interception (5)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.route` | Register a route handler |
-| `vibium:network.continue` | Continue an intercepted request |
-| `vibium:network.fulfill` | Fulfill an intercepted request |
-| `vibium:network.abort` | Abort an intercepted request |
-| `vibium:page.setHeaders` | Set extra HTTP headers |
-
-#### WebSocket (1)
-| Wire Command | Description |
-|---|---|
-| `vibium:page.onWebSocket` | Subscribe to WebSocket events |
-
-#### Download & File (2)
-| Wire Command | Description |
-|---|---|
-| `vibium:download.saveAs` | Save a download to path |
-| `vibium:el.setFiles` | Set files on a file input |
-
-#### Recording (6)
-| Wire Command | Description |
-|---|---|
-| `vibium:recording.start` | Start recording |
-| `vibium:recording.stop` | Stop recording, return trace |
-| `vibium:recording.startChunk` | Start a recording chunk |
-| `vibium:recording.stopChunk` | Stop a recording chunk |
-| `vibium:recording.startGroup` | Start a logical group |
-| `vibium:recording.stopGroup` | Stop a logical group |
-
-#### Clock (8)
-| Wire Command | Description |
-|---|---|
-| `vibium:clock.install` | Install fake timers |
-| `vibium:clock.fastForward` | Fast-forward time |
-| `vibium:clock.runFor` | Run timers for a duration |
-| `vibium:clock.pauseAt` | Pause clock at a time |
-| `vibium:clock.resume` | Resume clock |
-| `vibium:clock.setFixedTime` | Set fixed fake time |
-| `vibium:clock.setSystemTime` | Set system time |
-| `vibium:clock.setTimezone` | Set timezone |
 
 ---
 
@@ -319,164 +129,204 @@ These should be structured types (interfaces/structs), not raw dicts:
 
 ---
 
-## Method Inventory
+## Command Reference
+
+All extension commands use the `vibium:` prefix. Standard WebDriver BiDi commands (e.g., `browsingContext.getTree`, `session.subscribe`) are forwarded directly to Chrome.
 
 ### Browser
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `browser.start(opts?)` | `browser.start(opts?)` | *binary launch + WebSocket connect* |
-| `page()` | `page()` | `vibium:browser.page` |
-| `newPage()` | `new_page()` | `vibium:browser.newPage` |
-| `newContext()` | `new_context()` | `vibium:browser.newContext` |
-| `pages()` | `pages()` | `vibium:browser.pages` |
-| `stop()` | `stop()` | `vibium:browser.stop` |
-| `onPage(cb)` | `on_page(cb)` | *client-side event listener* |
-| `onPopup(cb)` | `on_popup(cb)` | *client-side event listener* |
-| `removeAllListeners(ev?)` | `remove_all_listeners(ev?)` | *client-side* |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| *binary launch + WebSocket connect* | Launch browser and connect | `browser.start(opts?)` | `browser.start(opts?)` |
+| `vibium:browser.page` | Get the default page | `page()` | `page()` |
+| `vibium:browser.newPage` | Create a new page | `newPage()` | `new_page()` |
+| `vibium:browser.newContext` | Create a new browser context | `newContext()` | `new_context()` |
+| `vibium:browser.pages` | List all pages | `pages()` | `pages()` |
+| `vibium:browser.stop` | Stop the browser | `stop()` | `stop()` |
+| *client-side event listener* | Listen for new page events | `onPage(cb)` | `on_page(cb)` |
+| *client-side event listener* | Listen for popup events | `onPopup(cb)` | `on_popup(cb)` |
+| *client-side* | Remove all event listeners | `removeAllListeners(ev?)` | `remove_all_listeners(ev?)` |
 
 ### Page
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `go(url)` | `go(url)` | `vibium:page.navigate` |
-| `back()` | `back()` | `vibium:page.back` |
-| `forward()` | `forward()` | `vibium:page.forward` |
-| `reload()` | `reload()` | `vibium:page.reload` |
-| `url()` | `url()` | `vibium:page.url` |
-| `title()` | `title()` | `vibium:page.title` |
-| `content()` | `content()` | `vibium:page.content` |
-| `find(sel, opts?)` | `find(sel, **opts)` | `vibium:find` |
-| `findAll(sel, opts?)` | `find_all(sel, **opts)` | `vibium:findAll` |
-| `screenshot(opts?)` | `screenshot(opts?)` | `vibium:page.screenshot` |
-| `pdf()` | `pdf()` | `vibium:page.pdf` |
-| `evaluate(expr)` | `evaluate(expr)` | `vibium:page.eval` |
-| `addScript(src)` | `add_script(src)` | `vibium:page.addScript` |
-| `addStyle(src)` | `add_style(src)` | `vibium:page.addStyle` |
-| `expose(name, fn)` | `expose(name, fn)` | `vibium:page.expose` |
-| `wait(ms)` | `wait(ms)` | `vibium:page.wait` |
-| `scroll(dir?, amt?, sel?)` | `scroll(dir?, amt?, sel?)` | `vibium:page.scroll` |
-| `setViewport(size)` | `set_viewport(size)` | `vibium:page.setViewport` |
-| `viewport()` | `viewport()` | `vibium:page.viewport` |
-| `emulateMedia(opts)` | `emulate_media(**opts)` | `vibium:page.emulateMedia` |
-| `setContent(html)` | `set_content(html)` | `vibium:page.setContent` |
-| `setGeolocation(coords)` | `set_geolocation(coords)` | `vibium:page.setGeolocation` |
-| `setWindow(opts)` | `set_window(**opts)` | `vibium:page.setWindow` |
-| `window()` | `window()` | `vibium:page.window` |
-| `a11yTree(opts?)` | `a11y_tree(opts?)` | `vibium:page.a11yTree` |
-| `frames()` | `frames()` | `vibium:page.frames` |
-| `frame(nameOrUrl)` | `frame(name_or_url)` | `vibium:page.frame` |
-| `mainFrame()` | `main_frame()` | *returns self (top frame)* |
-| `bringToFront()` | `bring_to_front()` | `browsingContext.activate` |
-| `close()` | `close()` | `browsingContext.close` |
-| `route(pattern, handler)` | `route(pattern, handler)` | `vibium:page.route` |
-| `unroute(pattern)` | `unroute(pattern)` | `network.removeIntercept` |
-| `setHeaders(headers)` | `set_headers(headers)` | `vibium:page.setHeaders` |
-| `onRequest(fn)` | `on_request(fn)` | *client-side event listener* |
-| `onResponse(fn)` | `on_response(fn)` | *client-side event listener* |
-| `onDialog(fn)` | `on_dialog(fn)` | *client-side event listener* |
-| `onConsole(fn)` | `on_console(fn)` | *client-side event listener* |
-| `onError(fn)` | `on_error(fn)` | *client-side event listener* |
-| `onDownload(fn)` | `on_download(fn)` | *client-side event listener* |
-| `onWebSocket(fn)` | `on_web_socket(fn)` | `vibium:page.onWebSocket` |
-| `removeAllListeners(ev?)` | `remove_all_listeners(ev?)` | *client-side* |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:page.navigate` | Navigate to a URL | `go(url)` | `go(url)` |
+| `vibium:page.back` | Go back | `back()` | `back()` |
+| `vibium:page.forward` | Go forward | `forward()` | `forward()` |
+| `vibium:page.reload` | Reload page | `reload()` | `reload()` |
+| `vibium:page.url` | Get current URL | `url()` | `url()` |
+| `vibium:page.title` | Get page title | `title()` | `title()` |
+| `vibium:page.content` | Get page HTML | `content()` | `content()` |
+| `vibium:page.find` | Find a single element | `find(sel, opts?)` | `find(sel, **opts)` |
+| `vibium:page.findAll` | Find all matching elements | `findAll(sel, opts?)` | `find_all(sel, **opts)` |
+| `vibium:page.screenshot` | Take a page screenshot | `screenshot(opts?)` | `screenshot(opts?)` |
+| `vibium:page.pdf` | Generate PDF | `pdf()` | `pdf()` |
+| `vibium:page.eval` | Evaluate JavaScript | `evaluate(expr)` | `evaluate(expr)` |
+| `vibium:page.addScript` | Add a script tag | `addScript(src)` | `add_script(src)` |
+| `vibium:page.addStyle` | Add a style tag | `addStyle(src)` | `add_style(src)` |
+| `vibium:page.expose` | Expose a function to the page | `expose(name, fn)` | `expose(name, fn)` |
+| `vibium:page.wait` | Wait for a duration | `wait(ms)` | `wait(ms)` |
+| `vibium:page.waitFor` | Wait for a selector | `waitFor(sel, opts?)` | `wait_for(sel, **opts)` |
+| `vibium:page.waitForFunction` | Wait for a JS function to return truthy | `waitForFunction(fn, opts?)` | `wait_for_function(fn, **opts)` |
+| `vibium:page.waitForURL` | Wait for URL to match | `waitForURL(url, opts?)` | `wait_for_url(url, **opts)` |
+| `vibium:page.waitForLoad` | Wait for page load | `waitForLoad(opts?)` | `wait_for_load(**opts)` |
+| `vibium:page.scroll` | Scroll the page | `scroll(dir?, amt?, sel?)` | `scroll(dir?, amt?, sel?)` |
+| `vibium:page.setViewport` | Set viewport size | `setViewport(size)` | `set_viewport(size)` |
+| `vibium:page.viewport` | Get viewport size | `viewport()` | `viewport()` |
+| `vibium:page.emulateMedia` | Override CSS media features | `emulateMedia(opts)` | `emulate_media(**opts)` |
+| `vibium:page.setContent` | Set page HTML | `setContent(html)` | `set_content(html)` |
+| `vibium:page.setGeolocation` | Override geolocation | `setGeolocation(coords)` | `set_geolocation(coords)` |
+| `vibium:page.setWindow` | Set window size/position | `setWindow(opts)` | `set_window(**opts)` |
+| `vibium:page.window` | Get window info | `window()` | `window()` |
+| `vibium:page.a11yTree` | Get accessibility tree | `a11yTree(opts?)` | `a11y_tree(opts?)` |
+| `vibium:page.frames` | List all frames | `frames()` | `frames()` |
+| `vibium:page.frame` | Get a frame by name/URL | `frame(nameOrUrl)` | `frame(name_or_url)` |
+| *returns self (top frame)* | Get the main frame | `mainFrame()` | `main_frame()` |
+| `browsingContext.activate` | Bring page to front | `bringToFront()` | `bring_to_front()` |
+| `browsingContext.close` | Close the page | `close()` | `close()` |
+| `vibium:page.route` | Register a route handler | `route(pattern, handler)` | `route(pattern, handler)` |
+| `network.removeIntercept` | Remove a route handler | `unroute(pattern)` | `unroute(pattern)` |
+| `vibium:page.setHeaders` | Set extra HTTP headers | `setHeaders(headers)` | `set_headers(headers)` |
+| *client-side event listener* | Listen for requests | `onRequest(fn)` | `on_request(fn)` |
+| *client-side event listener* | Listen for responses | `onResponse(fn)` | `on_response(fn)` |
+| *client-side event listener* | Listen for dialogs | `onDialog(fn)` | `on_dialog(fn)` |
+| *client-side event listener* | Listen for console messages | `onConsole(fn)` | `on_console(fn)` |
+| *client-side event listener* | Listen for page errors | `onError(fn)` | `on_error(fn)` |
+| *client-side event listener* | Listen for downloads | `onDownload(fn)` | `on_download(fn)` |
+| `vibium:page.onWebSocket` | Subscribe to WebSocket events | `onWebSocket(fn)` | `on_web_socket(fn)` |
+| *client-side* | Remove all event listeners | `removeAllListeners(ev?)` | `remove_all_listeners(ev?)` |
 
 ### Element
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `click(opts?)` | `click(timeout?)` | `vibium:click` |
-| `dblclick(opts?)` | `dblclick(timeout?)` | `vibium:dblclick` |
-| `fill(value, opts?)` | `fill(value, timeout?)` | `vibium:fill` |
-| `type(text, opts?)` | `type(text, timeout?)` | `vibium:type` |
-| `press(key, opts?)` | `press(key, timeout?)` | `vibium:press` |
-| `clear(opts?)` | `clear(timeout?)` | `vibium:clear` |
-| `check(opts?)` | `check(timeout?)` | `vibium:check` |
-| `uncheck(opts?)` | `uncheck(timeout?)` | `vibium:uncheck` |
-| `selectOption(val, opts?)` | `select_option(val, timeout?)` | `vibium:selectOption` |
-| `hover(opts?)` | `hover(timeout?)` | `vibium:hover` |
-| `focus(opts?)` | `focus(timeout?)` | `vibium:focus` |
-| `dragTo(target, opts?)` | `drag_to(target, timeout?)` | `vibium:dragTo` |
-| `tap(opts?)` | `tap(timeout?)` | `vibium:tap` |
-| `scrollIntoView(opts?)` | `scroll_into_view(timeout?)` | `vibium:scrollIntoView` |
-| `dispatchEvent(type, init?)` | `dispatch_event(type, init?)` | `vibium:dispatchEvent` |
-| `setFiles(files, opts?)` | `set_files(files, timeout?)` | `vibium:el.setFiles` |
-| `text()` | `text()` | `vibium:el.text` |
-| `innerText()` | `inner_text()` | `vibium:el.innerText` |
-| `html()` | `html()` | `vibium:el.html` |
-| `value()` | `value()` | `vibium:el.value` |
-| `attr(name)` | `attr(name)` | `vibium:el.attr` |
-| `bounds()` | `bounds()` | `vibium:el.bounds` |
-| `isVisible()` | `is_visible()` | `vibium:el.isVisible` |
-| `isHidden()` | `is_hidden()` | `vibium:el.isHidden` |
-| `isEnabled()` | `is_enabled()` | `vibium:el.isEnabled` |
-| `isChecked()` | `is_checked()` | `vibium:el.isChecked` |
-| `isEditable()` | `is_editable()` | `vibium:el.isEditable` |
-| `role()` | `role()` | `vibium:el.role` |
-| `label()` | `label()` | `vibium:el.label` |
-| `screenshot()` | `screenshot()` | `vibium:el.screenshot` |
-| `waitUntil(state?, opts?)` | `wait_until(state?, timeout?)` | `vibium:el.waitFor` |
-| `find(sel, opts?)` | `find(sel, **opts)` | `vibium:find` (scoped) |
-| `findAll(sel, opts?)` | `find_all(sel, **opts)` | `vibium:findAll` (scoped) |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:element.click` | Click an element | `click(opts?)` | `click(timeout?)` |
+| `vibium:element.dblclick` | Double-click an element | `dblclick(opts?)` | `dblclick(timeout?)` |
+| `vibium:element.fill` | Fill an input field | `fill(value, opts?)` | `fill(value, timeout?)` |
+| `vibium:element.type` | Type text character by character | `type(text, opts?)` | `type(text, timeout?)` |
+| `vibium:element.press` | Press a key on a focused element | `press(key, opts?)` | `press(key, timeout?)` |
+| `vibium:element.clear` | Clear an input field | `clear(opts?)` | `clear(timeout?)` |
+| `vibium:element.check` | Check a checkbox | `check(opts?)` | `check(timeout?)` |
+| `vibium:element.uncheck` | Uncheck a checkbox | `uncheck(opts?)` | `uncheck(timeout?)` |
+| `vibium:element.selectOption` | Select a dropdown option | `selectOption(val, opts?)` | `select_option(val, timeout?)` |
+| `vibium:element.hover` | Hover over an element | `hover(opts?)` | `hover(timeout?)` |
+| `vibium:element.focus` | Focus an element | `focus(opts?)` | `focus(timeout?)` |
+| `vibium:element.dragTo` | Drag an element to a target | `dragTo(target, opts?)` | `drag_to(target, timeout?)` |
+| `vibium:element.tap` | Tap an element (touch) | `tap(opts?)` | `tap(timeout?)` |
+| `vibium:element.scrollIntoView` | Scroll element into view | `scrollIntoView(opts?)` | `scroll_into_view(timeout?)` |
+| `vibium:element.dispatchEvent` | Dispatch a DOM event on an element | `dispatchEvent(type, init?)` | `dispatch_event(type, init?)` |
+| `vibium:element.setFiles` | Set files on a file input | `setFiles(files, opts?)` | `set_files(files, timeout?)` |
+| `vibium:element.text` | Get element text content | `text()` | `text()` |
+| `vibium:element.innerText` | Get element inner text | `innerText()` | `inner_text()` |
+| `vibium:element.html` | Get element outer HTML | `html()` | `html()` |
+| `vibium:element.value` | Get input element value | `value()` | `value()` |
+| `vibium:element.attr` | Get element attribute | `attr(name)` | `attr(name)` |
+| `vibium:element.bounds` | Get element bounding box | `bounds()` | `bounds()` |
+| `vibium:element.isVisible` | Check if element is visible | `isVisible()` | `is_visible()` |
+| `vibium:element.isHidden` | Check if element is hidden | `isHidden()` | `is_hidden()` |
+| `vibium:element.isEnabled` | Check if element is enabled | `isEnabled()` | `is_enabled()` |
+| `vibium:element.isChecked` | Check if element is checked | `isChecked()` | `is_checked()` |
+| `vibium:element.isEditable` | Check if element is editable | `isEditable()` | `is_editable()` |
+| `vibium:element.role` | Get element ARIA role | `role()` | `role()` |
+| `vibium:element.label` | Get element accessible label | `label()` | `label()` |
+| `vibium:element.screenshot` | Screenshot an element | `screenshot()` | `screenshot()` |
+| `vibium:element.waitFor` | Wait for element state | `waitUntil(state?, opts?)` | `wait_until(state?, timeout?)` |
+| `vibium:element.find` | Find a single element (scoped) | `find(sel, opts?)` | `find(sel, **opts)` |
+| `vibium:element.findAll` | Find all matching elements (scoped) | `findAll(sel, opts?)` | `find_all(sel, **opts)` |
 
 ### BrowserContext
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `newPage()` | `new_page()` | `vibium:context.newPage` |
-| `close()` | `close()` | `browser.removeUserContext` |
-| `cookies(urls?)` | `cookies(urls?)` | `vibium:context.cookies` |
-| `setCookies(cookies)` | `set_cookies(cookies)` | `vibium:context.setCookies` |
-| `clearCookies()` | `clear_cookies()` | `vibium:context.clearCookies` |
-| `storage()` | `storage()` | `vibium:context.storage` |
-| `setStorage(state)` | `set_storage(state)` | `vibium:context.setStorage` |
-| `clearStorage()` | `clear_storage()` | `vibium:context.clearStorage` |
-| `addInitScript(script)` | `add_init_script(script)` | `vibium:context.addInitScript` |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:context.newPage` | Create a page in a context | `newPage()` | `new_page()` |
+| `browser.removeUserContext` | Close the context | `close()` | `close()` |
+| `vibium:context.cookies` | Get cookies | `cookies(urls?)` | `cookies(urls?)` |
+| `vibium:context.setCookies` | Set cookies | `setCookies(cookies)` | `set_cookies(cookies)` |
+| `vibium:context.clearCookies` | Clear cookies | `clearCookies()` | `clear_cookies()` |
+| `vibium:context.storage` | Get storage state | `storage()` | `storage()` |
+| `vibium:context.setStorage` | Set storage state | `setStorage(state)` | `set_storage(state)` |
+| `vibium:context.clearStorage` | Clear all storage | `clearStorage()` | `clear_storage()` |
+| `vibium:context.addInitScript` | Add an init script | `addInitScript(script)` | `add_init_script(script)` |
+
+### Keyboard
+
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:keyboard.press` | Press a key | `press(key)` | `press(key)` |
+| `vibium:keyboard.down` | Key down | `down(key)` | `down(key)` |
+| `vibium:keyboard.up` | Key up | `up(key)` | `up(key)` |
+| `vibium:keyboard.type` | Type text | `type(text)` | `type(text)` |
+
+### Mouse
+
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:mouse.click` | Click at coordinates | `click(x, y, opts?)` | `click(x, y, **opts)` |
+| `vibium:mouse.move` | Move mouse | `move(x, y, opts?)` | `move(x, y, **opts)` |
+| `vibium:mouse.down` | Mouse button down | `down(opts?)` | `down(**opts)` |
+| `vibium:mouse.up` | Mouse button up | `up(opts?)` | `up(**opts)` |
+| `vibium:mouse.wheel` | Scroll mouse wheel | `wheel(dx, dy)` | `wheel(dx, dy)` |
+
+### Touch
+
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:touch.tap` | Tap at coordinates | `tap(x, y)` | `tap(x, y)` |
 
 ### Clock
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `install(opts?)` | `install(time?, timezone?)` | `vibium:clock.install` |
-| `fastForward(ticks)` | `fast_forward(ticks)` | `vibium:clock.fastForward` |
-| `runFor(ticks)` | `run_for(ticks)` | `vibium:clock.runFor` |
-| `pauseAt(time)` | `pause_at(time)` | `vibium:clock.pauseAt` |
-| `resume()` | `resume()` | `vibium:clock.resume` |
-| `setFixedTime(time)` | `set_fixed_time(time)` | `vibium:clock.setFixedTime` |
-| `setSystemTime(time)` | `set_system_time(time)` | `vibium:clock.setSystemTime` |
-| `setTimezone(tz)` | `set_timezone(tz)` | `vibium:clock.setTimezone` |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:clock.install` | Install fake timers | `install(opts?)` | `install(time?, timezone?)` |
+| `vibium:clock.fastForward` | Fast-forward time | `fastForward(ticks)` | `fast_forward(ticks)` |
+| `vibium:clock.runFor` | Run timers for a duration | `runFor(ticks)` | `run_for(ticks)` |
+| `vibium:clock.pauseAt` | Pause clock at a time | `pauseAt(time)` | `pause_at(time)` |
+| `vibium:clock.resume` | Resume clock | `resume()` | `resume()` |
+| `vibium:clock.setFixedTime` | Set fixed fake time | `setFixedTime(time)` | `set_fixed_time(time)` |
+| `vibium:clock.setSystemTime` | Set system time | `setSystemTime(time)` | `set_system_time(time)` |
+| `vibium:clock.setTimezone` | Set timezone | `setTimezone(tz)` | `set_timezone(tz)` |
 
 ### Recording
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `start(opts?)` | `start(opts?)` | `vibium:recording.start` |
-| `stop(opts?)` | `stop(path?)` | `vibium:recording.stop` |
-| `startChunk(opts?)` | `start_chunk(opts?)` | `vibium:recording.startChunk` |
-| `stopChunk(opts?)` | `stop_chunk(path?)` | `vibium:recording.stopChunk` |
-| `startGroup(name, opts?)` | `start_group(name, location?)` | `vibium:recording.startGroup` |
-| `stopGroup()` | `stop_group()` | `vibium:recording.stopGroup` |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:recording.start` | Start recording | `start(opts?)` | `start(opts?)` |
+| `vibium:recording.stop` | Stop recording, return trace | `stop(opts?)` | `stop(path?)` |
+| `vibium:recording.startChunk` | Start a recording chunk | `startChunk(opts?)` | `start_chunk(opts?)` |
+| `vibium:recording.stopChunk` | Stop a recording chunk | `stopChunk(opts?)` | `stop_chunk(path?)` |
+| `vibium:recording.startGroup` | Start a logical group | `startGroup(name, opts?)` | `start_group(name, location?)` |
+| `vibium:recording.stopGroup` | Stop a logical group | `stopGroup()` | `stop_group()` |
 
 ### Route
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `.request` (property) | *passed via callback args* | — |
-| `fulfill(resp?)` | `fulfill(status?, headers?, ...)` | `vibium:network.fulfill` |
-| `continue(overrides?)` | `continue_(overrides?)` | `vibium:network.continue` |
-| `abort()` | `abort()` | `vibium:network.abort` |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| — | Request being intercepted | `.request` (property) | *passed via callback args* |
+| `vibium:network.fulfill` | Fulfill an intercepted request | `fulfill(resp?)` | `fulfill(status?, headers?, ...)` |
+| `vibium:network.continue` | Continue an intercepted request | `continue(overrides?)` | `continue_(overrides?)` |
+| `vibium:network.abort` | Abort an intercepted request | `abort()` | `abort()` |
 
 ### Dialog
 
-| JS | Python | Wire Command |
-|---|---|---|
-| `message()` | `message()` | *from event data* |
-| `type()` | `type()` | *from event data* |
-| `defaultValue()` | `default_value()` | *from event data* |
-| `accept(promptText?)` | `accept(prompt_text?)` | `browsingContext.handleUserPrompt` |
-| `dismiss()` | `dismiss()` | `browsingContext.handleUserPrompt` |
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| *from event data* | Get dialog message | `message()` | `message()` |
+| *from event data* | Get dialog type | `type()` | `type()` |
+| *from event data* | Get dialog default value | `defaultValue()` | `default_value()` |
+| `browsingContext.handleUserPrompt` | Accept the dialog | `accept(promptText?)` | `accept(prompt_text?)` |
+| `browsingContext.handleUserPrompt` | Dismiss the dialog | `dismiss()` | `dismiss()` |
 
-### Request / Response / Download / ConsoleMessage / WebSocketInfo
+### Download
+
+| Wire Command | Description | JS | Python |
+|---|---|---|---|
+| `vibium:download.saveAs` | Save a download to path | `saveAs(path)` | `save_as(path)` |
+| *from event data* | Get download URL | `url()` | `url()` |
+| *from event data* | Get download filename | `filename()` | `filename()` |
+| *from event data* | Get download path | `path()` | `path()` |
+
+### Request / Response / ConsoleMessage / WebSocketInfo
 
 These are lightweight data classes constructed from events. See the JS or Python source for their exact fields.
 
@@ -499,7 +349,7 @@ The wire protocol uses `camelCase`. Each language converts to its idiomatic styl
 
 ```
 vibium:page.setViewport  →  JS: setViewport()   Python: set_viewport()   Ruby: set_viewport
-vibium:el.isVisible      →  JS: isVisible()     Python: is_visible()     Ruby: visible?
+vibium:element.isVisible →  JS: isVisible()     Python: is_visible()     Ruby: visible?
 vibium:page.a11yTree     →  JS: a11yTree()      Python: a11y_tree()      Ruby: a11y_tree
 ```
 
@@ -617,7 +467,7 @@ The JS client provides some aliases for Playwright compatibility and discoverabi
 | `attr(name)` | `getAttribute(name)` | Playwright compat |
 | `bounds()` | `boundingBox()` | Playwright compat |
 | `go(url)` | — | Short and memorable; `navigate` is the wire name |
-| `waitUntil(state)` | — | Maps to `vibium:el.waitFor` on wire |
+| `waitUntil(state)` | — | Maps to `vibium:element.waitFor` on wire |
 
 ### Which to Include
 

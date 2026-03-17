@@ -82,14 +82,14 @@ export class Element {
    * Waits for element to be visible, stable, receive events, and enabled.
    */
   async click(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:click', this.commandParams({
+    await this.client.send('vibium:element.click', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Double-click the element. */
   async dblclick(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:dblclick', this.commandParams({
+    await this.client.send('vibium:element.dblclick', this.commandParams({
       timeout: options?.timeout,
     }));
   }
@@ -99,7 +99,7 @@ export class Element {
    * For inputs and textareas.
    */
   async fill(value: string, options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:fill', this.commandParams({
+    await this.client.send('vibium:element.fill', this.commandParams({
       value,
       timeout: options?.timeout,
     }));
@@ -110,7 +110,7 @@ export class Element {
    * Waits for element to be visible, stable, receive events, enabled, and editable.
    */
   async type(text: string, options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:type', this.commandParams({
+    await this.client.send('vibium:element.type', this.commandParams({
       text,
       timeout: options?.timeout,
     }));
@@ -121,7 +121,7 @@ export class Element {
    * Supports key names ("Enter", "Tab") and combos ("Control+a").
    */
   async press(key: string, options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:press', this.commandParams({
+    await this.client.send('vibium:element.press', this.commandParams({
       key,
       timeout: options?.timeout,
     }));
@@ -129,28 +129,28 @@ export class Element {
 
   /** Clear the element's content (select all + delete). */
   async clear(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:clear', this.commandParams({
+    await this.client.send('vibium:element.clear', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Check a checkbox (no-op if already checked). */
   async check(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:check', this.commandParams({
+    await this.client.send('vibium:element.check', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Uncheck a checkbox (no-op if already unchecked). */
   async uncheck(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:uncheck', this.commandParams({
+    await this.client.send('vibium:element.uncheck', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Select an option in a <select> element by value. */
   async selectOption(value: string, options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:selectOption', this.commandParams({
+    await this.client.send('vibium:element.selectOption', this.commandParams({
       value,
       timeout: options?.timeout,
     }));
@@ -158,21 +158,21 @@ export class Element {
 
   /** Hover over the element (move mouse to center, no click). */
   async hover(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:hover', this.commandParams({
+    await this.client.send('vibium:element.hover', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Focus the element. */
   async focus(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:focus', this.commandParams({
+    await this.client.send('vibium:element.focus', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Drag this element to a target element. */
   async dragTo(target: Element, options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:dragTo', this.commandParams({
+    await this.client.send('vibium:element.dragTo', this.commandParams({
       target: target.toParams(),
       timeout: options?.timeout,
     }));
@@ -180,21 +180,21 @@ export class Element {
 
   /** Tap the element (touch action). */
   async tap(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:tap', this.commandParams({
+    await this.client.send('vibium:element.tap', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Scroll the element into view. */
   async scrollIntoView(options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:scrollIntoView', this.commandParams({
+    await this.client.send('vibium:element.scrollIntoView', this.commandParams({
       timeout: options?.timeout,
     }));
   }
 
   /** Dispatch a DOM event on the element. */
   async dispatchEvent(eventType: string, eventInit?: Record<string, unknown>, options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:dispatchEvent', this.commandParams({
+    await this.client.send('vibium:element.dispatchEvent', this.commandParams({
       eventType,
       eventInit,
       timeout: options?.timeout,
@@ -203,7 +203,7 @@ export class Element {
 
   /** Set files on an <input type="file"> element. */
   async setFiles(files: string[], options?: ActionOptions): Promise<void> {
-    await this.client.send('vibium:el.setFiles', this.commandParams({
+    await this.client.send('vibium:element.setFiles', this.commandParams({
       files,
       timeout: options?.timeout,
     }));
@@ -213,31 +213,31 @@ export class Element {
 
   /** Get the element's textContent (trimmed). */
   async text(): Promise<string> {
-    const result = await this.client.send<{ text: string }>('vibium:el.text', this.commandParams());
+    const result = await this.client.send<{ text: string }>('vibium:element.text', this.commandParams());
     return result.text;
   }
 
   /** Get the element's innerText (rendered text only). */
   async innerText(): Promise<string> {
-    const result = await this.client.send<{ text: string }>('vibium:el.innerText', this.commandParams());
+    const result = await this.client.send<{ text: string }>('vibium:element.innerText', this.commandParams());
     return result.text;
   }
 
   /** Get the element's innerHTML. */
   async html(): Promise<string> {
-    const result = await this.client.send<{ html: string }>('vibium:el.html', this.commandParams());
+    const result = await this.client.send<{ html: string }>('vibium:element.html', this.commandParams());
     return result.html;
   }
 
   /** Get the element's value (for inputs, textareas, selects). */
   async value(): Promise<string> {
-    const result = await this.client.send<{ value: string }>('vibium:el.value', this.commandParams());
+    const result = await this.client.send<{ value: string }>('vibium:element.value', this.commandParams());
     return result.value;
   }
 
   /** Get an attribute value. Short name for getAttribute. */
   async attr(name: string): Promise<string | null> {
-    const result = await this.client.send<{ value: string | null }>('vibium:el.attr', this.commandParams({ name }));
+    const result = await this.client.send<{ value: string | null }>('vibium:element.attr', this.commandParams({ name }));
     return result.value;
   }
 
@@ -248,7 +248,7 @@ export class Element {
 
   /** Get the element's bounding box. Short name for boundingBox. */
   async bounds(): Promise<BoundingBox> {
-    const result = await this.client.send<BoundingBox>('vibium:el.bounds', this.commandParams());
+    const result = await this.client.send<BoundingBox>('vibium:element.bounds', this.commandParams());
     return result;
   }
 
@@ -259,55 +259,55 @@ export class Element {
 
   /** Check if the element is visible (has dimensions, not display:none/visibility:hidden/opacity:0). */
   async isVisible(): Promise<boolean> {
-    const result = await this.client.send<{ visible: boolean }>('vibium:el.isVisible', this.commandParams());
+    const result = await this.client.send<{ visible: boolean }>('vibium:element.isVisible', this.commandParams());
     return result.visible;
   }
 
   /** Check if the element is hidden (inverse of isVisible). */
   async isHidden(): Promise<boolean> {
-    const result = await this.client.send<{ hidden: boolean }>('vibium:el.isHidden', this.commandParams());
+    const result = await this.client.send<{ hidden: boolean }>('vibium:element.isHidden', this.commandParams());
     return result.hidden;
   }
 
   /** Check if the element is enabled (not disabled). */
   async isEnabled(): Promise<boolean> {
-    const result = await this.client.send<{ enabled: boolean }>('vibium:el.isEnabled', this.commandParams());
+    const result = await this.client.send<{ enabled: boolean }>('vibium:element.isEnabled', this.commandParams());
     return result.enabled;
   }
 
   /** Check if the element is checked (for checkboxes/radios). */
   async isChecked(): Promise<boolean> {
-    const result = await this.client.send<{ checked: boolean }>('vibium:el.isChecked', this.commandParams());
+    const result = await this.client.send<{ checked: boolean }>('vibium:element.isChecked', this.commandParams());
     return result.checked;
   }
 
   /** Check if the element is editable (not disabled and not readonly). */
   async isEditable(): Promise<boolean> {
-    const result = await this.client.send<{ editable: boolean }>('vibium:el.isEditable', this.commandParams());
+    const result = await this.client.send<{ editable: boolean }>('vibium:element.isEditable', this.commandParams());
     return result.editable;
   }
 
   /** Get the element's computed ARIA role. */
   async role(): Promise<string> {
-    const result = await this.client.send<{ role: string }>('vibium:el.role', this.commandParams());
+    const result = await this.client.send<{ role: string }>('vibium:element.role', this.commandParams());
     return result.role;
   }
 
   /** Get the element's accessible name (label). */
   async label(): Promise<string> {
-    const result = await this.client.send<{ label: string }>('vibium:el.label', this.commandParams());
+    const result = await this.client.send<{ label: string }>('vibium:element.label', this.commandParams());
     return result.label;
   }
 
   /** Take a screenshot of just this element. Returns a PNG buffer. */
   async screenshot(): Promise<Buffer> {
-    const result = await this.client.send<{ data: string }>('vibium:el.screenshot', this.commandParams());
+    const result = await this.client.send<{ data: string }>('vibium:element.screenshot', this.commandParams());
     return Buffer.from(result.data, 'base64');
   }
 
   /** Wait until the element reaches a state: "visible", "hidden", "attached", or "detached". */
   async waitUntil(state?: string, options?: { timeout?: number }): Promise<void> {
-    await this.client.send('vibium:el.waitFor', this.commandParams({
+    await this.client.send('vibium:element.waitFor', this.commandParams({
       state,
       timeout: options?.timeout,
     }));
@@ -333,7 +333,7 @@ export class Element {
         tag: string;
         text: string;
         box: BoundingBox;
-      }>('vibium:find', params);
+      }>('vibium:element.find', params);
 
       const info: ElementInfo = { tag: result.tag, text: result.text, box: result.box };
       const childSelector = typeof selector === 'string' ? selector : '';
@@ -361,7 +361,7 @@ export class Element {
     const result = await this.client.send<{
       elements: Array<{ tag: string; text: string; box: BoundingBox; index: number }>;
       count: number;
-    }>('vibium:findAll', params);
+    }>('vibium:element.findAll', params);
 
     const selectorStr = typeof selector === 'string' ? selector : '';
     const selectorParams = typeof selector === 'string' ? { selector } : { ...selector };

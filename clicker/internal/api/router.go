@@ -201,10 +201,10 @@ type vibiumHandler func(*BrowserSession, bidiCommand)
 // (before in handler + after in dispatch).
 func handlerCapturesBefore(method string) bool {
 	switch method {
-	case "vibium:click", "vibium:dblclick", "vibium:hover", "vibium:tap",
-		"vibium:check", "vibium:uncheck", "vibium:dragTo",
-		"vibium:fill", "vibium:type", "vibium:press", "vibium:clear",
-		"vibium:selectOption":
+	case "vibium:element.click", "vibium:element.dblclick", "vibium:element.hover", "vibium:element.tap",
+		"vibium:element.check", "vibium:element.uncheck", "vibium:element.dragTo",
+		"vibium:element.fill", "vibium:element.type", "vibium:element.press", "vibium:element.clear",
+		"vibium:element.selectOption":
 		return true
 	}
 	return false
@@ -311,98 +311,98 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 	// Handle vibium: extension commands (per WebDriver BiDi spec for extensions)
 	switch cmd.Method {
 	// Element interaction commands
-	case "vibium:click":
+	case "vibium:element.click":
 		r.dispatch(session, cmd, r.handleVibiumClick)
 		return
-	case "vibium:dblclick":
+	case "vibium:element.dblclick":
 		r.dispatch(session, cmd, r.handleVibiumDblclick)
 		return
-	case "vibium:fill":
+	case "vibium:element.fill":
 		r.dispatch(session, cmd, r.handleVibiumFill)
 		return
-	case "vibium:type":
+	case "vibium:element.type":
 		r.dispatch(session, cmd, r.handleVibiumType)
 		return
-	case "vibium:press":
+	case "vibium:element.press":
 		r.dispatch(session, cmd, r.handleVibiumPress)
 		return
-	case "vibium:clear":
+	case "vibium:element.clear":
 		r.dispatch(session, cmd, r.handleVibiumClear)
 		return
-	case "vibium:check":
+	case "vibium:element.check":
 		r.dispatch(session, cmd, r.handleVibiumCheck)
 		return
-	case "vibium:uncheck":
+	case "vibium:element.uncheck":
 		r.dispatch(session, cmd, r.handleVibiumUncheck)
 		return
-	case "vibium:selectOption":
+	case "vibium:element.selectOption":
 		r.dispatch(session, cmd, r.handleVibiumSelectOption)
 		return
-	case "vibium:hover":
+	case "vibium:element.hover":
 		r.dispatch(session, cmd, r.handleVibiumHover)
 		return
-	case "vibium:focus":
+	case "vibium:element.focus":
 		r.dispatch(session, cmd, r.handleVibiumFocus)
 		return
-	case "vibium:dragTo":
+	case "vibium:element.dragTo":
 		r.dispatch(session, cmd, r.handleVibiumDragTo)
 		return
-	case "vibium:tap":
+	case "vibium:element.tap":
 		r.dispatch(session, cmd, r.handleVibiumTap)
 		return
-	case "vibium:scrollIntoView":
+	case "vibium:element.scrollIntoView":
 		r.dispatch(session, cmd, r.handleVibiumScrollIntoView)
 		return
-	case "vibium:dispatchEvent":
+	case "vibium:element.dispatchEvent":
 		r.dispatch(session, cmd, r.handleVibiumDispatchEvent)
 		return
 
-	// Element finding commands
-	case "vibium:find":
+	// Element finding commands (element-scoped and page-level)
+	case "vibium:element.find", "vibium:page.find":
 		r.dispatch(session, cmd, r.handleVibiumFind)
 		return
-	case "vibium:findAll":
+	case "vibium:element.findAll", "vibium:page.findAll":
 		r.dispatch(session, cmd, r.handleVibiumFindAll)
 		return
 
 	// Element state commands
-	case "vibium:el.text":
+	case "vibium:element.text":
 		r.dispatch(session, cmd, r.handleVibiumElText)
 		return
-	case "vibium:el.innerText":
+	case "vibium:element.innerText":
 		r.dispatch(session, cmd, r.handleVibiumElInnerText)
 		return
-	case "vibium:el.html":
+	case "vibium:element.html":
 		r.dispatch(session, cmd, r.handleVibiumElHTML)
 		return
-	case "vibium:el.value":
+	case "vibium:element.value":
 		r.dispatch(session, cmd, r.handleVibiumElValue)
 		return
-	case "vibium:el.attr":
+	case "vibium:element.attr":
 		r.dispatch(session, cmd, r.handleVibiumElAttr)
 		return
-	case "vibium:el.bounds":
+	case "vibium:element.bounds":
 		r.dispatch(session, cmd, r.handleVibiumElBounds)
 		return
-	case "vibium:el.isVisible":
+	case "vibium:element.isVisible":
 		r.dispatch(session, cmd, r.handleVibiumElIsVisible)
 		return
-	case "vibium:el.isHidden":
+	case "vibium:element.isHidden":
 		r.dispatch(session, cmd, r.handleVibiumElIsHidden)
 		return
-	case "vibium:el.isEnabled":
+	case "vibium:element.isEnabled":
 		r.dispatch(session, cmd, r.handleVibiumElIsEnabled)
 		return
-	case "vibium:el.isChecked":
+	case "vibium:element.isChecked":
 		r.dispatch(session, cmd, r.handleVibiumElIsChecked)
 		return
-	case "vibium:el.isEditable":
+	case "vibium:element.isEditable":
 		r.dispatch(session, cmd, r.handleVibiumElIsEditable)
 		return
-	case "vibium:el.screenshot":
+	case "vibium:element.screenshot":
 		r.dispatch(session, cmd, r.handleVibiumElScreenshot)
 		return
-	case "vibium:el.waitFor":
+	case "vibium:element.waitFor":
 		r.dispatch(session, cmd, r.handleVibiumElWaitFor)
 		return
 
@@ -581,10 +581,10 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 	case "vibium:page.a11yTree":
 		r.dispatch(session, cmd, r.handleVibiumPageA11yTree)
 		return
-	case "vibium:el.role":
+	case "vibium:element.role":
 		r.dispatch(session, cmd, r.handleVibiumElRole)
 		return
-	case "vibium:el.label":
+	case "vibium:element.label":
 		r.dispatch(session, cmd, r.handleVibiumElLabel)
 		return
 
@@ -635,7 +635,7 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 	case "vibium:download.saveAs":
 		r.dispatch(session, cmd, r.handleDownloadSaveAs)
 		return
-	case "vibium:el.setFiles":
+	case "vibium:element.setFiles":
 		r.dispatch(session, cmd, r.handleVibiumElSetFiles)
 		return
 
