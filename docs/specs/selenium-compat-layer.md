@@ -2,7 +2,7 @@
 
 **Future site:** areweseleniumyet.com
 **Goal:** Drop-in Selenium WebDriver replacement backed by Vibium's BiDi engine.
-**Depends on:** [API Reference](../trackers/api.md) (core API) and [WebDriver coverage](../trackers/arewewebdriveryet.md).
+**Depends on:** [API Reference](../reference/api.md) (core API) and [WebDriver coverage](../trackers/arewewebdriveryet.md).
 
 ---
 

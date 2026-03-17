@@ -12,7 +12,7 @@ Use the **JS client** (`clients/javascript/`) and **Python client** (`clients/py
 
 1. [Architecture Overview](#architecture-overview)
 2. [Class Hierarchy](#class-hierarchy)
-3. [Command Reference](#command-reference) — see [API Reference](../trackers/api.md) for full tables
+3. [Command Reference](#command-reference) — see [API Reference](../reference/api.md) for full tables
 4. [Naming Conventions](#naming-conventions)
 5. [Error Types](#error-types)
 6. [Async / Sync Patterns](#async--sync-patterns)
@@ -132,7 +132,7 @@ These should be structured types (interfaces/structs), not raw dicts:
 
 ## Command Reference
 
-For the full command reference with wire commands, JS/Python signatures, MCP tools, and CLI commands, see **[Vibium API Reference](../trackers/api.md)**.
+For the full command reference with wire commands, JS/Python signatures, MCP tools, and CLI commands, see **[Vibium API Reference](../reference/api.md)**.
 
 All extension commands use the `vibium:` prefix. Standard WebDriver BiDi commands (e.g., `browsingContext.getTree`, `session.subscribe`) are forwarded directly to Chrome.
 
