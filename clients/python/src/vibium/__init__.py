@@ -16,9 +16,13 @@ Usage (async):
 """
 
 from .sync_api.browser import browser, Browser
-from .sync_api.page import Page
+from .sync_api.page import Page, Keyboard, Mouse, Touch, SyncDownload as Download
 from .sync_api.element import Element
 from .sync_api.context import BrowserContext
+from .sync_api.clock import Clock
+from .sync_api.recording import Recording
+from .sync_api.dialog import Dialog
+from .sync_api.route import Route
 from .errors import (
     VibiumError,
     BiDiError,
@@ -34,8 +38,16 @@ __all__ = [
     "browser",
     "Browser",
     "Page",
+    "Keyboard",
+    "Mouse",
+    "Touch",
     "Element",
     "BrowserContext",
+    "Clock",
+    "Recording",
+    "Dialog",
+    "Route",
+    "Download",
     "VibiumError",
     "BiDiError",
     "VibiumNotFoundError",
