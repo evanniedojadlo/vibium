@@ -1,7 +1,5 @@
 # Vibium API
 
-161 commands across 22 categories, tracked across 6 implementation targets.
-
 **Legend:** ✅ Done · 🟡 Partial · ⬜ Not started · — N/A
 
 ---
@@ -264,10 +262,10 @@
 |---------|----------|---------|----------|---------|-----|-----|
 | `context.recording.start(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.recording.stop(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.recording.startChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.recording.stopChunk(opts)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.recording.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
-| `context.recording.stopGroup()` | ✅ | ✅ | ✅ | ✅ | — | ⬜ |
+| `context.recording.startChunk(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.recording.stopChunk(opts)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.recording.startGroup(name)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.recording.stopGroup()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Evaluation
 
