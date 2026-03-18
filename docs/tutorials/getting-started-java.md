@@ -110,8 +110,9 @@ Download the JAR directly and compile with `javac`:
 mkdir my-first-bot
 cd my-first-bot
 
-# Download the vibium JAR (includes the vibium binary for your platform)
+# Download the vibium JAR and its dependency (Gson)
 curl -LO https://repo1.maven.org/maven2/com/vibium/vibium/26.3.18/vibium-26.3.18.jar
+curl -LO https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar
 ```
 
 ---
@@ -180,8 +181,8 @@ mvn compile exec:java -Dexec.mainClass=Hello
 ### No build tool
 
 ```bash
-javac -cp vibium-26.3.18.jar Hello.java
-java -cp .:vibium-26.3.18.jar Hello
+javac -cp "vibium-26.3.18.jar:gson-2.11.0.jar" Hello.java
+java -cp ".:vibium-26.3.18.jar:gson-2.11.0.jar" Hello
 ```
 
 You should see:
