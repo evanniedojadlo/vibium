@@ -122,29 +122,26 @@ Create a file called `Hello.java`:
 
 ```java
 import com.vibium.Vibium;
-import com.vibium.Browser;
-import com.vibium.Page;
-import com.vibium.Element;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Hello {
     public static void main(String[] args) throws Exception {
         // Launch a browser (you'll see it open!)
-        Browser bro = Vibium.start();
-        Page vibe = bro.page();
+        var bro = Vibium.start();
+        var vibe = bro.page();
 
         // Go to a website
         vibe.go("https://example.com");
         System.out.println("Loaded example.com");
 
         // Take a screenshot
-        byte[] png = vibe.screenshot();
+        var png = vibe.screenshot();
         Files.write(Path.of("screenshot.png"), png);
         System.out.println("Saved screenshot.png");
 
         // Find and click the link
-        Element link = vibe.find("a");
+        var link = vibe.find("a");
         System.out.println("Found link: " + link.text());
         link.click();
         System.out.println("Clicked!");
@@ -218,7 +215,7 @@ Check your folder - there's now a `screenshot.png` file!
 ```java
 import com.vibium.types.StartOptions;
 
-Browser bro = Vibium.start(new StartOptions().headless(true));
+var bro = Vibium.start(new StartOptions().headless(true));
 ```
 
 **Use JavaScript instead:**
