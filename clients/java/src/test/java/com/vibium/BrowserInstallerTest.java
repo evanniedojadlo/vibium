@@ -90,13 +90,11 @@ class BrowserInstallerTest {
     }
 
     /**
-     * Forward VIBIUM_BIN_PATH to child processes so the CLI can find the binary.
+     * Pass the resolved binary path to child processes so the CLI can find it
+     * regardless of whether VIBIUM_BIN_PATH was set in the environment.
      */
     private static void forwardBinPath(ProcessBuilder pb) {
-        String binPath = System.getenv("VIBIUM_BIN_PATH");
-        if (binPath != null && !binPath.isEmpty()) {
-            pb.environment().put("VIBIUM_BIN_PATH", binPath);
-        }
+        pb.environment().put("VIBIUM_BIN_PATH", binaryPath);
     }
 
     /**
