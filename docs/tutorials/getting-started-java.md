@@ -233,7 +233,7 @@ See [Getting Started with MCP](getting-started-mcp.md) for Claude Code and Gemin
 
 ### "command not found: java"
 
-Java isn't installed or isn't in your PATH. Reinstall from [adoptium.net](https://adoptium.net).
+Java isn't installed or isn't in your PATH. See [Step 1](#step-1-install-java) above — on Windows, use `winget install EclipseAdoptium.Temurin.21.JDK`.
 
 ### "chromedriver not found" or "Chrome not found"
 
