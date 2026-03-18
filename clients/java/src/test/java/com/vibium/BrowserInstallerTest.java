@@ -48,6 +48,7 @@ class BrowserInstallerTest {
         ProcessBuilder pb = new ProcessBuilder(
             "java", "-cp", getClasspath(), "com.vibium.CLI", "paths"
         );
+        forwardBinPath(pb);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
@@ -74,6 +75,7 @@ class BrowserInstallerTest {
         ProcessBuilder pb = new ProcessBuilder(
             "java", "-cp", getClasspath(), "com.vibium.CLI", "nonexistent-command-xyz"
         );
+        forwardBinPath(pb);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
@@ -85,6 +87,16 @@ class BrowserInstallerTest {
 
         int exitCode = process.waitFor();
         assertNotEquals(0, exitCode, "CLI proxy should propagate non-zero exit code for invalid command");
+    }
+
+    /**
+     * Forward VIBIUM_BIN_PATH to child processes so the CLI can find the binary.
+     */
+    private static void forwardBinPath(ProcessBuilder pb) {
+        String binPath = System.getenv("VIBIUM_BIN_PATH");
+        if (binPath != null && !binPath.isEmpty()) {
+            pb.environment().put("VIBIUM_BIN_PATH", binPath);
+        }
     }
 
     /**
