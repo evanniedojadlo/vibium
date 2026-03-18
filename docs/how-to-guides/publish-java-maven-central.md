@@ -170,11 +170,13 @@ curl -X POST \
   -F "bundle=@vibium-bundle.zip"
 ```
 
-This returns a deployment ID. Check the status:
+This returns a deployment ID. Save it, then check the status:
 
 ```bash
+DEPLOYMENT_ID="<id-from-upload-response>"
+
 curl -s \
-  "https://central.sonatype.com/api/v1/publisher/status?id=<deployment-id>" \
+  "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID" \
   -H "Authorization: Bearer $(echo -n "$SONATYPE_USER:$SONATYPE_PASS" | base64)"
 ```
 
@@ -182,7 +184,7 @@ Once validation passes, publish it:
 
 ```bash
 curl -X POST \
-  "https://central.sonatype.com/api/v1/publisher/deployment/<deployment-id>" \
+  "https://central.sonatype.com/api/v1/publisher/deployment/$DEPLOYMENT_ID" \
   -H "Authorization: Bearer $(echo -n "$SONATYPE_USER:$SONATYPE_PASS" | base64)"
 ```
 

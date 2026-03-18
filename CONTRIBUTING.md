@@ -256,7 +256,7 @@ Or install from Maven Central (binary is bundled in the JAR):
 <dependency>
     <groupId>com.vibium</groupId>
     <artifactId>vibium</artifactId>
-    <version>26.3.11</version>
+    <version>26.3.18</version>
 </dependency>
 ```
 

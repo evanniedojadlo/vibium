@@ -68,7 +68,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.vibium:vibium:26.3.17'
+    implementation 'com.vibium:vibium:26.3.18'
 }
 
 application {
@@ -96,7 +96,7 @@ Create a `pom.xml` file:
         <dependency>
             <groupId>com.vibium</groupId>
             <artifactId>vibium</artifactId>
-            <version>26.3.17</version>
+            <version>26.3.18</version>
         </dependency>
     </dependencies>
 </project>
@@ -111,7 +111,7 @@ mkdir my-first-bot
 cd my-first-bot
 
 # Download the vibium JAR (includes the vibium binary for your platform)
-curl -LO https://repo1.maven.org/maven2/com/vibium/vibium/26.3.17/vibium-26.3.17.jar
+curl -LO https://repo1.maven.org/maven2/com/vibium/vibium/26.3.18/vibium-26.3.18.jar
 ```
 
 ---
@@ -180,8 +180,8 @@ mvn compile exec:java -Dexec.mainClass=Hello
 ### No build tool
 
 ```bash
-javac -cp vibium-26.3.17.jar Hello.java
-java -cp .:vibium-26.3.17.jar Hello
+javac -cp vibium-26.3.18.jar Hello.java
+java -cp .:vibium-26.3.18.jar Hello
 ```
 
 You should see:
@@ -241,7 +241,7 @@ Chrome for Testing downloads automatically on first use. If auto-install fails (
 
 ```bash
 # Using the CLI proxy built into the JAR
-java -jar vibium-26.3.17.jar install
+java -jar vibium-26.3.18.jar install
 
 # Or if vibium is on your PATH
 vibium install
