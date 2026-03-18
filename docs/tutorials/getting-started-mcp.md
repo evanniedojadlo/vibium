@@ -165,6 +165,9 @@ You should see a JSON response with `serverInfo` and `capabilities`.
 
 ## Next Steps
 
+**Use the CLI directly:**
+See [Agent Setup](../../README.md#agent-setup) for using `vibium` as a command-line tool.
+
 **Use the JS API directly:**
 See [Getting Started Tutorial](getting-started-js.md) for programmatic control with JavaScript/TypeScript.
 

@@ -226,7 +226,7 @@ See [Getting Started (JavaScript)](getting-started-js.md) for the JS version.
 See [Getting Started (Python)](getting-started-python.md) for the Python version.
 
 **Let AI control the browser:**
-See [Getting Started with MCP](getting-started-mcp.md) for Claude Code and Gemini CLI setup.
+See [Agent Setup](../../README.md#agent-setup) for CLI setup and [Getting Started with MCP](getting-started-mcp.md) for MCP server setup.
 
 ---
 

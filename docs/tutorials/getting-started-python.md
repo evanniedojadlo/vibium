@@ -167,11 +167,8 @@ asyncio.run(main())
 **Use JavaScript instead:**
 See [Getting Started (JavaScript)](getting-started-js.md) for the JS version.
 
-**Add to Claude Code** (let AI control the browser):
-```bash
-claude mcp add vibium -- npx -y vibium mcp
-```
-See [Getting Started with MCP](getting-started-mcp.md) for the full guide.
+**Let AI control the browser:**
+See [Agent Setup](../../README.md#agent-setup) for CLI setup and [Getting Started with MCP](getting-started-mcp.md) for MCP server setup.
 
 ---
 
