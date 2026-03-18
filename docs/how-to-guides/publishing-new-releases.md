@@ -10,19 +10,6 @@ Before your first release, ensure you have:
 - **PyPI**: API token from https://pypi.org/manage/account/token/
 - **GitHub**: `gh` CLI authenticated (`gh auth login`)
 
-## Pre-release Checklist
-
-```bash
-# Clean everything
-make clean-all
-
-# Build and test
-make build
-make test
-```
-
-All tests must pass before proceeding.
-
 ## Version Bump
 
 ```bash
@@ -34,6 +21,16 @@ This updates:
 - All `pyproject.toml` files and dependency constraints
 - Python `__init__.py` version strings
 - Regenerates `package-lock.json`
+
+## Build and Test
+
+```bash
+make clean-all
+make build
+make test
+```
+
+All tests must pass before proceeding.
 
 ## Package
 

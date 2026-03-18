@@ -63,6 +63,7 @@ screenshots/
 clients/java/build/
 clients/java/.gradle/
 clients/java/src/main/resources/natives/
+vibium-bundle.zip
 
 # Python
 __pycache__/

@@ -118,5 +118,5 @@ signing {
 
 // Only sign when publishing
 tasks.withType<Sign>().configureEach {
-    onlyIf { gradle.taskGraph.hasTask("publish") }
+    onlyIf { gradle.taskGraph.hasTask(":publish") }
 }
