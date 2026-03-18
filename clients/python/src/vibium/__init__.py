@@ -33,7 +33,7 @@ from .errors import (
     BrowserCrashedError,
 )
 
-__version__ = "26.3.11"
+__version__ = "26.3.17"
 __all__ = [
     "browser",
     "Browser",
