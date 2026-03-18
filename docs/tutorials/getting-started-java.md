@@ -12,13 +12,13 @@ A program that opens a browser, visits a website, takes a screenshot, and clicks
 
 ## Step 1: Install Java
 
-Vibium requires Java 21 or higher. Check if you have it:
+Vibium requires Java 11 or higher (we recommend the latest LTS). Check if you have it:
 
 ```bash
 java --version
 ```
 
-If you see a version number (like `21.0.0` or higher), skip to Step 2.
+If you see a version number (`11.0.0` or higher), skip to Step 2.
 
 ### macOS
 
@@ -32,7 +32,9 @@ brew install openjdk
 
 ### Windows
 
-Download and run the installer from [adoptium.net](https://adoptium.net). Choose the latest LTS version.
+```powershell
+winget install EclipseAdoptium.Temurin.21.JDK
+```
 
 ### Linux
 
