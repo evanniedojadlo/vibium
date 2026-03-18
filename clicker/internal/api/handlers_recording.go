@@ -303,7 +303,11 @@ func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *Record
 	w, h := ImageDimensions(imgData)
 
 	// Store image in resources for Record Player
-	hash := sha1Hex(imgData)
+	ext := "jpeg"
+	if opts.Format == "png" {
+		ext = "png"
+	}
+	hash := sha1Hex(imgData) + "." + ext
 	recorder.StoreResource(hash, imgData)
 
 	// Inline data URI for Playwright compat (its service worker only intercepts HTTP(S))

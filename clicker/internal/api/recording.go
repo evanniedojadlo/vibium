@@ -514,7 +514,7 @@ func (t *Recorder) AddScreenshot(pngData []byte, pageID string, width, height in
 		ts = time.Now()
 	}
 
-	hash := sha1Hex(pngData)
+	hash := sha1Hex(pngData) + "." + t.imageExtension()
 	t.resources[hash] = pngData
 	t.events = append(t.events, recordEvent{
 		"type":      "screencast-frame",
@@ -990,7 +990,7 @@ func (t *Recorder) buildZipLocked() ([]byte, error) {
 		nw.Write([]byte("\n"))
 	}
 
-	// Write resources: resources/<sha1> (no extension — Playwright looks up by bare sha1)
+	// Write resources: resources/<sha1>.<ext> (e.g. resources/abc123.jpeg)
 	for hash, data := range t.resources {
 		rw, err := zw.Create("resources/" + hash)
 		if err != nil {
@@ -1004,6 +1004,14 @@ func (t *Recorder) buildZipLocked() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+// imageExtension returns the file extension for the recording's image format.
+func (t *Recorder) imageExtension() string {
+	if t.options.Format == "png" {
+		return "png"
+	}
+	return "jpeg"
 }
 
 // sha1Hex returns the lowercase hex-encoded SHA1 hash of data.
