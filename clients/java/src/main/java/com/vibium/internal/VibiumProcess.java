@@ -52,6 +52,11 @@ public class VibiumProcess {
             }
         }
 
+        // Auto-install Chrome if needed (skip for remote connections)
+        if (connectURL == null || connectURL.isEmpty()) {
+            BrowserInstaller.ensureInstalled(binaryPath);
+        }
+
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.redirectErrorStream(false);
@@ -86,8 +91,7 @@ public class VibiumProcess {
                 }
                 process.destroyForcibly();
                 throw new VibiumConnectionException(
-                    "vibium process did not send ready signal (exit code: " + exitCode + ")" +
-                    (stderr.isEmpty() ? "" : "\nstderr: " + stderr)
+                    rewriteError(stderr, exitCode)
                 );
             }
 
@@ -143,6 +147,27 @@ public class VibiumProcess {
      */
     public boolean isAlive() {
         return process.isAlive();
+    }
+
+    /**
+     * Rewrite Go-level error messages into Java-specific guidance.
+     */
+    private static String rewriteError(String stderr, int exitCode) {
+        String lower = stderr.toLowerCase();
+
+        if (lower.contains("chromedriver not found") || lower.contains("chrome not found")) {
+            return "Chrome for Testing is not installed.\n\n" +
+                "The automatic download did not succeed. To install manually, run:\n\n" +
+                "  java -jar vibium.jar install\n\n" +
+                "Or, if vibium is on your PATH:\n\n" +
+                "  vibium install\n\n" +
+                "To skip automatic downloads, set VIBIUM_SKIP_BROWSER_DOWNLOAD=1.\n" +
+                (stderr.isEmpty() ? "" : "\nOriginal error: " + stderr);
+        }
+
+        // Default: pass through the original message
+        return "vibium process did not send ready signal (exit code: " + exitCode + ")" +
+            (stderr.isEmpty() ? "" : "\nstderr: " + stderr);
     }
 
     private static String readStream(InputStream is) {

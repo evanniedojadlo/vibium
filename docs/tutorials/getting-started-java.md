@@ -235,6 +235,23 @@ See [Getting Started with MCP](getting-started-mcp.md) for Claude Code and Gemin
 
 Java isn't installed or isn't in your PATH. Reinstall from [adoptium.net](https://adoptium.net).
 
+### "chromedriver not found" or "Chrome not found"
+
+Chrome for Testing downloads automatically on first use. If auto-install fails (e.g. behind a corporate proxy), install it manually:
+
+```bash
+# Using the CLI proxy built into the JAR
+java -jar vibium-26.3.17.jar install
+
+# Or if vibium is on your PATH
+vibium install
+```
+
+To skip the automatic download (e.g. if you provide your own Chrome), set:
+```bash
+export VIBIUM_SKIP_BROWSER_DOWNLOAD=1
+```
+
 ### "package com.vibium does not exist"
 
 Make sure the vibium JAR is on your classpath. If using Gradle/Maven, run the build command to download dependencies first.

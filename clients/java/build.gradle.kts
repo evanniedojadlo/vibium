@@ -63,6 +63,12 @@ tasks.register<Copy>("copyDependencies") {
 }
 tasks.named("build") { dependsOn("copyDependencies") }
 
+tasks.named<Jar>("jar") {
+    manifest {
+        attributes("Main-Class" to "com.vibium.CLI")
+    }
+}
+
 tasks.named<Javadoc>("javadoc") {
     (options as StandardJavadocDocletOptions).apply {
         addStringOption("Xdoclint:none", "-quiet")

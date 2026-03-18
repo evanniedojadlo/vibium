@@ -2,6 +2,8 @@
 
 Step-by-step guide using the Central Portal (central.sonatype.com).
 
+**Already done the one-time setup?** Skip to [Step 6: Build and Stage](#6-build-and-stage).
+
 ---
 
 ## 1. Create a Sonatype Account
@@ -89,7 +91,13 @@ Save your Sonatype token (from step 4) somewhere handy — you'll need it for th
 
 ## 6. Build and Stage
 
-From the repo root:
+First, bump the version. This updates `VERSION` and all package manifests (JS, Python, Java) in one step:
+
+```bash
+make set-version V=26.3.18
+```
+
+Then build from the repo root:
 
 ```bash
 # Build all platform binaries (required for the JAR)
